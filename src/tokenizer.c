@@ -30,7 +30,7 @@ void token_free(token_t tok) {
 /* input type */
 struct _input {
 	FILE* source;
-	size_t line, col;
+	size_t line, column;
 };
 
 input_t input_new(const char* file) {
@@ -45,7 +45,7 @@ input_t input_new(const char* file) {
 		}
 
 		in->line = 0;
-		in->col = 0;
+		in->column = 0;
 	}
 
 	return in;
@@ -64,19 +64,13 @@ int input_end(input_t in) {
 }
 
 int input_get(input_t in) {
+	in->column++;
 	return fgetc(in->source);
 }
 
-ssize_t input_get_multiple(input_t in, char* buffer, size_t length) {
-	return fread(buffer, 1, length, in->source);
-}
-
 int input_unget(input_t in) {
+	in->column--;
 	return fseek(in->source, -1, SEEK_CUR);
-}
-
-int input_unget_multiple(input_t in, size_t length) {
-	return fseek(in->source, -length, SEEK_CUR);
 }
 
 int input_letter(input_t in, chunklist_t target) {
@@ -98,8 +92,23 @@ int input_letter(input_t in, chunklist_t target) {
                           || (r) == '\f' \
                           || (r) == '\t')
 
+/* whitespace */
+void input_skip_whitespace(input_t in) {
+	int r;
+
+	while ((r = input_get(in)) >= 0) {
+		if (!is_whitespace(r)) {
+			input_unget(in);
+			break;
+		}
+	}
+}
+
 /* tokenizers */
 token_t input_identifier(input_t in) {
+	size_t ln = in->line,
+	       col = in->column;
+
 	int r = input_get(in);
 
 	if (r < 0)
@@ -144,11 +153,44 @@ token_t input_identifier(input_t in) {
 	}
 
 	/* finalize buffer */
-	token_t tok = token_new(T_IDENTIFIER, in->line, in->col,
+	token_t tok = token_new(T_IDENTIFIER, ln, col,
 	                        chunklist_to_string(buffer));
 
-	in->col += chunklist_size(buffer);
 	chunklist_free(buffer);
 
 	return tok;
 }
+
+token_t input_linefeed(input_t in) {
+	size_t ln = in->line,
+	       col = in->column;
+
+	int r = input_get(in);
+
+	if (r < 0)
+		return NULL;
+
+	if (r != '\n') {
+		input_unget(in);
+		return NULL;
+	}
+
+	in->line++;
+	in->column = 0;
+
+	return token_new(T_LINEFEED, ln, col, NULL);
+}
+
+token_t input_tokenize(input_t in) {
+	input_skip_whitespace(in);
+
+	token_t tok = input_linefeed(in);
+
+	if (tok)
+		return tok;
+
+	tok = input_identifier(in);
+
+	return tok;
+}
+
