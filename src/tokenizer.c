@@ -98,6 +98,8 @@ token_t* token_error(size_t line, size_t col,
 
 void token_free(token_t* tok) {
 	if (tok) {
+		/* free the string associated with the token,
+		   but only if it's not an error token */
 		if (tok->type != T_ERROR) {
 			free(tok->data.token);
 		}
@@ -107,35 +109,26 @@ void token_free(token_t* tok) {
 }
 
 void token_fix_identifier(token_t* tok) {
+	/* only valid T_IDENTIFIER tokens can be fixed here */
 	if (!tok || tok->type != T_IDENTIFIER || tok->type == T_ERROR)
 		return;
 
 	const char* cnt = tok->data.token;
 
-	if (strcasecmp(cnt, "if") == 0)
-		tok->type = T_KW_IF;
-	else if (strcasecmp(cnt, "else") == 0)
-		tok->type = T_KW_ELSE;
-	else if (strcasecmp(cnt, "while") == 0)
-		tok->type = T_KW_WHILE;
-	else if (strcasecmp(cnt, "do") == 0)
-		tok->type = T_KW_DO;
-	else if (strcasecmp(cnt, "for") == 0)
-		tok->type = T_KW_FOR;
-	else if (strcasecmp(cnt, "return") == 0)
-		tok->type = T_KW_RETURN;
-	else if (strcasecmp(cnt, "break") == 0)
-		tok->type = T_KW_BREAK;
-	else if (strcasecmp(cnt, "continue") == 0)
-		tok->type = T_KW_CONTINUE;
-	else if (strcasecmp(cnt, "fun") == 0)
-		tok->type = T_KW_FUN;
-	else if (strcasecmp(cnt, "let") == 0)
-		tok->type = T_KW_LET;
-	else if (strcasecmp(cnt, "struct") == 0)
-		tok->type = T_KW_STRUCT;
-	else if (strcasecmp(cnt, "enum") == 0)
-		tok->type = T_KW_ENUM;
+	/* figure out if the identifier is a keyword,
+	   by comparing the associated string */
+	if (strcasecmp(cnt, "if") == 0)            tok->type = T_KW_IF;
+	else if (strcasecmp(cnt, "else") == 0)     tok->type = T_KW_ELSE;
+	else if (strcasecmp(cnt, "while") == 0)    tok->type = T_KW_WHILE;
+	else if (strcasecmp(cnt, "do") == 0)       tok->type = T_KW_DO;
+	else if (strcasecmp(cnt, "for") == 0)      tok->type = T_KW_FOR;
+	else if (strcasecmp(cnt, "return") == 0)   tok->type = T_KW_RETURN;
+	else if (strcasecmp(cnt, "break") == 0)    tok->type = T_KW_BREAK;
+	else if (strcasecmp(cnt, "continue") == 0) tok->type = T_KW_CONTINUE;
+	else if (strcasecmp(cnt, "fun") == 0)      tok->type = T_KW_FUN;
+	else if (strcasecmp(cnt, "let") == 0)      tok->type = T_KW_LET;
+	else if (strcasecmp(cnt, "struct") == 0)   tok->type = T_KW_STRUCT;
+	else if (strcasecmp(cnt, "enum") == 0)     tok->type = T_KW_ENUM;
 }
 
 /* input type */
@@ -265,7 +258,7 @@ token_t* input_identifier(input_t* in) {
 
 	chunklist_free(buffer);
 
-	/* fix in case of a keyword */
+	/* fix in case this identifier is a keyword */
 	token_fix_identifier(tok);
 
 	return tok;
@@ -280,6 +273,7 @@ token_t* input_seperator(input_t* in) {
 	if (r < 0)
 		return NULL;
 
+	/* first line feed */
 	if (r != '\n') {
 		input_unget(in, r);
 		return NULL;
@@ -288,6 +282,8 @@ token_t* input_seperator(input_t* in) {
 	in->line++;
 	in->column = 0;
 
+	/* consume the following whitespaces and line feeds.
+	   why? because two empty lines are semantically equal to one empty line */
 	while (1) {
 		r = input_get(in);
 
