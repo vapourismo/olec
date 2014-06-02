@@ -5,7 +5,7 @@
 #include <string.h>
 #include <strings.h>
 
-#define TOK_DATA_CHUNKS 1024
+#define TOK_DATA_CHUNKS 32
 
 /* token type */
 const char* token_type_name(token_type_t type) {
@@ -13,7 +13,7 @@ const char* token_type_name(token_type_t type) {
 		case T_IDENTIFIER:
 			return "identifier";
 
-		case T_LINEFEED:
+		case T_SEPERATOR:
 			return "line feed";
 
 		case T_KW_IF:
@@ -54,6 +54,9 @@ const char* token_type_name(token_type_t type) {
 
 		case T_STRING:
 			return "string";
+
+		case T_NUMBER:
+			return "number";
 
 		default:
 			return "unknown";
@@ -165,12 +168,12 @@ int input_done(const input_t* in) {
 /* helpers */
 int input_get(input_t* in) {
 	in->column++;
-	return fgetc(in->source);
+	return getc(in->source);
 }
 
-int input_unget(input_t* in) {
+int input_unget(input_t* in, int c) {
 	in->column--;
-	return fseek(in->source, -1, SEEK_CUR);
+	return ungetc(c, in->source);
 }
 
 #define is_letter(r) (((r) >= 'a' && (r) <= 'z') \
@@ -186,6 +189,7 @@ int input_unget(input_t* in) {
                           || (r) == '\b' \
                           || (r) == '\v' \
                           || (r) == '\f' \
+                          || (r) == '\r' \
                           || (r) == '\t')
 
 /* whitespace */
@@ -194,7 +198,7 @@ void input_skip_whitespace(input_t* in) {
 
 	while ((r = input_get(in)) >= 0) {
 		if (!is_whitespace(r)) {
-			input_unget(in);
+			input_unget(in, r);
 			break;
 		}
 	}
@@ -216,7 +220,7 @@ token_t* input_identifier(input_t* in) {
 	if (is_letter(r)) {
 		chunklist_append(buffer, r);
 	} else {
-		input_unget(in);
+		input_unget(in, r);
 		return NULL;
 	}
 
@@ -227,11 +231,12 @@ token_t* input_identifier(input_t* in) {
 		if (r < 0)
 			break;
 
-		if (!((is_letter(r) || is_digit(r))
-		      && chunklist_append(buffer, r))) {
-			input_unget(in);
+		if (!is_letter(r) && !is_digit(r)) {
+			input_unget(in, r);
 			break;
 		}
+
+		chunklist_append(buffer, r);
 	}
 
 	/* suffix [!?'] */
@@ -241,16 +246,17 @@ token_t* input_identifier(input_t* in) {
 		if (r < 0)
 			break;
 
-		if (!(is_suffix(r)
-		      && chunklist_append(buffer, r))) {
-			input_unget(in);
+		if (!is_suffix(r)) {
+			input_unget(in, r);
 			break;
 		}
+
+		chunklist_append(buffer, r);
 	}
 
 	/* finalize buffer */
 	token_t* tok = token_new(T_IDENTIFIER, ln, col,
-	                        chunklist_to_string(buffer));
+	                         chunklist_to_string(buffer));
 
 	chunklist_free(buffer);
 
@@ -260,7 +266,7 @@ token_t* input_identifier(input_t* in) {
 	return tok;
 }
 
-token_t* input_linefeed(input_t* in) {
+token_t* input_seperator(input_t* in) {
 	size_t ln = in->line,
 	       col = in->column;
 
@@ -270,14 +276,29 @@ token_t* input_linefeed(input_t* in) {
 		return NULL;
 
 	if (r != '\n') {
-		input_unget(in);
+		input_unget(in, r);
 		return NULL;
 	}
 
 	in->line++;
 	in->column = 0;
 
-	return token_new(T_LINEFEED, ln, col, NULL);
+	while (1) {
+		r = input_get(in);
+
+		if (r < 0)
+			break;
+
+		if (r == '\n') {
+			in->line++;
+			in->column = 0;
+		} else if (!is_whitespace(r)) {
+			input_unget(in, r);
+			break;
+		}
+	}
+
+	return token_new(T_SEPERATOR, ln, col, NULL);
 }
 
 token_t* input_string(input_t* in) {
@@ -290,11 +311,11 @@ token_t* input_string(input_t* in) {
 		return NULL;
 
 	if (r != '"') {
-		input_unget(in);
+		input_unget(in, r);
 		return NULL;
 	}
 
-	chunklist_t list = chunklist_new(TOK_DATA_CHUNKS);
+	chunklist_t buffer = chunklist_new(TOK_DATA_CHUNKS);
 
 	while (1) {
 		r = input_get(in);
@@ -307,12 +328,109 @@ token_t* input_string(input_t* in) {
 		} else if (r < 0) {
 			return token_error(ln, col, "Unterminated string literal");
 		} else {
-			chunklist_append(list, r);
+			if (r == '\n') {
+				in->line++;
+				in->column = 0;
+			}
+
+			chunklist_append(buffer, r);
 		}
 	}
 
-	token_t* tok = token_new(T_STRING, ln, col, chunklist_to_string(list));
-	chunklist_free(list);
+	token_t* tok = token_new(T_STRING, ln, col, chunklist_to_string(buffer));
+	chunklist_free(buffer);
+
+	return tok;
+}
+
+token_t* input_number(input_t* in) {
+	size_t ln = in->line,
+	       col = in->column;
+
+	int r = input_get(in);
+
+	if (r < 0)
+		return NULL;
+
+	if (!is_digit(r)) {
+		input_unget(in, r);
+		return NULL;
+	}
+
+	chunklist_t buffer = chunklist_new(TOK_DATA_CHUNKS);
+	chunklist_append(buffer, r);
+
+	char cont = 0;
+
+	/* read prefix */
+	while (1) {
+		r = input_get(in);
+
+		if (r < 0)
+			break;
+
+		if (r == '.' || r == 'e' || r == 'E') {
+			chunklist_append(buffer, r);
+
+			if (r == 'E')
+				r = 'e';
+
+			cont = r;
+			break;
+		}
+
+		if (!is_digit(r)) {
+			input_unget(in, r);
+			break;
+		}
+
+		chunklist_append(buffer, r);
+	}
+
+	/* read fraction */
+	if (cont == '.') {
+		cont = 0;
+
+		while (1) {
+			r = input_get(in);
+
+			if (r < 0)
+				break;
+
+			if (r == 'e' || r == 'E') {
+				chunklist_append(buffer, r);
+				cont = 'e';
+				break;
+			}
+
+			if (!is_digit(r)) {
+				input_unget(in, r);
+				break;
+			}
+
+			chunklist_append(buffer, r);
+		}
+	}
+
+	/* read exponent */
+	if (cont == 'e') {
+		while (1) {
+			r = input_get(in);
+
+			if (r < 0)
+				break;
+
+			if (!is_digit(r)) {
+				input_unget(in, r);
+				break;
+			}
+
+			chunklist_append(buffer, r);
+		}
+	}
+
+	token_t* tok = token_new(T_NUMBER, ln, col, chunklist_to_string(buffer));
+	chunklist_free(buffer);
 
 	return tok;
 }
@@ -323,20 +441,19 @@ token_t* input_tokenize(input_t* in) {
 	if (feof(in->source))
 		return NULL;
 
-	token_t* tok = input_linefeed(in);
+	token_t* tok = input_seperator(in);
 
 	if (tok)
 		return tok;
 
-	tok = input_identifier(in);
-
-	if (tok)
+	if ((tok = input_identifier(in)))
 		return tok;
 
-	tok = input_string(in);
-
-	if (!tok)
-		return token_error(in->line, in->column, "Unknown input");
-	else
+	if ((tok = input_string(in)))
 		return tok;
+
+	if ((tok = input_number(in)))
+		return tok;
+
+	return token_error(in->line, in->column, "Unknown input");
 }

@@ -7,8 +7,9 @@
 
 typedef enum {
 	T_IDENTIFIER,
-	T_LINEFEED,
+	T_SEPERATOR,
 	T_STRING,
+	T_NUMBER,
 	T_KW_IF,
 	T_KW_ELSE,
 	T_KW_WHILE,
@@ -79,12 +80,17 @@ token_t* input_identifier(input_t* in);
 /**
  * Read a line feed token.
  */
-token_t* input_linefeed(input_t* in);
+token_t* input_seperator(input_t* in);
 
 /**
  * Read a string token.
  */
 token_t* input_string(input_t* in);
+
+/**
+ * Read a number token.
+ */
+token_t* input_number(input_t* in);
 
 /**
  * Read a token.
