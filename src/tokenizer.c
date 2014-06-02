@@ -3,10 +3,60 @@
 
 #include <malloc.h>
 #include <string.h>
+#include <strings.h>
 
 #define TOK_DATA_CHUNKS 1024
 
 /* token type */
+const char* token_type_name(token_type_t type) {
+	switch (type) {
+		case T_IDENTIFIER:
+			return "identifier";
+
+		case T_LINEFEED:
+			return "line feed";
+
+		case T_KW_IF:
+			return "if";
+
+		case T_KW_ELSE:
+			return "else";
+
+		case T_KW_WHILE:
+			return "while";
+
+		case T_KW_DO:
+			return "do";
+
+		case T_KW_FOR:
+			return "for";
+
+		case T_KW_RETURN:
+			return "return";
+
+		case T_KW_BREAK:
+			return "break";
+
+		case T_KW_CONTINUE:
+			return "continue";
+
+		case T_KW_FUN:
+			return "fun";
+
+		case T_KW_LET:
+			return "let";
+
+		case T_KW_STRUCT:
+			return "struct";
+
+		case T_KW_ENUM:
+			return "enum";
+
+		default:
+			return "unknown";
+	}
+}
+
 token_t token_new(token_type_t type,
                   size_t line, size_t col,
                   char* contents) {
@@ -23,8 +73,42 @@ token_t token_new(token_type_t type,
 }
 
 void token_free(token_t tok) {
-	free(tok->contents);
-	free(tok);
+	if (tok) {
+		if (tok->contents) free(tok->contents);
+		free(tok);
+	}
+}
+
+void token_fix_identifier(token_t tok) {
+	if (!tok || tok->type != T_IDENTIFIER)
+		return;
+
+	const char* cnt = tok->contents;
+
+	if (strcasecmp(cnt, "if") == 0)
+		tok->type = T_KW_IF;
+	else if (strcasecmp(cnt, "else") == 0)
+		tok->type = T_KW_ELSE;
+	else if (strcasecmp(cnt, "while") == 0)
+		tok->type = T_KW_WHILE;
+	else if (strcasecmp(cnt, "do") == 0)
+		tok->type = T_KW_DO;
+	else if (strcasecmp(cnt, "for") == 0)
+		tok->type = T_KW_FOR;
+	else if (strcasecmp(cnt, "return") == 0)
+		tok->type = T_KW_RETURN;
+	else if (strcasecmp(cnt, "break") == 0)
+		tok->type = T_KW_BREAK;
+	else if (strcasecmp(cnt, "continue") == 0)
+		tok->type = T_KW_CONTINUE;
+	else if (strcasecmp(cnt, "fun") == 0)
+		tok->type = T_KW_FUN;
+	else if (strcasecmp(cnt, "let") == 0)
+		tok->type = T_KW_LET;
+	else if (strcasecmp(cnt, "struct") == 0)
+		tok->type = T_KW_STRUCT;
+	else if (strcasecmp(cnt, "enum") == 0)
+		tok->type = T_KW_ENUM;
 }
 
 /* input type */
@@ -58,11 +142,17 @@ void input_free(input_t in) {
 	}
 }
 
-/* helpers */
-int input_end(input_t in) {
-	return feof(in->source);
+int input_done(input_t in, size_t* line, size_t* column) {
+	if (line)
+		*line = in->line;
+
+	if (column)
+		*column = in->column;
+
+	return feof(in->source) != 0;
 }
 
+/* helpers */
 int input_get(input_t in) {
 	in->column++;
 	return fgetc(in->source);
@@ -157,6 +247,9 @@ token_t input_identifier(input_t in) {
 	                        chunklist_to_string(buffer));
 
 	chunklist_free(buffer);
+
+	/* fix in case of a keyword */
+	token_fix_identifier(tok);
 
 	return tok;
 }

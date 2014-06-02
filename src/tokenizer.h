@@ -7,7 +7,19 @@
 
 typedef enum {
 	T_IDENTIFIER,
-	T_LINEFEED
+	T_LINEFEED,
+	T_KW_IF,
+	T_KW_ELSE,
+	T_KW_WHILE,
+	T_KW_DO,
+	T_KW_FOR,
+	T_KW_RETURN,
+	T_KW_BREAK,
+	T_KW_CONTINUE,
+	T_KW_FUN,
+	T_KW_LET,
+	T_KW_STRUCT,
+	T_KW_ENUM
 } token_type_t;
 
 typedef struct _token {
@@ -16,12 +28,22 @@ typedef struct _token {
 	char* contents;
 }* token_t;
 
+typedef struct _input* input_t;
+
+/**
+ * A string identifier the token type.
+ */
+const char* token_type_name(token_type_t type);
+
 /**
  * Deallocate a token
  */
 void token_free(token_t tok);
 
-typedef struct _input* input_t;
+/**
+ * Check an identifier is actually a keyword.
+ */
+void token_fix_identifier(token_t tok);
 
 /**
  * Construct a new input source.
@@ -32,6 +54,12 @@ input_t input_new(const char* file);
  * Deallocate the input source.
  */
 void input_free(input_t in);
+
+/**
+ * Check if the input has reached the end.
+ * Also retrieves the current line and column.
+ */
+int input_done(input_t in, size_t* line, size_t* column);
 
 /**
  * Read an identifier token.
