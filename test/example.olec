@@ -1,2 +1,1 @@
-IF hello
-else world
+x "Hello World"
