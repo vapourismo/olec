@@ -17,7 +17,9 @@ int main(void) {
 	}
 
 	if (tok && tok->type == T_ERROR) {
-		printf("> Failed (%lu, %lu): %s\n", tok->line, tok->column, tok->data.error.message);
+		printf("> Failed (%lu, %lu): %s\n",
+		       tok->line, tok->column,
+		       tok->data.error.message);
 	}
 
 	input_free(in);
