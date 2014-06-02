@@ -14,7 +14,7 @@ const char* token_type_name(token_type_t type) {
 			return "identifier";
 
 		case T_SEPERATOR:
-			return "line feed";
+			return "seperator";
 
 		case T_KW_IF:
 			return "if";
