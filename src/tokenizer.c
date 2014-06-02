@@ -326,6 +326,25 @@ token_t* input_string(input_t* in) {
 		} else if (r == '\\') {
 			/* escape sequence */
 
+			r = input_get(in);
+
+			if (r < 0)
+				return token_error(ln, col, "Unterminated string literal");
+
+			/* convert special characters */
+			switch (r) {
+				case 'n': r = '\n'; break;
+				case 'r': r = '\r'; break;
+				case 't': r = '\t'; break;
+				case 'f': r = '\f'; break;
+				case 'v': r = '\v'; break;
+				case 'a': r = '\a'; break;
+				case 'b': r = '\b'; break;
+				case 'e': r = 27; break;
+				default: break;
+			}
+
+			chunklist_append(buffer, r);
 		} else if (r < 0) {
 			return token_error(ln, col, "Unterminated string literal");
 		} else {
