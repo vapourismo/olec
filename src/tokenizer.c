@@ -58,6 +58,9 @@ const char* token_type_name(token_type_t type) {
 		case T_NUMBER:
 			return "number";
 
+		case T_OPERATOR:
+			return "operator";
+
 		default:
 			return "unknown";
 	}
@@ -191,6 +194,8 @@ int input_unget(input_t* in, int c) {
                           || (r) == '\f' \
                           || (r) == '\r' \
                           || (r) == '\t')
+
+#define is_operator(r) (index("+-*/%$=,;.:&^|!", (r)) != NULL)
 
 /* whitespace */
 void input_skip_whitespace(input_t* in) {
@@ -435,6 +440,43 @@ token_t* input_number(input_t* in) {
 	return tok;
 }
 
+token_t* input_operator(input_t* in) {
+	size_t ln = in->line,
+	       col = in->column;
+
+	int r = input_get(in);
+
+	if (r < 0)
+		return NULL;
+
+	if (!is_operator(r)) {
+		input_unget(in, r);
+		return NULL;
+	}
+
+	chunklist_t buffer = chunklist_new(TOK_DATA_CHUNKS);
+	chunklist_append(buffer, r);
+
+	while (1) {
+		r = input_get(in);
+
+		if (r < 0)
+			break;
+
+		if (!is_operator(r)) {
+			input_unget(in, r);
+			break;
+		}
+
+		chunklist_append(buffer, r);
+	}
+
+	token_t* tok = token_new(T_OPERATOR, ln, col, chunklist_to_string(buffer));
+	chunklist_free(buffer);
+
+	return tok;
+}
+
 token_t* input_tokenize(input_t* in) {
 	input_skip_whitespace(in);
 
@@ -453,6 +495,9 @@ token_t* input_tokenize(input_t* in) {
 		return tok;
 
 	if ((tok = input_number(in)))
+		return tok;
+
+	if ((tok = input_operator(in)))
 		return tok;
 
 	return token_error(in->line, in->column, "Unknown input");

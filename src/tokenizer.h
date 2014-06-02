@@ -10,6 +10,7 @@ typedef enum {
 	T_SEPERATOR,
 	T_STRING,
 	T_NUMBER,
+	T_OPERATOR,
 	T_KW_IF,
 	T_KW_ELSE,
 	T_KW_WHILE,
@@ -91,6 +92,11 @@ token_t* input_string(input_t* in);
  * Read a number token.
  */
 token_t* input_number(input_t* in);
+
+/**
+ * Read an operator token.
+ */
+token_t* input_operator(input_t* in);
 
 /**
  * Read a token.
