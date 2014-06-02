@@ -57,10 +57,10 @@ const char* token_type_name(token_type_t type) {
 	}
 }
 
-token_t token_new(token_type_t type,
-                  size_t line, size_t col,
-                  char* contents) {
-	token_t tok = (token_t) malloc(sizeof(struct _token));
+token_t* token_new(token_type_t type,
+                   size_t line, size_t col,
+                   char* contents) {
+	token_t* tok = (token_t*) malloc(sizeof(struct _token));
 
 	if (tok) {
 		tok->type = type;
@@ -72,14 +72,14 @@ token_t token_new(token_type_t type,
 	return tok;
 }
 
-void token_free(token_t tok) {
+void token_free(token_t* tok) {
 	if (tok) {
 		if (tok->contents) free(tok->contents);
 		free(tok);
 	}
 }
 
-void token_fix_identifier(token_t tok) {
+void token_fix_identifier(token_t* tok) {
 	if (!tok || tok->type != T_IDENTIFIER)
 		return;
 
@@ -112,13 +112,8 @@ void token_fix_identifier(token_t tok) {
 }
 
 /* input type */
-struct _input {
-	FILE* source;
-	size_t line, column;
-};
-
-input_t input_new(const char* file) {
-	input_t in = (input_t) malloc(sizeof(struct _input));
+input_t* input_new(const char* file) {
+	input_t* in = (input_t*) malloc(sizeof(struct _input));
 
 	if (in) {
 		in->source = fopen(file, "rt");
@@ -135,36 +130,26 @@ input_t input_new(const char* file) {
 	return in;
 }
 
-void input_free(input_t in) {
+void input_free(input_t* in) {
 	if (in) {
 		fclose(in->source);
 		free(in);
 	}
 }
 
-int input_done(input_t in, size_t* line, size_t* column) {
-	if (line)
-		*line = in->line;
-
-	if (column)
-		*column = in->column;
-
+int input_done(const input_t* in) {
 	return feof(in->source) != 0;
 }
 
 /* helpers */
-int input_get(input_t in) {
+int input_get(input_t* in) {
 	in->column++;
 	return fgetc(in->source);
 }
 
-int input_unget(input_t in) {
+int input_unget(input_t* in) {
 	in->column--;
 	return fseek(in->source, -1, SEEK_CUR);
-}
-
-int input_letter(input_t in, chunklist_t target) {
-	return 0;
 }
 
 #define is_letter(r) (((r) >= 'a' && (r) <= 'z') \
@@ -183,7 +168,7 @@ int input_letter(input_t in, chunklist_t target) {
                           || (r) == '\t')
 
 /* whitespace */
-void input_skip_whitespace(input_t in) {
+void input_skip_whitespace(input_t* in) {
 	int r;
 
 	while ((r = input_get(in)) >= 0) {
@@ -195,7 +180,7 @@ void input_skip_whitespace(input_t in) {
 }
 
 /* tokenizers */
-token_t input_identifier(input_t in) {
+token_t* input_identifier(input_t* in) {
 	size_t ln = in->line,
 	       col = in->column;
 
@@ -243,7 +228,7 @@ token_t input_identifier(input_t in) {
 	}
 
 	/* finalize buffer */
-	token_t tok = token_new(T_IDENTIFIER, ln, col,
+	token_t* tok = token_new(T_IDENTIFIER, ln, col,
 	                        chunklist_to_string(buffer));
 
 	chunklist_free(buffer);
@@ -254,7 +239,7 @@ token_t input_identifier(input_t in) {
 	return tok;
 }
 
-token_t input_linefeed(input_t in) {
+token_t* input_linefeed(input_t* in) {
 	size_t ln = in->line,
 	       col = in->column;
 
@@ -274,10 +259,10 @@ token_t input_linefeed(input_t in) {
 	return token_new(T_LINEFEED, ln, col, NULL);
 }
 
-token_t input_tokenize(input_t in) {
+token_t* input_tokenize(input_t* in) {
 	input_skip_whitespace(in);
 
-	token_t tok = input_linefeed(in);
+	token_t* tok = input_linefeed(in);
 
 	if (tok)
 		return tok;

@@ -26,9 +26,12 @@ typedef struct _token {
 	token_type_t type;
 	size_t line, column;
 	char* contents;
-}* token_t;
+} token_t;
 
-typedef struct _input* input_t;
+typedef struct _input {
+	FILE* source;
+	size_t line, column;
+} input_t;
 
 /**
  * A string identifier the token type.
@@ -38,48 +41,48 @@ const char* token_type_name(token_type_t type);
 /**
  * Deallocate a token
  */
-void token_free(token_t tok);
+void token_free(token_t* tok);
 
 /**
  * Check an identifier is actually a keyword.
  */
-void token_fix_identifier(token_t tok);
+void token_fix_identifier(token_t* tok);
 
 /**
  * Construct a new input source.
  */
-input_t input_new(const char* file);
+input_t* input_new(const char* file);
 
 /**
  * Deallocate the input source.
  */
-void input_free(input_t in);
+void input_free(input_t* in);
 
 /**
  * Check if the input has reached the end.
  * Also retrieves the current line and column.
  */
-int input_done(input_t in, size_t* line, size_t* column);
+int input_done(const input_t* in);
 
 /**
  * Read an identifier token.
  */
-token_t input_identifier(input_t in);
+token_t* input_identifier(input_t* in);
 
 /**
  * Read a line feed token.
  */
-token_t input_linefeed(input_t in);
+token_t* input_linefeed(input_t* in);
 
 /**
- *
+ * Read a token.
  */
-token_t input_tokenize(input_t in);
+token_t* input_tokenize(input_t* in);
 
 /**
  * Skip whitespace
  */
-void input_skip_whitespace(input_t in);
+void input_skip_whitespace(input_t* in);
 
 
 #endif
