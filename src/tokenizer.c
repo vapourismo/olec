@@ -52,6 +52,9 @@ const char* token_type_name(token_type_t type) {
 		case T_KW_ENUM:
 			return "enum";
 
+		case T_STRING:
+			return "string";
+
 		default:
 			return "unknown";
 	}
@@ -66,24 +69,42 @@ token_t* token_new(token_type_t type,
 		tok->type = type;
 		tok->line = line;
 		tok->column = col;
-		tok->contents = contents;
+		tok->data.token = contents;
 	}
 
 	return tok;
 }
 
+token_t* token_error(size_t line, size_t col,
+                     const char* msg) {
+	token_t* tok = (token_t*) malloc(sizeof(struct _token));
+
+	if (tok) {
+		tok->type = T_ERROR;
+		tok->line = line;
+		tok->column = col;
+		tok->data.error.message = msg;
+	}
+
+	return tok;
+}
+
+
 void token_free(token_t* tok) {
 	if (tok) {
-		if (tok->contents) free(tok->contents);
+		if (tok->type != T_ERROR) {
+			free(tok->data.token);
+		}
+
 		free(tok);
 	}
 }
 
 void token_fix_identifier(token_t* tok) {
-	if (!tok || tok->type != T_IDENTIFIER)
+	if (!tok || tok->type != T_IDENTIFIER || tok->type == T_ERROR)
 		return;
 
-	const char* cnt = tok->contents;
+	const char* cnt = tok->data.token;
 
 	if (strcasecmp(cnt, "if") == 0)
 		tok->type = T_KW_IF;
@@ -259,8 +280,48 @@ token_t* input_linefeed(input_t* in) {
 	return token_new(T_LINEFEED, ln, col, NULL);
 }
 
+token_t* input_string(input_t* in) {
+	size_t ln = in->line,
+	       col = in->column;
+
+	int r = input_get(in);
+
+	if (r < 0)
+		return NULL;
+
+	if (r != '"') {
+		input_unget(in);
+		return NULL;
+	}
+
+	chunklist_t list = chunklist_new(TOK_DATA_CHUNKS);
+
+	while (1) {
+		r = input_get(in);
+
+		if (r == '"') {
+			break;
+		} else if (r == '\\') {
+			/* escape sequence */
+
+		} else if (r < 0) {
+			return token_error(ln, col, "Unterminated string literal");
+		} else {
+			chunklist_append(list, r);
+		}
+	}
+
+	token_t* tok = token_new(T_STRING, ln, col, chunklist_to_string(list));
+	chunklist_free(list);
+
+	return tok;
+}
+
 token_t* input_tokenize(input_t* in) {
 	input_skip_whitespace(in);
+
+	if (feof(in->source))
+		return NULL;
 
 	token_t* tok = input_linefeed(in);
 
@@ -269,6 +330,13 @@ token_t* input_tokenize(input_t* in) {
 
 	tok = input_identifier(in);
 
-	return tok;
-}
+	if (tok)
+		return tok;
 
+	tok = input_string(in);
+
+	if (!tok)
+		return token_error(in->line, in->column, "Unknown input");
+	else
+		return tok;
+}

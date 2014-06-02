@@ -8,6 +8,7 @@
 typedef enum {
 	T_IDENTIFIER,
 	T_LINEFEED,
+	T_STRING,
 	T_KW_IF,
 	T_KW_ELSE,
 	T_KW_WHILE,
@@ -19,13 +20,19 @@ typedef enum {
 	T_KW_FUN,
 	T_KW_LET,
 	T_KW_STRUCT,
-	T_KW_ENUM
+	T_KW_ENUM,
+	T_ERROR
 } token_type_t;
 
 typedef struct _token {
 	token_type_t type;
 	size_t line, column;
-	char* contents;
+	union {
+		char* token;
+		struct {
+			const char* message;
+		} error;
+	} data;
 } token_t;
 
 typedef struct _input {
@@ -75,6 +82,11 @@ token_t* input_identifier(input_t* in);
 token_t* input_linefeed(input_t* in);
 
 /**
+ * Read a string token.
+ */
+token_t* input_string(input_t* in);
+
+/**
  * Read a token.
  */
 token_t* input_tokenize(input_t* in);
@@ -83,6 +95,5 @@ token_t* input_tokenize(input_t* in);
  * Skip whitespace
  */
 void input_skip_whitespace(input_t* in);
-
 
 #endif
