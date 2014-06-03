@@ -4,14 +4,23 @@
 #include <malloc.h>
 #include <string.h>
 
+/**
+ * Utilities
+ */
+
 #define min(x, y) ((x) < (y) ? (x) : (y))
+
+
+/**
+ * Chunk Elements
+ */
 
 struct _chunkelem {
 	struct _chunkelem* next;
 	char* chunk;
 };
 
-/* elements */
+
 chunkelem_t* chunkelem_new(size_t chunk_size) {
 	if (chunk_size == 0)
 		chunk_size = 1;
@@ -36,7 +45,10 @@ void chunkelem_free(chunkelem_t* elem) {
 	free(elem);
 }
 
-/* list */
+
+/*
+ * Chunk List
+ */
 chunklist_t* chunklist_new(size_t chunk_size) {
 	chunklist_t* list = (chunklist_t*) malloc(sizeof(struct _chunklist));
 
@@ -45,6 +57,7 @@ chunklist_t* chunklist_new(size_t chunk_size) {
 		list->insert_pos = 0;
 		list->head = list->tail = chunkelem_new(chunk_size);
 
+		/* at least one chunkelem should exist */
 		if (!list->tail) {
 			free(list);
 			return NULL;
@@ -57,6 +70,7 @@ chunklist_t* chunklist_new(size_t chunk_size) {
 void chunklist_free(chunklist_t* list) {
 	chunkelem_t* tmp = list->head;
 
+	/* free each element seperately */
 	while (tmp) {
 		chunkelem_t* delete_me = tmp;
 		tmp = tmp->next;
@@ -75,6 +89,7 @@ int chunklist_ensure_space(chunklist_t* list) {
 		if (!new_elem)
 			return 0;
 
+		/* insert new chunk */
 		list->tail = (list->tail->next = new_elem);
 		list->insert_pos = 0;
 	}
@@ -83,6 +98,8 @@ int chunklist_ensure_space(chunklist_t* list) {
 }
 
 int chunklist_append(chunklist_t* list, char c) {
+	/* check if the current chunk if full;
+	   allocate a new one if that's the case */
 	if (!chunklist_ensure_space(list))
 		return 0;
 
@@ -95,17 +112,20 @@ int chunklist_append_multiple(chunklist_t* list, const char* source, size_t len)
 	if (len == 0)
 		return 1;
 
+	/* check if the current chunk if full;
+	   allocate a new one if that's the case */
 	if (!chunklist_ensure_space(list))
 		return 0;
 
+	/* fill the current chunk (if possible) */
 	size_t space = min(len, list->chunk_size - list->insert_pos);
 	memcpy(list->tail->chunk + list->insert_pos, source, space);
 
 	list->insert_pos += space;
-
 	size_t rest = len - space;
 
 	if (rest > 0) {
+		/* append the rest (if existing) */
 		return chunklist_append_multiple(list, source + space, rest);
 	} else {
 		return 1;
@@ -142,6 +162,7 @@ size_t chunklist_size(chunklist_t* list) {
 }
 
 char* chunklist_to_string(chunklist_t* list) {
+	/* allocate enough space */
 	size_t size = chunklist_size(list) + 1;
 	char* buffer = (char*) malloc(size);
 
@@ -157,11 +178,14 @@ void chunklist_copy_to_string(chunklist_t* list, char* dest, size_t dest_size) {
 		chunkelem_t* it = list->head;
 		size_t offset = 0;
 
+		/* copy the chunks into 'dest' as long as possible */
 		while (offset < dest_size - 1 && it) {
+			/* calulate the bytes left to be copied */
 			size_t left = min(it->next == NULL ? list->insert_pos : list->chunk_size,
 			                  (dest_size - 1) - offset);
 
 			memcpy(dest + offset, it->chunk, left);
+
 			offset += left;
 			it = it->next;
 		}
