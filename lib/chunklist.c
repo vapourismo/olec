@@ -1,4 +1,5 @@
 #include "chunklist.h"
+#include "aux.h"
 
 #include <malloc.h>
 #include <string.h>
@@ -11,11 +12,11 @@ struct _chunkelem {
 };
 
 /* elements */
-chunkelem_t chunkelem_new(size_t chunk_size) {
+chunkelem_t* chunkelem_new(size_t chunk_size) {
 	if (chunk_size == 0)
 		chunk_size = 1;
 
-	chunkelem_t elem = (chunkelem_t) malloc(sizeof(struct _chunkelem));
+	chunkelem_t* elem = new(chunkelem_t);
 
 	if (elem) {
 		elem->next = NULL;
@@ -30,14 +31,14 @@ chunkelem_t chunkelem_new(size_t chunk_size) {
 	return elem;
 }
 
-void chunkelem_free(chunkelem_t elem) {
+void chunkelem_free(chunkelem_t* elem) {
 	free(elem->chunk);
 	free(elem);
 }
 
 /* list */
-chunklist_t chunklist_new(size_t chunk_size) {
-	chunklist_t list = (chunklist_t) malloc(sizeof(struct _chunklist));
+chunklist_t* chunklist_new(size_t chunk_size) {
+	chunklist_t* list = (chunklist_t*) malloc(sizeof(struct _chunklist));
 
 	if (list) {
 		list->chunk_size = chunk_size;
@@ -53,21 +54,21 @@ chunklist_t chunklist_new(size_t chunk_size) {
 	return list;
 }
 
-void chunklist_free(chunklist_t list) {
-	chunkelem_t tmp = list->head;
+void chunklist_free(chunklist_t* list) {
+	chunkelem_t* tmp = list->head;
 
 	while (tmp) {
-		chunkelem_t delete_me = tmp;
+		chunkelem_t* delete_me = tmp;
 		tmp = tmp->next;
 
 		chunkelem_free(delete_me);
 	}
 }
 
-int chunklist_ensure_space(chunklist_t list) {
+int chunklist_ensure_space(chunklist_t* list) {
 	if (list->insert_pos >= list->chunk_size) {
 		/* tail chunk is full, so we need to create another */
-		chunkelem_t new_elem = chunkelem_new(list->chunk_size);
+		chunkelem_t* new_elem = chunkelem_new(list->chunk_size);
 
 		if (!new_elem)
 			return 0;
@@ -79,7 +80,7 @@ int chunklist_ensure_space(chunklist_t list) {
 	return 1;
 }
 
-int chunklist_append(chunklist_t list, char c) {
+int chunklist_append(chunklist_t* list, char c) {
 	if (!chunklist_ensure_space(list))
 		return 0;
 
@@ -88,7 +89,7 @@ int chunklist_append(chunklist_t list, char c) {
 	return 1;
 }
 
-int chunklist_append_multiple(chunklist_t list, const char* source, size_t len) {
+int chunklist_append_multiple(chunklist_t* list, const char* source, size_t len) {
 	if (len == 0)
 		return 1;
 
@@ -109,8 +110,8 @@ int chunklist_append_multiple(chunklist_t list, const char* source, size_t len) 
 	}
 }
 
-int chunklist_get(chunklist_t list, size_t pos) {
-	chunkelem_t it = list->head;
+int chunklist_get(chunklist_t* list, size_t pos) {
+	chunkelem_t* it = list->head;
 
 	while (it && pos >= list->chunk_size)
 		it = it->next;
@@ -121,9 +122,9 @@ int chunklist_get(chunklist_t list, size_t pos) {
 	return it->chunk[pos];
 }
 
-size_t chunklist_num_chunks(chunklist_t list) {
+size_t chunklist_num_chunks(chunklist_t* list) {
 	size_t counter = 0;
-	chunkelem_t it = list->head;
+	chunkelem_t* it = list->head;
 
 	while (it) {
 		counter++;
@@ -133,12 +134,12 @@ size_t chunklist_num_chunks(chunklist_t list) {
 	return counter;
 }
 
-size_t chunklist_size(chunklist_t list) {
+size_t chunklist_size(chunklist_t* list) {
 	return (chunklist_num_chunks(list) - 1) * list->chunk_size
 	       + list->insert_pos;
 }
 
-char* chunklist_to_string(chunklist_t list) {
+char* chunklist_to_string(chunklist_t* list) {
 	size_t size = chunklist_size(list) + 1;
 	char* buffer = (char*) malloc(size);
 
@@ -149,9 +150,9 @@ char* chunklist_to_string(chunklist_t list) {
 	return buffer;
 }
 
-void chunklist_copy_to_string(chunklist_t list, char* dest, size_t dest_size) {
+void chunklist_copy_to_string(chunklist_t* list, char* dest, size_t dest_size) {
 	if (dest) {
-		chunkelem_t it = list->head;
+		chunkelem_t* it = list->head;
 		size_t offset = 0;
 
 		while (offset < dest_size - 1 && it) {
