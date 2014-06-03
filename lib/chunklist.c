@@ -63,6 +63,8 @@ void chunklist_free(chunklist_t* list) {
 
 		chunkelem_free(delete_me);
 	}
+
+	free(list);
 }
 
 int chunklist_ensure_space(chunklist_t* list) {
