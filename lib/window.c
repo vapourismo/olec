@@ -17,6 +17,6 @@ void window_get_bounds(const window_t* win, rect_t* bounds) {
 }
 
 void window_set_bounds(window_t* win, const rect_t* bounds) {
-	delwin(win->ref);
+	if (win->ref) delwin(win->ref);
 	win->ref = newwin(bounds->h, bounds->w, bounds->y, bounds->x);
 }
