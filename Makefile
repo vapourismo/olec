@@ -1,5 +1,5 @@
 ## Configuration
-PROJECT_NAME      = termwm
+PROJECT_NAME      = olec
 OUTPUT_DIR        = bin
 
 ## Library Configuration
