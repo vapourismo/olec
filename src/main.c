@@ -1,6 +1,7 @@
 #include "../lib/session.h"
 #include "../lib/rect.h"
 #include "../lib/window.h"
+#include "../lib/layout.h"
 
 #include <stdio.h>
 
@@ -22,14 +23,20 @@ void fill_window(const window_t* window, char c) {
 int main(void) {
 	session_start();
 
-	window_t win;
-	window_create(&win, 0, 0, 10, 10);
-	fill_window(&win, '1');
+	rect_t bounds;
+	window_t win = {stdscr};
+
+	window_get_bounds(&win, &bounds);
+
+	layout_t* lay = layout_new(&bounds, VSPLIT_REL, 0.5);
+
+	fill_window(&lay->a, 'A');
+	fill_window(&lay->b, 'B');
 
 	refresh();
 	fgetc(stdin);
 
-	window_delete(&win);
+	layout_free(lay);
 	session_stop();
 
 	return 0;
