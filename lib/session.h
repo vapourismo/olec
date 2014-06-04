@@ -3,8 +3,6 @@
 
 #include <ncurses.h>
 
-typedef WINDOW curswin;
-
 /**
  * Spawn a unicorn.
  */
