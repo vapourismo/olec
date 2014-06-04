@@ -11,6 +11,7 @@
 #define T_STRING     2
 #define T_NUMBER     3
 #define T_SEPERATOR  4
+#define T_OPERATOR   5
 
 int main(void) {
 	tokenizer_t* tok = tokenizer_new("src/example.olec");
@@ -21,13 +22,14 @@ int main(void) {
 		tokenizer_add(tok, tokpattern_new(T_STRING,     "\"((\\\\.)|[^\"])*\""));
 		tokenizer_add(tok, tokpattern_new(T_NUMBER,     "[0-9]+(\\.[0-9]+)?([eE][0-9]+)?"));
 		tokenizer_add(tok, tokpattern_new(T_SEPERATOR,  "[\n\r]+[\\s\n\r]*"));
+		tokenizer_add(tok, tokpattern_new(T_OPERATOR,   "[\\+\\-\\*/%\\^=<>!?\\.:,;]+"));
 
 		ssize_t r;
 		token_t token;
 
 		while ((r = tokenizer_do(tok, &token)) > 0) {
 			if (token.id != T_SPACE)
-				printf("[%zi+%lu]: %s\n", token.offset, token.id, token.contents);
+				printf("[%03zi: %03lu]: %s\n", token.offset, token.id, token.contents);
 
 			token_free_contents(&token);
 		}
