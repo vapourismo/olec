@@ -1,9 +1,13 @@
-#include "layout.h"
+#include "rect.h"
 #include "aux.h"
 
 void rect_vsplit_abs(const rect_t* base,
                      rect_t* left, rect_t* right,
-                     size_t sep) {
+                     ssize_t sep) {
+	if (sep < 0)
+		sep = base->w + sep;
+
+
 	left->x = base->x;
 	left->w = min(sep, base->w);
 
@@ -22,9 +26,13 @@ void rect_vsplit_rel(const rect_t* base,
 
 void rect_hsplit_abs(const rect_t* base,
                      rect_t* top, rect_t* bottom,
-                     size_t sep) {
+                     ssize_t sep) {
+	if (sep < 0)
+		sep = base->h + sep;
+
 	top->y = base->y;
 	top->h = min(sep, base->h);
+
 
 	bottom->y = top->y + top->h;
 	bottom->h = base->h - top->h;
