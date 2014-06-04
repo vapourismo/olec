@@ -1,6 +1,7 @@
 #include "../lib/chunklist.h"
 #include "../lib/tokenizer.h"
 #include "../lib/session.h"
+#include "../lib/layout.h"
 
 #include <stdio.h>
 #include <malloc.h>
@@ -14,6 +15,15 @@
 #define T_SEPERATOR  4
 #define T_OPERATOR   5
 #define T_INVALID    6
+
+void fill_rect(const rect_t* rect, char c) {
+	for (size_t i = 0; i < rect->h; i++) {
+		move(rect->y + i, rect->x);
+
+		for (size_t j = 0; j < rect->w; j++)
+			addch(c);
+	}
+}
 
 int main(void) {
 	// tokenizer_t* tok = tokenizer_new("src/example.olec");
@@ -47,7 +57,19 @@ int main(void) {
 	session_t s;
 	session_start(&s);
 
-	getch();
+	rect_t base = {(size_t) s.root->_begx, (size_t) s.root->_begy,
+	               (size_t) s.root->_maxx + 1, (size_t) s.root->_maxy + 1};
+
+	rect_t a, b;
+
+	rect_vsplit_rel(&base, &a, &b, 0.25);
+
+	fill_rect(&a, 'A');
+	fill_rect(&b, 'B');
+
+	refresh();
+
+	fgetc(stdin);
 
 	session_stop(&s);
 
