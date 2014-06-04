@@ -36,6 +36,7 @@ ssize_t tokpattern_check(const tokpattern_t* tp, const char* input);
 
 typedef struct {
 	size_t id;
+	size_t offset;
 	char* contents;
 } token_t;
 

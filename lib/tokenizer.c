@@ -170,10 +170,10 @@ int tokenizer_add(tokenizer_t* tok, tokpattern_t* pattern) {
 
 ssize_t tokenizer_do(tokenizer_t* tok, token_t* token) {
 	if (tok->position >= tok->last_position)
-		return -1;
+		return 0;
 
 	tokelem_t* it = tok->head;
-	ssize_t m = 0;
+	ssize_t m = -1;
 
 	/* iterate through all patterns */
 	while (it) {
@@ -181,6 +181,7 @@ ssize_t tokenizer_do(tokenizer_t* tok, token_t* token) {
 			/* submit the token in case the token pattern applied */
 			if (token) {
 				token->id = it->pattern->id;
+				token->offset = tok->position - tok->contents;
 				token->contents = (char*) malloc(m);
 
 				if (token->contents) {
@@ -196,6 +197,10 @@ ssize_t tokenizer_do(tokenizer_t* tok, token_t* token) {
 		}
 
 		it = it->next;
+	}
+
+	if (m < 0) {
+		token->offset = tok->position - tok->contents;
 	}
 
 	return m;
