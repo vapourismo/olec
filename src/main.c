@@ -26,8 +26,14 @@ int main(void) {
 		token_t token;
 
 		while ((r = tokenizer_do(tok, &token)) > 0) {
-			printf("[%lu]: %s\n", token.id, token.contents);
+			if (token.id != T_SPACE)
+				printf("[%zi+%lu]: %s\n", token.offset, token.id, token.contents);
+
 			token_free_contents(&token);
+		}
+
+		if (r < 0) {
+			printf("Unknown token at index %lu\n", token.offset);
 		}
 	}
 
