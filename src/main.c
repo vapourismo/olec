@@ -28,7 +28,7 @@ int main(void) {
 
 	window_get_bounds(&win, &bounds);
 
-	layout_t* lay = layout_new(&bounds, VSPLIT_REL, 0.5);
+	layout_t* lay = layout_new(&bounds, VSPLIT_ABS, 50);
 
 	fill_window(&lay->a, 'A');
 	fill_window(&lay->b, 'B');
