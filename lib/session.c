@@ -4,10 +4,8 @@
  * Session
  */
 
-int session_start(session_t* s) {
-	s->root = initscr();
-
-	if (!s->root)
+int session_start() {
+	if (!initscr())
 		return 0;
 
 	/* configure terminal */
@@ -21,7 +19,6 @@ int session_start(session_t* s) {
 	return 1;
 }
 
-void session_stop(session_t* s) {
+void session_stop() {
 	endwin();
-	s->root = NULL;
 }
