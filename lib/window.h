@@ -4,17 +4,19 @@
 #include "rect.h"
 #include <ncurses.h>
 
-typedef WINDOW window_t;
+typedef WINDOW curswin_t;
+
+typedef struct _window window_t;
 
 /**
  * Create a new window.
  */
-window_t* window_new(size_t x, size_t y, size_t w, size_t h);
+void window_create(window_t* win, size_t x, size_t y, size_t w, size_t h);
 
 /**
  * Delete a window.
  */
-void window_free(window_t* win);
+void window_delete(window_t* win);
 
 /**
  * Extract the rectangle from a window.
