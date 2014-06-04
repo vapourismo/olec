@@ -25,7 +25,7 @@ void rect_vsplit_abs(const rect_t* base,
  */
 void rect_vsplit_rel(const rect_t* base,
                      rect_t* left, rect_t* right,
-                     float sep);
+                     double sep);
 
 /**
  * Split horizontally (absolute splitter position);
@@ -39,6 +39,6 @@ void rect_hsplit_abs(const rect_t* base,
  */
 void rect_hsplit_rel(const rect_t* base,
                      rect_t* top, rect_t* bottom,
-                     float sep);
+                     double sep);
 
 #endif

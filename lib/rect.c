@@ -20,7 +20,7 @@ void rect_vsplit_abs(const rect_t* base,
 
 void rect_vsplit_rel(const rect_t* base,
                      rect_t* left, rect_t* right,
-                     float sep) {
+                     double sep) {
 	rect_vsplit_abs(base, left, right, base->w * sep);
 }
 
@@ -43,6 +43,6 @@ void rect_hsplit_abs(const rect_t* base,
 
 void rect_hsplit_rel(const rect_t* base,
                      rect_t* top, rect_t* bottom,
-                     float sep) {
+                     double sep) {
 	rect_hsplit_abs(base, top, bottom, base->h * sep);
 }
