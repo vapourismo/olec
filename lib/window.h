@@ -6,7 +6,9 @@
 
 typedef WINDOW curswin_t;
 
-typedef struct _window window_t;
+typedef struct _window {
+	curswin_t* ref;
+} window_t;
 
 /**
  * Create a new window.
