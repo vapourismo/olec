@@ -1,7 +1,8 @@
-#include "../lib/chunklist.h"
-#include "../lib/tokenizer.h"
+// #include "../lib/chunklist.h"
+// #include "../lib/tokenizer.h"
 #include "../lib/session.h"
-#include "../lib/layout.h"
+#include "../lib/rect.h"
+#include "../lib/window.h"
 
 #include <stdio.h>
 #include <malloc.h>
@@ -23,6 +24,12 @@ void fill_rect(const rect_t* rect, char c) {
 		for (size_t j = 0; j < rect->w; j++)
 			addch(c);
 	}
+}
+
+void fill_window(const window_t* window, char c) {
+	rect_t tmp;
+	window_get_bounds(window, &tmp);
+	fill_rect(&tmp, c);
 }
 
 int main(void) {
@@ -54,24 +61,16 @@ int main(void) {
 
 	// tokenizer_free(tok);
 
-	session_t s;
-	session_start(&s);
+	session_start();
 
-	rect_t base = {(size_t) s.root->_begx, (size_t) s.root->_begy,
-	               (size_t) s.root->_maxx + 1, (size_t) s.root->_maxy + 1};
-
-	rect_t a, b;
-
-	rect_vsplit_rel(&base, &a, &b, 0.25);
-
-	fill_rect(&a, 'A');
-	fill_rect(&b, 'B');
+	window_t* win = window_new(0, 0, 10, 10);
+	fill_window(win, '1');
 
 	refresh();
-
 	fgetc(stdin);
 
-	session_stop(&s);
+	window_free(win);
+	session_stop();
 
 	return 0;
 }
