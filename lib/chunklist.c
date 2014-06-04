@@ -4,12 +4,6 @@
 #include <malloc.h>
 #include <string.h>
 
-/**
- * Utilities
- */
-
-#define min(x, y) ((x) < (y) ? (x) : (y))
-
 
 /**
  * Chunk Elements

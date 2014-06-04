@@ -8,4 +8,9 @@
  */
 #define new(t) ((t*) malloc(sizeof(t)))
 
+/**
+ * Return the smaller value.
+ */
+#define min(x, y) ((x) < (y) ? (x) : (y))
+
 #endif
