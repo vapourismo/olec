@@ -1,23 +1,15 @@
 #include "window.h"
 #include "aux.h"
 
-window_t* window_new(size_t x, size_t y, size_t w, size_t h) {
-	window_t* win = new(window_t);
-
-	if (win) {
-		win->ref = newwin(h, w, y, x);
-	}
-
-	return win;
+void window_create(window_t* win,
+                   size_t x, size_t y, size_t w, size_t h) {
+	win->ref = newwin(h, w, y, x);
+	win->parent = NULL;
 }
 
-void window_free(window_t* win) {
-	if (win) {
-		if (win->ref)
-			delwin(win->ref);
-
-		free(win);
-	}
+void window_delete(const window_t* win) {
+	if (win->ref)
+		delwin(win->ref);
 }
 
 void window_get_bounds(const window_t* win, rect_t* bounds) {
