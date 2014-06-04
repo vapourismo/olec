@@ -1,5 +1,5 @@
-#ifndef OLEC_LAYOUT_H
-#define OLEC_LAYOUT_H
+#ifndef OLEC_RECT_H
+#define OLEC_RECT_H
 
 #include "session.h"
 
