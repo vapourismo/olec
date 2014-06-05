@@ -39,4 +39,9 @@ void layout_free(layout_t* lay);
  */
 void layout_update(layout_t* lay);
 
+/**
+ *
+ */
+void layout_set_bounds(layout_t* lay, size_t x, size_t y, size_t w, size_t h);
+
 #endif

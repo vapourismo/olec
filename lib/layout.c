@@ -57,9 +57,13 @@ void layout_update(layout_t* lay) {
 			break;
 	}
 
-	wclear(lay->a.ref);
-	wclear(lay->b.ref);
-
 	window_set_bounds(&lay->a, &ra);
 	window_set_bounds(&lay->b, &rb);
+}
+
+void layout_set_bounds(layout_t* lay, size_t x, size_t y, size_t w, size_t h) {
+	lay->bounds.x = x;
+	lay->bounds.y = y;
+	lay->bounds.w = w;
+	lay->bounds.h = h;
 }
