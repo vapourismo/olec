@@ -23,12 +23,32 @@ void fill_window(const window_t* window, char c) {
 int main(void) {
 	session_start();
 
-	rect_t bounds;
-	window_t win = {stdscr};
+	window_t win;
+	window_create(&win, 0, 0, 0, 0);
 
-	window_get_bounds(&win, &bounds);
+	layout_t* lay = layout_sub_win(&win, VSPLIT_REL, 0.5);
 
-	layout_t* lay = layout_new(&bounds, VSPLIT_ABS, 50);
+	/* fill window and wait for input */
+	fill_window(&lay->a, 'A');
+	fill_window(&lay->b, 'B');
+
+	refresh();
+	fgetc(stdin);
+
+	/* change window bounds */
+	rect_t new_bounds;
+	window_get_bounds(&win, &new_bounds);
+
+	new_bounds.x += 10;
+	new_bounds.y += 10;
+	new_bounds.w -= new_bounds.x * 2;
+	new_bounds.h -= new_bounds.y * 2;
+
+	window_set_bounds(&win, &new_bounds);
+
+	/* clear and update window, and wait for input */
+	clear();
+	layout_update(lay);
 
 	fill_window(&lay->a, 'A');
 	fill_window(&lay->b, 'B');
@@ -36,6 +56,7 @@ int main(void) {
 	refresh();
 	fgetc(stdin);
 
+	/* free everything */
 	layout_free(lay);
 	session_stop();
 
