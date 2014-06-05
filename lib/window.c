@@ -20,3 +20,7 @@ void window_set_bounds(window_t* win, const rect_t* bounds) {
 	if (win->ref) delwin(win->ref);
 	win->ref = newwin(bounds->h, bounds->w, bounds->y, bounds->x);
 }
+
+void window_clear(window_t* win) {
+	wclear(win->ref);
+}

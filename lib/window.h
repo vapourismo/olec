@@ -30,4 +30,9 @@ void window_get_bounds(const window_t* win, rect_t* bounds);
  */
 void window_set_bounds(window_t* win, const rect_t* bounds);
 
+/**
+ * Clear the window contents
+ */
+void window_clear(window_t* win);
+
 #endif
