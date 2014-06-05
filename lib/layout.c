@@ -3,29 +3,54 @@
 
 #include <stdarg.h>
 
+void layout_new_vargs(layout_t* lay, const rect_t* bounds, split_mode_t mode, va_list vargs) {
+	lay->bounds = *bounds;
+	lay->mode = mode;
+	lay->parent = NULL;
+	lay->a.ref = lay->b.ref = NULL;
+
+	if (mode == HSPLIT_ABS || mode == VSPLIT_ABS)
+		lay->seperator.absolute = va_arg(vargs, ssize_t);
+	else
+		lay->seperator.relative = va_arg(vargs, double);
+
+	layout_update(lay);
+}
+
 layout_t* layout_new(const rect_t* bounds, split_mode_t mode, ...) {
 	layout_t* lay = new(layout_t);
 
 	if (lay) {
-		lay->bounds = *bounds;
-		lay->mode = mode;
-		lay->a.ref = lay->b.ref = NULL;
-
 		va_list vargs;
 		va_start(vargs, mode);
 
-		if (mode == HSPLIT_ABS || mode == VSPLIT_ABS)
-			lay->seperator.absolute = va_arg(vargs, ssize_t);
-		else
-			lay->seperator.relative = va_arg(vargs, double);
+		layout_new_vargs(lay, bounds, mode, vargs);
 
 		va_end(vargs);
-
-		layout_update(lay);
 	}
 
 	return lay;
 }
+
+layout_t* layout_sub_win(const window_t* target, split_mode_t mode, ...) {
+	layout_t* lay = new(layout_t);
+
+	if (lay) {
+		va_list vargs;
+		va_start(vargs, mode);
+
+		rect_t tmp;
+		window_get_bounds(target, &tmp);
+
+		layout_new_vargs(lay, &tmp, mode, vargs);
+		lay->parent = target;
+
+		va_end(vargs);
+	}
+
+	return lay;
+}
+
 
 void layout_free(layout_t* lay) {
 	if (lay) {
@@ -37,6 +62,10 @@ void layout_free(layout_t* lay) {
 }
 
 void layout_update(layout_t* lay) {
+	if (lay->parent) {
+		window_get_bounds(lay->parent, &lay->bounds);
+	}
+
 	rect_t ra, rb;
 
 	switch (lay->mode) {

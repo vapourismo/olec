@@ -15,6 +15,7 @@ typedef enum {
 typedef struct {
 	split_mode_t mode;
 	rect_t bounds;
+	const window_t* parent;
 
 	union {
 		ssize_t absolute;
@@ -25,22 +26,27 @@ typedef struct {
 } layout_t;
 
 /**
- *
+ * Create a new layout container.
  */
 layout_t* layout_new(const rect_t* bounds, split_mode_t mode, ...);
 
 /**
- *
+ * Create a new layout container within an existing window.
+ */
+layout_t* layout_sub_win(const window_t* bounds, split_mode_t mode, ...);
+
+/**
+ * Free an existing layout container.
  */
 void layout_free(layout_t* lay);
 
 /**
- *
+ * Resize the underlying windows to match the layout bounds.
  */
 void layout_update(layout_t* lay);
 
 /**
- *
+ * Update the layout bounds manually.
  */
 void layout_set_bounds(layout_t* lay, size_t x, size_t y, size_t w, size_t h);
 
