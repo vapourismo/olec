@@ -14,7 +14,6 @@ struct _chunkelem {
 	char* chunk;
 };
 
-
 chunkelem_t* chunkelem_new(size_t chunk_size) {
 	if (chunk_size == 0)
 		chunk_size = 1;
@@ -22,6 +21,7 @@ chunkelem_t* chunkelem_new(size_t chunk_size) {
 	chunkelem_t* elem = new(chunkelem_t);
 
 	if (elem) {
+		/* initialize the actual chunk */
 		elem->next = NULL;
 		elem->chunk = (char*) malloc(chunk_size);
 

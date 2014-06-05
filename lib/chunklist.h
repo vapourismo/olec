@@ -6,6 +6,9 @@
 
 typedef struct _chunkelem chunkelem_t;
 
+/**
+ * Chunk List
+ */
 typedef struct _chunklist {
 	size_t chunk_size;
 	size_t insert_pos;
@@ -30,17 +33,17 @@ void chunklist_free(chunklist_t* list);
 int chunklist_append(chunklist_t* list, char c);
 
 /**
- *
+ * Append multiple characters to the list.
  */
 int chunklist_append_multiple(chunklist_t* list, const char* source, size_t len);
 
 /**
- *
+ * Get a single character from the list.
  */
 int chunklist_get(chunklist_t* list, size_t pos);
 
 /**
- *
+ * Retrieve multiple characters from the list.
  */
 ssize_t chunklist_get_multiple(chunklist_t* list, size_t pos, char* dest, size_t len);
 
