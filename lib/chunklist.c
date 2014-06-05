@@ -18,24 +18,19 @@ chunkelem_t* chunkelem_new(size_t chunk_size) {
 	if (chunk_size == 0)
 		chunk_size = 1;
 
-	chunkelem_t* elem = new(chunkelem_t);
+	chunkelem_t* elem = (chunkelem_t*) malloc(sizeof(chunkelem_t) + chunk_size);
 
 	if (elem) {
-		/* initialize the actual chunk */
 		elem->next = NULL;
-		elem->chunk = (char*) malloc(chunk_size);
 
-		if (!elem->chunk) {
-			free(elem);
-			return NULL;
-		}
+		/* calculate the pointer to the chunk */
+		elem->chunk = (char*) (elem + 1);
 	}
 
 	return elem;
 }
 
 void chunkelem_free(chunkelem_t* elem) {
-	free(elem->chunk);
 	free(elem);
 }
 
