@@ -2,8 +2,10 @@
 #include "../lib/rect.h"
 #include "../lib/window.h"
 #include "../lib/layout.h"
+#include "../lib/log.h"
 
 #include <stdio.h>
+#include <time.h>
 
 void fill_rect(const rect_t* rect, char c) {
 	for (size_t i = 0; i < rect->h; i++) {
@@ -20,7 +22,8 @@ void fill_window(const window_t* window, char c) {
 	fill_rect(&tmp, c);
 }
 
-int main(void) {
+int main(int argc, char** argv) {
+	log_open("application.log");
 	session_start();
 
 	window_t win;
@@ -33,7 +36,7 @@ int main(void) {
 	fill_window(&lay->b, 'B');
 
 	refresh();
-	fgetc(stdin);
+	// fgetc(stdin);
 
 	/* change window bounds */
 	rect_t new_bounds;
@@ -54,11 +57,12 @@ int main(void) {
 	fill_window(&lay->b, 'B');
 
 	refresh();
-	fgetc(stdin);
+	// fgetc(stdin);
 
 	/* free everything */
 	layout_free(lay);
 	session_stop();
+	log_close();
 
 	return 0;
 }
