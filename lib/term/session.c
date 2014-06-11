@@ -1,5 +1,5 @@
 #include "session.h"
-#include "log.h"
+#include "../log.h"
 #include <ncurses.h>
 
 int session_start() {

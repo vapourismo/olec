@@ -1,5 +1,5 @@
 #include "chunklist.h"
-#include "aux.h"
+#include "../aux.h"
 #include <malloc.h>
 #include <string.h>
 

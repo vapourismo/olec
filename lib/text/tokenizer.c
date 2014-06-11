@@ -1,7 +1,7 @@
 #include "tokenizer.h"
 #include "chunklist.h"
-#include "aux.h"
-#include "log.h"
+#include "../aux.h"
+#include "../log.h"
 #include <string.h>
 #include <errno.h>
 

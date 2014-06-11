@@ -1,5 +1,5 @@
 #include "rect.h"
-#include "aux.h"
+#include "../aux.h"
 
 void rect_vsplit_abs(const rect_t* base,
                      rect_t* left, rect_t* right,

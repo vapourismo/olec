@@ -1,4 +1,4 @@
-#include "../lib/tokenizer.h"
+#include "../lib/text/tokenizer.h"
 #include "../lib/log.h"
 #include <string.h>
 

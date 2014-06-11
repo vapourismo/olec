@@ -1,5 +1,5 @@
 #include "window.h"
-#include "aux.h"
+#include "../aux.h"
 
 void window_create(window_t* win, size_t x, size_t y, size_t w, size_t h) {
 	*win = newwin(h, w, y, x);

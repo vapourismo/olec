@@ -1,5 +1,5 @@
 #include "layout.h"
-#include "aux.h"
+#include "../aux.h"
 #include <stdarg.h>
 
 void layout_new_vargs(layout_t* lay, const rect_t* bounds, split_mode_t mode, va_list vargs) {
