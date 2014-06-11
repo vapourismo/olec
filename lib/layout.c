@@ -1,6 +1,5 @@
 #include "layout.h"
 #include "aux.h"
-
 #include <stdarg.h>
 
 void layout_new_vargs(layout_t* lay, const rect_t* bounds, split_mode_t mode, va_list vargs) {
@@ -45,7 +44,6 @@ void layout_sub_win(layout_t* lay, const window_t* target, split_mode_t mode, ..
 
 	va_end(vargs);
 }
-
 
 void layout_free(layout_t* lay) {
 	if (lay) {

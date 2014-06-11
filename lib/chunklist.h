@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include <unistd.h>
 
-typedef struct _chunkelem chunkelem_t;
-
 /**
  * Chunk List
  */
@@ -13,8 +11,8 @@ typedef struct _chunklist {
 	size_t chunk_size;
 	size_t insert_pos;
 
-	chunkelem_t* head;
-	chunkelem_t* tail;
+	struct _chunkelem* head;
+	struct _chunkelem* tail;
 } chunklist_t;
 
 /**

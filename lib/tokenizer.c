@@ -1,20 +1,9 @@
 #include "tokenizer.h"
 #include "chunklist.h"
 #include "aux.h"
-
 #include <string.h>
 
-
-/*
- * Constants
- */
-
 #define TOK_CHUNK_SIZE 1024
-
-
-/*
- * Token Pattern
- */
 
 tokpattern_t* tokpattern_new(size_t id, const char* preg) {
 	tokpattern_t* tp = new(tokpattern_t);
@@ -45,28 +34,18 @@ ssize_t tokpattern_check(const tokpattern_t* tp, const char* input) {
 	regmatch_t m;
 
 	if (regexec(&tp->pattern, input, 1, &m, 0) == 0) {
-		/* since we do not want to skip input,
-		   we have to make sure the match is at offset 0 */
+		/* since we do not want to skip any input,
+		   we have to make sure the match starts at offset 0 */
 		return m.rm_so == 0 && m.rm_eo > 0 ? m.rm_eo : -1;
 	} else {
 		return -1;
 	}
 }
 
-
-/*
- * Token
- */
-
 void token_free_contents(token_t* x) {
 	if (x && x->contents)
 		free(x->contents);
 }
-
-
-/*
- * Tokenizer
- */
 
 typedef struct _tokelem {
 	tokpattern_t* pattern;

@@ -1,8 +1,6 @@
 #ifndef OLEC_SESSION_H
 #define OLEC_SESSION_H
 
-#include <ncurses.h>
-
 /**
  * Spawn a unicorn.
  */

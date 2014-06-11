@@ -1,23 +1,18 @@
 #include "chunklist.h"
 #include "aux.h"
-
 #include <malloc.h>
 #include <string.h>
 
-
-/**
- * Chunk Elements
- */
-
-struct _chunkelem {
+typedef struct _chunkelem {
 	struct _chunkelem* next;
 	char* chunk;
-};
+} chunkelem_t;
 
 chunkelem_t* chunkelem_new(size_t chunk_size) {
 	if (chunk_size == 0)
 		chunk_size = 1;
 
+	/* allocate memory for the base structure and the entire chunk */
 	chunkelem_t* elem = (chunkelem_t*) malloc(sizeof(chunkelem_t) + chunk_size);
 
 	if (elem) {
@@ -34,12 +29,8 @@ void chunkelem_free(chunkelem_t* elem) {
 	free(elem);
 }
 
-
-/*
- * Chunk List
- */
 chunklist_t* chunklist_new(size_t chunk_size) {
-	chunklist_t* list = (chunklist_t*) malloc(sizeof(struct _chunklist));
+	chunklist_t* list = new(chunklist_t);
 
 	if (list) {
 		list->chunk_size = chunk_size;
@@ -72,7 +63,7 @@ void chunklist_free(chunklist_t* list) {
 
 int chunklist_ensure_space(chunklist_t* list) {
 	if (list->insert_pos >= list->chunk_size) {
-		/* tail chunk is full, so we need to create another */
+		/* tail  is full, so we need to create another */
 		chunkelem_t* new_elem = chunkelem_new(list->chunk_size);
 
 		if (!new_elem)
@@ -110,9 +101,10 @@ int chunklist_append_multiple(chunklist_t* list, const char* source, size_t len)
 	size_t space = min(len, list->chunk_size - list->insert_pos);
 	memcpy(list->tail->chunk + list->insert_pos, source, space);
 
+	/* set the insertion position  */
 	list->insert_pos += space;
-	size_t rest = len - space;
 
+	size_t rest = len - space;
 	if (rest > 0) {
 		/* append the rest (if existing) */
 		return chunklist_append_multiple(list, source + space, rest);
@@ -123,11 +115,14 @@ int chunklist_append_multiple(chunklist_t* list, const char* source, size_t len)
 
 int chunklist_get(chunklist_t* list, size_t pos) {
 	chunkelem_t* it = list->head;
+	size_t chunk_size = list->chunk_size;
 
-	while (it && pos >= list->chunk_size)
+	while (it && pos >= chunk_size) {
 		it = it->next;
+		pos -= chunk_size;
+	}
 
-	if (pos >= list->chunk_size)
+	if (pos >= chunk_size)
 		return -1;
 
 	return it->chunk[pos];
@@ -155,9 +150,8 @@ char* chunklist_to_string(chunklist_t* list) {
 	size_t size = chunklist_size(list) + 1;
 	char* buffer = (char*) malloc(size);
 
-	if (buffer) {
+	if (buffer)
 		chunklist_copy_to_string(list, buffer, size);
-	}
 
 	return buffer;
 }

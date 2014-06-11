@@ -1,8 +1,5 @@
 #include "session.h"
-
-/*
- * Session
- */
+#include <ncurses.h>
 
 int session_start() {
 	if (!initscr())

@@ -4,11 +4,9 @@
 #include <unistd.h>
 #include <regex.h>
 
-
-/*
- * Token Pattern
+/**
+ * Token Pattern (Regular Expression)
  */
-
 typedef struct {
 	size_t id;
 	regex_t pattern;
@@ -29,11 +27,9 @@ void tokpattern_free(tokpattern_t* tp);
  */
 ssize_t tokpattern_check(const tokpattern_t* tp, const char* input);
 
-
-/*
- * Token
+/**
+ * Parsed Token
  */
-
 typedef struct {
 	size_t id;
 	size_t offset;
@@ -45,11 +41,9 @@ typedef struct {
  */
 void token_free_contents(token_t* token);
 
-
-/*
+/**
  * Tokenizer
  */
-
 typedef struct {
 	char* contents;
 	const char* position;

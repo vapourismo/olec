@@ -3,7 +3,6 @@
 #include "../lib/window.h"
 #include "../lib/layout.h"
 #include "../lib/log.h"
-
 #include <stdio.h>
 #include <time.h>
 
@@ -29,21 +28,22 @@ int main(int argc, char** argv) {
 	window_t win;
 	window_create(&win, 0, 0, 0, 0);
 
-	layout_t* lay = layout_sub_win(&win, VSPLIT_REL, 0.5);
+	layout_t lay;
+	layout_sub_win(&lay, &win, VSPLIT_REL, 0.5);
 
 	/* fill window and wait for input */
-	fill_window(&lay->a, 'A');
-	fill_window(&lay->b, 'B');
+	fill_window(&lay.a, 'A');
+	fill_window(&lay.b, 'B');
 
 	refresh();
-	// fgetc(stdin);
+	fgetc(stdin);
 
 	/* change window bounds */
 	rect_t new_bounds;
 	window_get_bounds(&win, &new_bounds);
 
-	new_bounds.x += 10;
-	new_bounds.y += 10;
+	new_bounds.x += new_bounds.w / 4;
+	new_bounds.y += new_bounds.h / 4;
 	new_bounds.w -= new_bounds.x * 2;
 	new_bounds.h -= new_bounds.y * 2;
 
@@ -51,16 +51,16 @@ int main(int argc, char** argv) {
 
 	/* clear and update window, and wait for input */
 	clear();
-	layout_update(lay);
+	layout_update(&lay);
 
-	fill_window(&lay->a, 'A');
-	fill_window(&lay->b, 'B');
+	fill_window(&lay.a, 'A');
+	fill_window(&lay.b, 'B');
 
 	refresh();
-	// fgetc(stdin);
+	fgetc(stdin);
 
 	/* free everything */
-	layout_free(lay);
+	layout_free(&lay);
 	session_stop();
 	log_close();
 
