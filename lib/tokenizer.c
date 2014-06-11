@@ -44,11 +44,6 @@ ssize_t tokpattern_check(const tokpattern_t* tp, const char* input) {
 	}
 }
 
-void token_free_contents(token_t* x) {
-	if (x && x->contents)
-		free(x->contents);
-}
-
 typedef struct _tokelem {
 	tokpattern_t* pattern;
 	struct _tokelem* next;
@@ -155,13 +150,8 @@ ssize_t tokenizer_do(tokenizer_t* tok, token_t* token) {
 			/* submit the token in case the token pattern applied */
 			if (token) {
 				token->id = it->pattern->id;
-				token->offset = tok->position - tok->contents;
-				token->contents = (char*) malloc(m);
-
-				if (token->contents) {
-					token->contents[m] = 0;
-					memcpy(token->contents, tok->position, m);
-				}
+				token->position = tok->position;
+				token->length = m;
 			}
 
 			/* move to new position */
@@ -174,7 +164,8 @@ ssize_t tokenizer_do(tokenizer_t* tok, token_t* token) {
 	}
 
 	if (m < 0) {
-		token->offset = tok->position - tok->contents;
+		token->position = tok->position;
+		token->length = token->id = 0;
 	}
 
 	return m;

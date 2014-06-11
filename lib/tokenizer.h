@@ -32,14 +32,9 @@ ssize_t tokpattern_check(const tokpattern_t* tp, const char* input);
  */
 typedef struct {
 	size_t id;
-	size_t offset;
-	char* contents;
+	const char* position;
+	size_t length;
 } token_t;
-
-/**
- * Free contents associated with the given token-
- */
-void token_free_contents(token_t* token);
 
 /**
  * Tokenizer
@@ -70,6 +65,8 @@ int tokenizer_add(tokenizer_t* tok, tokpattern_t* pattern);
 
 /**
  * Try to apply one of the given token patterns.
+ * Returns 0 if the tokenizer has reached the end of input,
+ * otherwise returns -1 for invalid input or the amount of characters matched.
  */
 ssize_t tokenizer_do(tokenizer_t* tok, token_t* out);
 
