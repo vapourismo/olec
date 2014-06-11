@@ -15,12 +15,10 @@ chunkelem_t* chunkelem_new(size_t chunk_size) {
 	/* allocate memory for the base structure and the entire chunk */
 	chunkelem_t* elem = (chunkelem_t*) malloc(sizeof(chunkelem_t) + chunk_size);
 
-	if (elem) {
-		elem->next = NULL;
+	if (!elem) return NULL;
 
-		/* calculate the pointer to the chunk */
-		elem->chunk = (char*) (elem + 1);
-	}
+	elem->next = NULL;
+	elem->chunk = (char*) (elem + 1);
 
 	return elem;
 }
@@ -32,16 +30,16 @@ void chunkelem_free(chunkelem_t* elem) {
 chunklist_t* chunklist_new(size_t chunk_size) {
 	chunklist_t* list = new(chunklist_t);
 
-	if (list) {
-		list->chunk_size = chunk_size;
-		list->insert_pos = 0;
-		list->head = list->tail = chunkelem_new(chunk_size);
+	if (!list) return NULL;
 
-		/* at least one chunkelem should exist */
-		if (!list->tail) {
-			free(list);
-			return NULL;
-		}
+	list->chunk_size = chunk_size;
+	list->insert_pos = 0;
+	list->head = list->tail = chunkelem_new(chunk_size);
+
+	/* at least one chunkelem should exist */
+	if (!list->tail) {
+		free(list);
+		return NULL;
 	}
 
 	return list;
