@@ -72,27 +72,19 @@ void tokelem_free(tokelem_t* te) {
 	}
 }
 
-tokenizer_t* tokenizer_new(const char* file_path) {
-	tokenizer_t* tok = new(tokenizer_t);
-
-	if (!tok) return NULL;
-
+int tokenizer_new(tokenizer_t* tok, const char* file_path) {
 	FILE* file = fopen(file_path, "rt");
 
 	if (!file) {
 		errorf("Cannot open '%s': %s", file_path, strerror(errno));
-		free(tok);
-
-		return NULL;
+		return 0;
 	}
 
 	chunklist_t* buffer = chunklist_new(TOK_CHUNK_SIZE);
 
 	if (!buffer) {
-		free(tok);
 		fclose(file);
-
-		return NULL;
+		return 0;
 	}
 
 	/* fill the chunklist with the file contents */
@@ -112,7 +104,7 @@ tokenizer_t* tokenizer_new(const char* file_path) {
 	chunklist_free(buffer);
 	fclose(file);
 
-	return tok;
+	return 1;
 }
 
 void tokenizer_free(tokenizer_t* tok) {
@@ -130,7 +122,6 @@ void tokenizer_free(tokenizer_t* tok) {
 
 	/* free file contents and lastly the structure */
 	free(tok->contents);
-	free(tok);
 }
 
 int tokenizer_add(tokenizer_t* tok, tokpattern_t* pattern) {

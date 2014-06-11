@@ -56,7 +56,7 @@ typedef struct {
 /**
  * Construct a tokenizer.
  */
-tokenizer_t* tokenizer_new(const char* file_path);
+int tokenizer_new(tokenizer_t* tok, const char* file_path);
 
 /**
  * Free a tokenizer.
