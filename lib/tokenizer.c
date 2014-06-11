@@ -1,22 +1,24 @@
 #include "tokenizer.h"
 #include "chunklist.h"
 #include "aux.h"
+#include "log.h"
 #include <string.h>
+#include <errno.h>
 
 #define TOK_CHUNK_SIZE 1024
 
 tokpattern_t* tokpattern_new(size_t id, const char* preg) {
 	tokpattern_t* tp = new(tokpattern_t);
 
-	if (tp) {
-		/* compile the regular expression */
-		if (regcomp(&tp->pattern, preg, REG_EXTENDED) != 0) {
-			free(tp);
-			return NULL;
-		}
+	if (!tp) return NULL;
 
-		tp->id = id;
+	/* compile the regular expression */
+	if (regcomp(&tp->pattern, preg, REG_EXTENDED) != 0) {
+		free(tp);
+		return NULL;
 	}
+
+	tp->id = id;
 
 	return tp;
 }
@@ -73,61 +75,62 @@ void tokelem_free(tokelem_t* te) {
 tokenizer_t* tokenizer_new(const char* file_path) {
 	tokenizer_t* tok = new(tokenizer_t);
 
-	if (tok) {
-		FILE* file = fopen(file_path, "rt");
+	if (!tok) return NULL;
 
-		/* exit if the file could not be opened */
-		if (!file) {
-			free(tok);
-			return NULL;
-		}
+	FILE* file = fopen(file_path, "rt");
 
-		chunklist_t* buffer = chunklist_new(TOK_CHUNK_SIZE);
+	if (!file) {
+		errorf("Cannot open '%s': %s", file_path, strerror(errno));
+		free(tok);
 
-		/* exit if the buffer could not be created */
-		if (!buffer) {
-			free(tok);
-			fclose(file);
-			return NULL;
-		}
-
-		/* fill the chunklist with the file contents */
-		char read_buffer[TOK_CHUNK_SIZE];
-		ssize_t r;
-		while ((r = fread(read_buffer, 1, TOK_CHUNK_SIZE, file)) > 0)
-			chunklist_append_multiple(buffer, read_buffer, r);
-
-		/* submit the file contents */
-		tok->position = tok->contents = chunklist_to_string(buffer);
-		tok->last_position = tok->position + chunklist_size(buffer);
-
-		/* setup token pattern list */
-		tok->head = tok->tail = NULL;
-
-		/* free unecessary resources */
-		chunklist_free(buffer);
-		fclose(file);
+		return NULL;
 	}
+
+	chunklist_t* buffer = chunklist_new(TOK_CHUNK_SIZE);
+
+	if (!buffer) {
+		free(tok);
+		fclose(file);
+
+		return NULL;
+	}
+
+	/* fill the chunklist with the file contents */
+	char read_buffer[TOK_CHUNK_SIZE];
+	ssize_t r;
+	while ((r = fread(read_buffer, 1, TOK_CHUNK_SIZE, file)) > 0)
+		chunklist_append_multiple(buffer, read_buffer, r);
+
+	/* submit the file contents */
+	tok->position = tok->contents = chunklist_to_string(buffer);
+	tok->last_position = tok->position + chunklist_size(buffer);
+
+	/* setup token pattern list */
+	tok->head = tok->tail = NULL;
+
+	/* free unecessary resources */
+	chunklist_free(buffer);
+	fclose(file);
 
 	return tok;
 }
 
 void tokenizer_free(tokenizer_t* tok) {
-	if (tok) {
-		if (tok->head) {
-			/* iterate through the list and free every element */
-			tokelem_t* it = tok->head;
-			while (it) {
-				tokelem_t* to_delete = it;
-				it = it->next;
-				tokelem_free(to_delete);
-			}
-		}
+	if (!tok) return;
 
-		/* free file contents and lastly the structure */
-		free(tok->contents);
-		free(tok);
+	if (tok->head) {
+		/* iterate through the list and free every element */
+		tokelem_t* it = tok->head;
+		while (it) {
+			tokelem_t* to_delete = it;
+			it = it->next;
+			tokelem_free(to_delete);
+		}
 	}
+
+	/* free file contents and lastly the structure */
+	free(tok->contents);
+	free(tok);
 }
 
 int tokenizer_add(tokenizer_t* tok, tokpattern_t* pattern) {
