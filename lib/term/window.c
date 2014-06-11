@@ -7,6 +7,7 @@ void window_create(window_t* win, size_t x, size_t y, size_t w, size_t h) {
 
 void window_delete(window_t* win) {
 	delwin(*win);
+	*win = NULL;
 }
 
 void window_get_bounds(const window_t* win, rect_t* bounds) {
@@ -18,8 +19,7 @@ void window_get_bounds(const window_t* win, rect_t* bounds) {
 }
 
 void window_set_bounds(window_t* win, const rect_t* bounds) {
-	window_t w = *win;
-	if (w) delwin(w);
+	if (*win) delwin(*win);
 	*win = newwin(bounds->h, bounds->w, bounds->y, bounds->x);
 }
 
