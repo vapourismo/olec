@@ -1,27 +1,45 @@
-#include "../lib/text/tokenizer.h"
 #include "../lib/log.h"
-#include <string.h>
+#include "../lib/term/session.h"
+#include "../lib/term/window.h"
+#include "../lib/term/layout.h"
+#include "../lib/term/views/mainview.h"
+
+void fill_rect(const rect_t* rect, char c) {
+	for (size_t i = 0; i < rect->h; i++) {
+		move(rect->y + i, rect->x);
+
+		for (size_t j = 0; j < rect->w; j++)
+			addch(c);
+	}
+}
+
+void fill_window(const window_t* window, char c) {
+	rect_t tmp;
+	window_get_bounds(window, &tmp);
+	fill_rect(&tmp, c);
+}
 
 int main(int argc, char** argv) {
+	/* init app */
 	log_open("application.log");
+	session_start();
 
-	tokenizer_t tok;
-	if (tokenizer_new(&tok, "src/example.olec")) {
-		tokenizer_add(&tok, tokpattern_new(0, "\\s+"));
-		tokenizer_add(&tok, tokpattern_new(1, "[^ \t\n\r\a\b\v\f]+"));
+	init_pair(1, COLOR_BLACK, COLOR_WHITE);
 
-		token_t out;
-		char buffer[1024];
+	mainview_t mview;
+	mainview_init(&mview, &stdscr);
 
-		while (tokenizer_do(&tok, &out) > 0) {
-			memcpy(buffer, out.position, out.length);
-			buffer[out.length] = 0;
-			printf("%lu: %s\n", out.id, buffer);
-		}
+	fill_window(mainview_get_viewport(&mview), '1');
 
-		tokenizer_free(&tok);
-	}
+	attrset(COLOR_PAIR(1));
+	fill_window(mainview_get_statusbar(&mview), '2');
 
+	refresh();
+	fgetc(stdin);
+
+	/* finalize */
+	session_stop();
 	log_close();
+
 	return 0;
 }
