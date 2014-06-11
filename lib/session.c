@@ -1,9 +1,12 @@
 #include "session.h"
+#include "log.h"
 #include <ncurses.h>
 
 int session_start() {
-	if (!initscr())
+	if (!initscr()) {
+		error("Failed to initialize 'stdscr'");
 		return 0;
+	}
 
 	/* configure terminal */
 	noecho();
