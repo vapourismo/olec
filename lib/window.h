@@ -4,11 +4,7 @@
 #include "rect.h"
 #include <ncurses.h>
 
-typedef WINDOW curswin_t;
-
-typedef struct _window {
-	curswin_t* ref;
-} window_t;
+typedef WINDOW* window_t;
 
 /**
  * Create a new window.
