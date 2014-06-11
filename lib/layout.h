@@ -28,12 +28,12 @@ typedef struct {
 /**
  * Create a new layout container.
  */
-layout_t* layout_new(const rect_t* bounds, split_mode_t mode, ...);
+void layout_new(layout_t* lay, const rect_t* bounds, split_mode_t mode, ...);
 
 /**
  * Create a new layout container within an existing window.
  */
-layout_t* layout_sub_win(const window_t* bounds, split_mode_t mode, ...);
+void layout_sub_win(layout_t* lay, const window_t* source, split_mode_t mode, ...);
 
 /**
  * Free an existing layout container.

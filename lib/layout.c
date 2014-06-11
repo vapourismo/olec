@@ -6,7 +6,7 @@
 void layout_new_vargs(layout_t* lay, const rect_t* bounds, split_mode_t mode, va_list vargs) {
 	if (bounds) lay->bounds = *bounds;
 	lay->mode = mode;
-	lay->a.ref = lay->b.ref = NULL;
+	lay->a = lay->b = NULL;
 
 	/* determine which kind of argument needs to be extracted from
 	   the variable arguments.
@@ -20,42 +20,30 @@ void layout_new_vargs(layout_t* lay, const rect_t* bounds, split_mode_t mode, va
 	layout_update(lay);
 }
 
-layout_t* layout_new(const rect_t* bounds, split_mode_t mode, ...) {
-	layout_t* lay = new(layout_t);
+void layout_new(layout_t* lay, const rect_t* bounds, split_mode_t mode, ...) {
+	va_list vargs;
+	va_start(vargs, mode);
 
-	if (lay) {
-		va_list vargs;
-		va_start(vargs, mode);
+	/* there is no parent container */
+	lay->parent = NULL;
 
-		/* there is no parent container */
-		lay->parent = NULL;
+	/* let 'layout_new_vargs' initialize the structure */
+	layout_new_vargs(lay, bounds, mode, vargs);
 
-		/* let 'layout_new_vargs' initialize the structure */
-		layout_new_vargs(lay, bounds, mode, vargs);
-
-		va_end(vargs);
-	}
-
-	return lay;
+	va_end(vargs);
 }
 
-layout_t* layout_sub_win(const window_t* target, split_mode_t mode, ...) {
-	layout_t* lay = new(layout_t);
+void layout_sub_win(layout_t* lay, const window_t* target, split_mode_t mode, ...) {
+	va_list vargs;
+	va_start(vargs, mode);
 
-	if (lay) {
-		va_list vargs;
-		va_start(vargs, mode);
+	/* reference the parent container */
+	lay->parent = target;
 
-		/* reference the parent container */
-		lay->parent = target;
+	/* let 'layout_new_vargs' initialize the structure */
+	layout_new_vargs(lay, NULL, mode, vargs);
 
-		/* let 'layout_new_vargs' initialize the structure */
-		layout_new_vargs(lay, NULL, mode, vargs);
-
-		va_end(vargs);
-	}
-
-	return lay;
+	va_end(vargs);
 }
 
 
@@ -63,8 +51,6 @@ void layout_free(layout_t* lay) {
 	if (lay) {
 		window_delete(&lay->a);
 		window_delete(&lay->b);
-
-		free(lay);
 	}
 }
 
