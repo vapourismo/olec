@@ -2,12 +2,11 @@
 #define OLEC_LOG_H
 
 #include <stdio.h>
-#include <time.h>
 
-static FILE* _log_file = NULL;
+extern FILE* _log_file;
 
-#define _log_write(msg) { fprintf(_log_file, "\033[1;30m%lu\033[0m [\033[33m%s\033[0m:\033[33m%i\033[0m] " msg "\n", time(NULL), __FILE__, __LINE__); fflush(_log_file); }
-#define _log_writef(msg, ...) { fprintf(_log_file, "%lu [%s:%i] " msg "\n", time(NULL), __FILE__, __LINE__, __VA_ARGS__); fflush(_log_file); }
+#define _log_write(msg) { fprintf(_log_file, "[\033[33m%s\033[0m:\033[33m%i\033[0m] " msg "\n", __FILE__, __LINE__); fflush(_log_file); }
+#define _log_writef(msg, ...) { fprintf(_log_file, "[\033[33m%s\033[0m:\033[33m%i\033[0m] " msg "\n", __FILE__, __LINE__, __VA_ARGS__); fflush(_log_file); }
 
 /**
  * Start logging to 'file'
