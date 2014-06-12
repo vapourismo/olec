@@ -44,11 +44,6 @@ void window_draw_format(window_t* win, const char* format, ...);
 int window_encloses(window_t* win, size_t x, size_t y);
 
 /**
- * Flush the changes in win to the screen.
- */
-void window_render(const window_t* win);
-
-/**
  * Split a window vertically (absolute)
  */
 void window_vsplit_abs(const window_t* base,

@@ -84,10 +84,6 @@ void window_draw_format(window_t* win, const char* format, ...) {
 	}
 }
 
-void window_render(const window_t* win) {
-	wredrawln(stdscr, win->y, win->h);
-}
-
 void window_vsplit_abs(const window_t* base,
                        window_t* left, window_t* right,
                        ssize_t sep) {

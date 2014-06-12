@@ -22,3 +22,7 @@ int session_start() {
 void session_stop() {
 	endwin();
 }
+
+void session_render() {
+	refresh();
+}

@@ -11,4 +11,9 @@ int session_start();
  */
 void session_stop();
 
+/**
+ * Render all changes to the screen.
+ */
+void session_render();
+
 #endif
