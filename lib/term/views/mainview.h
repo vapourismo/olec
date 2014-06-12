@@ -10,7 +10,7 @@ typedef struct {
 /**
  *
  */
-void mainview_init(mainview_t* mview, const window_t* parent);
+void mainview_create(mainview_t* mview, const window_t* parent);
 
 /**
  *
@@ -26,6 +26,5 @@ window_t* mainview_get_statusbar(mainview_t* mview);
  *
  */
 window_t* mainview_get_viewport(mainview_t* mview);
-
 
 #endif

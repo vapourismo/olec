@@ -1,7 +1,7 @@
 #include "mainview.h"
 
-void mainview_init(mainview_t* mview, const window_t* parent) {
-	layout_sub_win(&mview->layout, parent, HSPLIT_ABS, (ssize_t) -1);
+void mainview_create(mainview_t* mview, const window_t* parent) {
+	layout_create(&mview->layout, parent, HSPLIT_ABS, (ssize_t) -1);
 }
 
 void mainview_update(mainview_t* mview) {
