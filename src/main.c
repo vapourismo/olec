@@ -5,6 +5,10 @@
 #include "../lib/term/views/mainview.h"
 #include <ncurses.h>
 
+void render_viewport(window_t* target) {
+	window_fill(target, '#');
+}
+
 int main(int argc, char** argv) {
 	/* init app */
 	log_open("application.log");
@@ -14,11 +18,16 @@ int main(int argc, char** argv) {
 	getyx(stdscr, root.y, root.x);
 	getmaxyx(stdscr, root.h, root.w);
 
+	root.x += root.w / 4;
+	root.y += root.h / 4;
+	root.h /= 2;
+	root.w /= 2;
+
 	mainview_t mview;
 	mainview_create(&mview, &root);
 
-	window_fill(mainview_get_viewport(&mview), '1');
-	window_fill(mainview_get_statusbar(&mview), '2');
+	render_viewport(mview.viewport);
+	window_fill(mview.statusbar, '2');
 
 	session_render();
 	fgetc(stdin);
