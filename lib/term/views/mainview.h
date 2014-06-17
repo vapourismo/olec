@@ -4,6 +4,7 @@
 #include "../layout.h"
 
 typedef struct {
+	window_t root;
 	layout_t layout;
 	window_t* statusbar;
 	window_t* viewport;
@@ -12,7 +13,7 @@ typedef struct {
 /**
  *
  */
-void mainview_create(mainview_t* mview, const window_t* parent);
+void mainview_create(mainview_t* mview);
 
 /**
  *
