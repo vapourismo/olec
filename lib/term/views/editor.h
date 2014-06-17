@@ -20,10 +20,12 @@ typedef struct {
 	layout_t lay_split;
 
 	/* viewport internals */
+	size_t viewport_x, viewport_y;
+	size_t viewport_width, viewport_height;
+	size_t cursor_x, cursor_y;
+
+	size_t num_lines;
 	size_t linenum_width;
-	size_t lines;
-	size_t current_line;
-	size_t render_from, render_to;
 } editor_t;
 
 /**
