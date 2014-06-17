@@ -5,7 +5,7 @@
 #include "../layout.h"
 
 /**
- *
+ * Editor View
  */
 typedef struct {
 	/* configurable */
@@ -29,17 +29,17 @@ typedef struct {
 } editor_t;
 
 /**
- *
+ * Create an editor within the given window.
  */
 void editor_create(editor_t* ed, const window_t* root);
 
 /**
- *
+ * Display the editor.
  */
 void editor_render(editor_t* ed);
 
 /**
- *
+ * Update the editor's visual-related internals.
  */
 void editor_update(editor_t* ed);
 
