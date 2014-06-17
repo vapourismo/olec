@@ -28,9 +28,7 @@ void window_clear(const window_t* win) {
 }
 
 void window_move_cursor(const window_t* win, size_t x, size_t y) {
-	if (window_encloses(win, x, y)) {
-		move(win->y + y, win->x + x);
-	}
+	if (x < win->w && y < win->h) move(win->y + y, win->x + x);
 }
 
 int window_encloses(const window_t* win, size_t x, size_t y) {
