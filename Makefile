@@ -25,10 +25,10 @@ EXE_DEPEND_FILES  = $(EXE_SOURCE_FILES:%.c=%.d)
 
 ## Flags
 LIB_CC_FLAGS      = -std=c11 -fPIC -fmessage-length=0 -Wall -Wpedantic -O0 -g -DDEBUG
-LIB_LD_FLAGS      = -shared -lncurses
+LIB_LD_FLAGS      = -shared -lncurses -lm
 LIB_AR_FLAGS      = rcs
 EXE_CC_FLAGS      = -std=c11 -fmessage-length=0 -Wall -Wpedantic -O0 -g -DDEBUG
-EXE_LD_FLAGS      = -lncurses
+EXE_LD_FLAGS      = -lncurses -lm
 
 ## Programs
 CC                = clang
