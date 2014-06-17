@@ -26,7 +26,6 @@ extern FILE* _log_file;
 #define inform(msg) _log_write("\033[34mI\033[0m " msg)
 #define informf(msg, ...) _log_writef("\033[34mI\033[0m " msg, __VA_ARGS__)
 
-
 /* Debug Macros */
 #ifdef DEBUG
 	#define debug(msg) _log_write("\033[35mD\033[0m " msg)
