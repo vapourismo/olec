@@ -13,4 +13,9 @@
  */
 #define min(x, y) ((x) < (y) ? (x) : (y))
 
+ /**
+  * Return the greater value.
+  */
+#define max(x, y) ((x) > (y) ? (x) : (y))
+
 #endif
