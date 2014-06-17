@@ -134,3 +134,9 @@ void window_hsplit_rel(const window_t* base,
 	window_hsplit_abs(base, top, bottom, base->h * sep);
 }
 
+void window_maximize(window_t* window) {
+	window->x = stdscr->_begx;
+	window->y = stdscr->_begy;
+	window->w = stdscr->_maxx + 1;
+	window->h = stdscr->_maxy + 1;
+}

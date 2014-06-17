@@ -71,4 +71,9 @@ void window_hsplit_rel(const window_t* base,
                        window_t* top, window_t* bottom,
                        double sep);
 
+/**
+ * Maximizes the target windows bounds.
+ */
+void window_maximize(window_t* window);
+
 #endif
