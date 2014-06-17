@@ -14,17 +14,8 @@ int main(int argc, char** argv) {
 	log_open("application.log");
 	session_start();
 
-	window_t root;
-	getyx(stdscr, root.y, root.x);
-	getmaxyx(stdscr, root.h, root.w);
-
-	root.x += root.w / 4;
-	root.y += root.h / 4;
-	root.h /= 2;
-	root.w /= 2;
-
 	mainview_t mview;
-	mainview_create(&mview, &root);
+	mainview_create(&mview);
 
 	render_viewport(mview.viewport);
 	window_fill(mview.statusbar, '2');
