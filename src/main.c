@@ -11,6 +11,7 @@ int main(int argc, char** argv) {
 	log_open("application.log");
 	session_start();
 
+	init_pair(1, COLOR_BLACK, COLOR_WHITE);
 	init_pair(2, COLOR_YELLOW, COLOR_BLACK);
 	init_pair(3, COLOR_BLUE, COLOR_WHITE);
 
@@ -18,21 +19,14 @@ int main(int argc, char** argv) {
 	mainview_create(&mview);
 
 	editor_t ed;
-	ed.linenum_padding = 1;
-	ed.linenum_min_width = 2;
-	ed.linenum_color_normal = 2;
-	ed.linenum_color_selected = 3;
-	ed.text_margin = 1;
-
 	editor_create(&ed, mview.viewport);
 
-	ed.render_from = 1;
-	ed.render_to = ed.lay_split.a.h;
-	ed.lines = ed.lay_split.a.h;
-	ed.current_line = 3;
-	editor_update(&ed);
+	ed.num_lines = 40;
 
-	window_fill(mview.statusbar, '2');
+	attrset(COLOR_PAIR(1));
+	window_fill(mview.statusbar, ' ');
+	attrset(0);
+
 	editor_render(&ed);
 
 	session_render();
