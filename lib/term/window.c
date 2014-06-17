@@ -14,7 +14,7 @@ void window_create(window_t* win, size_t x, size_t y, size_t w, size_t h) {
 	win->h = h;
 }
 
-void window_fill(window_t* win, char c) {
+void window_fill(const window_t* win, char c) {
 	for (size_t i = 0; i < win->h; i++) {
 		move(win->y + i, win->x);
 
@@ -23,17 +23,17 @@ void window_fill(window_t* win, char c) {
 	}
 }
 
-void window_clear(window_t* win) {
+void window_clear(const window_t* win) {
 	window_fill(win, ' ');
 }
 
-void window_move_cursor(window_t* win, size_t x, size_t y) {
+void window_move_cursor(const window_t* win, size_t x, size_t y) {
 	if (window_encloses(win, x, y)) {
 		move(win->y + y, win->x + x);
 	}
 }
 
-int window_encloses(window_t* win, size_t x, size_t y) {
+int window_encloses(const window_t* win, size_t x, size_t y) {
 	return
 		x >= win->x &&
 		y >= win->y &&
@@ -41,7 +41,7 @@ int window_encloses(window_t* win, size_t x, size_t y) {
 		y < win->y + win->h;
 }
 
-void window_draw_string(window_t* win, const char* message) {
+void window_draw_string(const window_t* win, const char* message) {
 	/* retrieve the global cursor position */
 	size_t cur_x, cur_y;
 	getyx(stdscr, cur_y, cur_x);
@@ -54,7 +54,7 @@ void window_draw_string(window_t* win, const char* message) {
 	}
 }
 
-void window_draw_format(window_t* win, const char* format, ...) {
+void window_draw_format(const window_t* win, const char* format, ...) {
 	/* retrieve the global cursor position */
 	size_t cur_x, cur_y;
 	getyx(stdscr, cur_y, cur_x);
