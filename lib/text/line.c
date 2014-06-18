@@ -76,3 +76,15 @@ int line_insert_many(line_t* line, size_t pos, const char* data, size_t len) {
 
 	return 1;
 }
+
+int line_split(line_t* line, size_t pos, line_t* result) {
+	line_create(result);
+
+	if (pos < line->tail) {
+		size_t len = line->tail - pos;
+		line_append_many(result, line->buffer + pos, len);
+		line->tail -= len;
+	}
+
+	return 1;
+}

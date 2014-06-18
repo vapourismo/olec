@@ -41,4 +41,9 @@ int line_insert(line_t* line, size_t pos, char val);
  */
 int line_insert_many(line_t* line, size_t pos, const char* data, size_t len);
 
+/**
+ * Split a line at a given position.
+ */
+int line_split(line_t* line, size_t pos, line_t* result);
+
 #endif
