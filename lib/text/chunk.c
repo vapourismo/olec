@@ -33,7 +33,6 @@ int chunk_check_buffer(chunk_t* chunk, size_t len) {
 void chunk_create(chunk_t* chunk) {
 	chunk->buffer = NULL;
 	chunk->tail = chunk->length = 0;
-	chunk->type = CT_INVALID;
 }
 
 void chunk_destroy(chunk_t* chunk) {
@@ -80,8 +79,6 @@ int chunk_insert_many(chunk_t* chunk, size_t pos, const char* data, size_t len) 
 
 int chunk_split(chunk_t* chunk, size_t pos, chunk_t* result) {
 	chunk_create(result);
-
-	result->type = chunk->type;
 
 	if (pos < chunk->tail) {
 		size_t len = chunk->tail - pos;

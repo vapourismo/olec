@@ -4,20 +4,11 @@
 #include <stddef.h>
 
 /**
- *
- */
-typedef enum {
-	CT_INVALID,
-	CT_NORMAL
-} chunk_type_t;
-
-/**
  * A Chunk Buffer
  */
 typedef struct {
 	char* buffer;
 	size_t tail, length;
-	chunk_type_t type;
 } chunk_t;
 
 /**
