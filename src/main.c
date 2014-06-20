@@ -1,26 +1,26 @@
 #include "../lib/log.h"
 #include "../lib/aux.h"
-#include "../lib/text/line.h"
+#include "../lib/text/chunk.h"
 
 int main(void) {
 	/* init app */
 	log_open("application.log");
 
-	line_t line1, line2;
-	line_create(&line1);
+	chunk_t chunk1, chunk2;
+	chunk_create(&chunk1);
 
-	line_append_many(&line1, "Heo", 3);
-	line_insert_many(&line1, 2, "ll", 2);
+	chunk_append_many(&chunk1, "Heo", 3);
+	chunk_insert_many(&chunk1, 2, "ll", 2);
 
-	line_split(&line1, 2, &line2);
+	chunk_split(&chunk1, 2, &chunk2);
 
-	line_append(&line1, 0);
-	line_append(&line2, 0);
+	chunk_append(&chunk1, 0);
+	chunk_append(&chunk2, 0);
 
-	puts(line1.buffer);
-	puts(line2.buffer);
+	puts(chunk1.buffer);
+	puts(chunk2.buffer);
 
-	line_destroy(&line1);
+	chunk_destroy(&chunk1);
 
 	/* finalize */
 	log_close();
