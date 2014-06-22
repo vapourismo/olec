@@ -4,6 +4,7 @@ module Olec.Terminal (withTerminal,
                       termDimension,
                       moveCursor,
                       drawString, drawChar,
+                      drawByteString, drawByteString8,
                       render) where
 
 import Foreign.C
@@ -12,31 +13,34 @@ import Foreign.Marshal.Alloc (free)
 import Control.Applicative
 import Control.Exception
 
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+
 -- Foreign Imports
 foreign import ccall unsafe "terminal_begin"
-	_termBegin      :: IO ()
+	_termBegin :: IO ()
 
 foreign import ccall unsafe "terminal_end"
-	_termEnd        :: IO ()
+	_termEnd :: IO ()
 
 foreign import ccall unsafe "terminal_width"
-	_termWidth      :: IO CInt
+	_termWidth :: IO CInt
 
 foreign import ccall unsafe "terminal_height"
-	_termHeight     :: IO CInt
+	_termHeight :: IO CInt
 
 foreign import ccall unsafe "terminal_move_cursor"
 	_termMoveCursor :: CInt -> CInt -> IO ()
 
 foreign import ccall unsafe "terminal_draw_char"
-	_termDrawChar   :: CChar -> IO ()
+	_termDrawChar :: CChar -> IO ()
 
 foreign import ccall unsafe "terminal_draw_string"
-	_termDrawString :: CString -> IO ()
+	_termDrawCString :: CString -> IO ()
 
 -- | Commit changes to the screen
 foreign import ccall unsafe "terminal_render"
-	render          :: IO ()
+	render :: IO ()
 
 -- | Groups terminal width and height
 termDimension :: IO (Int, Int)
@@ -48,11 +52,19 @@ termDimension = (,) <$> fmap cint2int _termWidth
 withTerminal :: IO a -> IO a
 withTerminal = bracket_ _termBegin _termEnd
 
+-- | Draw a ByteString.
+drawByteString :: B.ByteString -> IO ()
+drawByteString bstr = B.useAsCString bstr _termDrawCString
+
+-- | Draw a ByteString.Char8.
+drawByteString8 :: C.ByteString -> IO ()
+drawByteString8 bstr = C.useAsCString bstr _termDrawCString
+
 -- | Draw a string
 drawString :: String -> IO ()
 drawString s = do
 	cstr <- newCString s
-	_termDrawString cstr
+	_termDrawCString cstr
 	free cstr
 
 -- | Draw a character
