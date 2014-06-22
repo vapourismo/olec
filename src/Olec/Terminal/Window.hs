@@ -1,5 +1,6 @@
 module Olec.Terminal.Window (Window, wMoveCursor,
-                             wDimension, wOrigin,
+                             wDimension, wOrigin, wEncloses,
+                             wDrawChar,
                              wDrawString, wDrawByteString, wDrawByteString8,
                              defaultWindow, nullWindow,
                              newWindow, subWindow,
@@ -22,9 +23,8 @@ nullWindow = (0, 0, 0, 0)
 
 -- | Position the cursor relative to the window's origin.
 wMoveCursor :: Window -> Position -> IO ()
-wMoveCursor (wx, wy, ww, wh) (x, y)
-	| x < ww && y < wh = moveCursor (wx + x) (wy + y)
-wMoveCursor _ _ = return ()
+wMoveCursor (wx, wy, ww, wh) (x, y) =
+	when (x < ww && y < wh) $ moveCursor (wx + x) (wy + y)
 
 -- | Draw a String within a Window.
 wDrawString :: Window -> String -> IO ()
@@ -69,6 +69,17 @@ wFitEntity x winX winW len =
 		cutBack = if x + len > winX + winW
 			then (x + len) - (winX + winW)
 			else 0
+
+-- | Draw a character within the window.
+wDrawChar :: Window -> Char -> IO ()
+wDrawChar win c =
+	fmap (wEncloses win) cursor >>= flip when (drawChar c)
+
+-- | Does the given Position lay within the given Window?
+wEncloses :: Window -> Position -> Bool
+wEncloses (x, y, w, h) (cx, cy) =
+	x <= cx && cx < x + w
+	&& y <= cy && cy < y + h
 
 -- | Retrieve the window's origin.
 wOrigin :: Window -> Position
