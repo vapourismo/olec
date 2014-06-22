@@ -49,7 +49,7 @@ newWindow pos dim = do
 
 -- | Fill a window with a given character.
 fillWindow :: Window -> Char -> IO ()
-fillWindow win c = do
-	let (w, h) = wDimension win
-	let renderLine line y = wMoveCursor win (0, y) >> drawString line
-	forM_ [0 .. (h - 1)] (renderLine $ replicate w c)
+fillWindow win c = forM_ [0 .. (h - 1)] (renderLine $ replicate w c) where
+	(w, h) = wDimension win
+	renderLine line y = wMoveCursor win (0, y) >> drawString line
+
