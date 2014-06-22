@@ -1,5 +1,5 @@
 module Olec.Terminal.Window (Window, wMoveCursor,
-                             wDimension, wOrigin
+                             wDimension, wOrigin,
                              defaultWindow,
                              newWindow, subWindow,
                              fillWindow) where
@@ -7,6 +7,7 @@ module Olec.Terminal.Window (Window, wMoveCursor,
 import Olec.Terminal
 import Control.Monad
 
+-- Data types
 type Window = (Int, Int, Int, Int)
 type Dimension = (Int, Int)
 type Position = (Int, Int)
