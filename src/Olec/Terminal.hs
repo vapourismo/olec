@@ -22,20 +22,13 @@ foreign import ccall unsafe "terminal_draw_char"   _termDrawChar   :: CChar -> I
 foreign import ccall unsafe "terminal_draw_string" _termDrawString :: CString -> IO ()
 
 -- | Commit changes to the screen
-foreign import ccall unsafe "terminal_render"      render      :: IO ()
-
-
-cint2int :: CInt -> Int
-cint2int = fromInteger . toInteger
-
-int2cint :: Int -> CInt
-int2cint = fromInteger . toInteger
-
+foreign import ccall unsafe "terminal_render"      render          :: IO ()
 
 -- | Groups terminal width and height
 termDimension :: IO (Int, Int)
-termDimension = (,) <$> (fmap cint2int _termWidth)
-                    <*> (fmap cint2int _termHeight)
+termDimension = (,) <$> fmap cint2int _termWidth
+                    <*> fmap cint2int _termHeight where
+	cint2int = fromInteger . toInteger
 
 -- | Perform actions within an initialized terminal. The terminal will be destroyed afterwards.
 withTerminal :: IO a -> IO a
@@ -54,4 +47,5 @@ drawChar = _termDrawChar . castCharToCChar
 
 -- | Change the cursor's position
 moveCursor :: Int -> Int -> IO ()
-moveCursor x y = _termMoveCursor (int2cint x) (int2cint y)
+moveCursor x y = _termMoveCursor (int2cint x) (int2cint y) where
+	int2cint = fromInteger . toInteger
