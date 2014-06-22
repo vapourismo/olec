@@ -8,12 +8,12 @@ data SplitLayout = AbsVSplit Int    -- ^ Absolute Vertical Split
                  | RelHSplit Float  -- ^ Relative Horizontal Split
 	deriving Show
 
--- Normalize the seperator
+-- | Normalize the seperator
 normSep sep com
 	| sep < 0 = max 0 (min com (com + sep))
 	| otherwise = max 0 (min com sep)
 
---
+-- | Generate an absolute seperator value from a relative seperator
 relSep sep com = toInt (sep * toFloat com) where
 	toFloat = fromInteger . toInteger
 	toInt = floor
