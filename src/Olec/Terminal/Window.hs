@@ -51,5 +51,5 @@ newWindow pos dim = do
 fillWindow :: Window -> Char -> IO ()
 fillWindow win c = do
 	let (w, h) = wDimension win
-	forM_ [0 .. (h - 1)] (renderLine $ replicate w c) where
-		renderLine line y = wMoveCursor win (0, y) >> drawString line
+	let renderLine line y = wMoveCursor win (0, y) >> drawString line
+	forM_ [0 .. (h - 1)] (renderLine $ replicate w c)

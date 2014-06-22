@@ -13,16 +13,30 @@ import Control.Applicative
 import Control.Exception
 
 -- Foreign Imports
-foreign import ccall unsafe "terminal_begin"       _termBegin      :: IO ()
-foreign import ccall unsafe "terminal_end"         _termEnd        :: IO ()
-foreign import ccall unsafe "terminal_width"       _termWidth      :: IO CInt
-foreign import ccall unsafe "terminal_height"      _termHeight     :: IO CInt
-foreign import ccall unsafe "terminal_move_cursor" _termMoveCursor :: CInt -> CInt -> IO ()
-foreign import ccall unsafe "terminal_draw_char"   _termDrawChar   :: CChar -> IO ()
-foreign import ccall unsafe "terminal_draw_string" _termDrawString :: CString -> IO ()
+foreign import ccall unsafe "terminal_begin"
+	_termBegin      :: IO ()
+
+foreign import ccall unsafe "terminal_end"
+	_termEnd        :: IO ()
+
+foreign import ccall unsafe "terminal_width"
+	_termWidth      :: IO CInt
+
+foreign import ccall unsafe "terminal_height"
+	_termHeight     :: IO CInt
+
+foreign import ccall unsafe "terminal_move_cursor"
+	_termMoveCursor :: CInt -> CInt -> IO ()
+
+foreign import ccall unsafe "terminal_draw_char"
+	_termDrawChar   :: CChar -> IO ()
+
+foreign import ccall unsafe "terminal_draw_string"
+	_termDrawString :: CString -> IO ()
 
 -- | Commit changes to the screen
-foreign import ccall unsafe "terminal_render"      render          :: IO ()
+foreign import ccall unsafe "terminal_render"
+	render          :: IO ()
 
 -- | Groups terminal width and height
 termDimension :: IO (Int, Int)
