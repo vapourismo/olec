@@ -4,6 +4,7 @@ module Olec.Terminal (withTerminal,
                       termDimension,
                       moveCursor,
                       drawString, drawChar,
+                      cursor,
                       drawByteString, drawByteString8,
                       render) where
 
@@ -29,6 +30,12 @@ foreign import ccall unsafe "terminal_width"
 foreign import ccall unsafe "terminal_height"
 	_termHeight :: IO CInt
 
+foreign import ccall unsafe "terminal_cursor_x"
+	_termCursorX :: IO CInt
+
+foreign import ccall unsafe "terminal_cursor_y"
+	_termCursorY :: IO CInt
+
 foreign import ccall unsafe "terminal_move_cursor"
 	_termMoveCursor :: CInt -> CInt -> IO ()
 
@@ -46,6 +53,12 @@ foreign import ccall unsafe "terminal_render"
 termDimension :: IO (Int, Int)
 termDimension = (,) <$> fmap cint2int _termWidth
                     <*> fmap cint2int _termHeight where
+	cint2int = fromInteger . toInteger
+
+-- | Get the current cursor position.
+cursor :: IO (Int, Int)
+cursor = (,) <$> fmap cint2int _termCursorX
+             <*> fmap cint2int _termCursorY where
 	cint2int = fromInteger . toInteger
 
 -- | Perform actions within an initialized terminal. The terminal will be destroyed afterwards.

@@ -11,11 +11,19 @@ extern void terminal_end(void) {
 }
 
 extern int terminal_width(void) {
-	return stdscr->_maxx + 1;
+	return getmaxx(stdscr) + 1;
 }
 
 extern int terminal_height(void) {
-	return stdscr->_maxy + 1;
+	return getmaxy(stdscr) + 1;
+}
+
+extern int terminal_cursor_x(void) {
+	return getcurx(stdscr);
+}
+
+extern int terminal_cursor_y(void) {
+	return getcury(stdscr);
 }
 
 extern void terminal_move_cursor(int x, int y) {
