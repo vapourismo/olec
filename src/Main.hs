@@ -2,12 +2,20 @@ import Olec.Terminal
 import Olec.Terminal.Window
 import Olec.Terminal.Layout
 
-main = withTerminal $ do
-	scr <- defaultWindow
-	let (win1, win2) = split (RelVSplit (-0.25)) scr
+import Control.Applicative
 
-	fillWindow win1 '1'
-	fillWindow win2 '2'
+renderA _ win = fillWindow win 'A'
+renderB _ win = fillWindow win 'B'
+
+myLayout :: SplitLayout ()
+myLayout =
+	SplitLayout (RelHSplit 0.5)
+		(Renderer nullWindow renderA)
+		(Renderer nullWindow renderB)
+
+main = withTerminal $ do
+	lay <- updateLayout myLayout <$> defaultWindow
+	renderLayout lay ()
 
 	render
 	getChar
