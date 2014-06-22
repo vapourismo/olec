@@ -1,6 +1,6 @@
 module Olec.Terminal.Window (Window, wMoveCursor,
                              wDimension, wOrigin,
-                             defaultWindow,
+                             defaultWindow, nullWindow,
                              newWindow, subWindow,
                              fillWindow) where
 
@@ -11,6 +11,10 @@ import Control.Monad
 type Window = (Int, Int, Int, Int)
 type Dimension = (Int, Int)
 type Position = (Int, Int)
+
+-- | An empty window
+nullWindow :: Window
+nullWindow = (0, 0, 0, 0)
 
 -- | Position the cursor relative to the window's origin.
 wMoveCursor :: Window -> Position -> IO ()
