@@ -2,10 +2,10 @@ module Olec.Terminal.Layout where
 
 import Olec.Terminal.Window
 
-data SplitLayout = AbsVSplit Int    -- ^ Absolute Vertical Split
-                 | AbsHSplit Int    -- ^ Absolute Horizontal Split
-                 | RelVSplit Float  -- ^ Relative Veritcal Split
-                 | RelHSplit Float  -- ^ Relative Horizontal Split
+data SplitInfo = AbsVSplit Int    -- ^ Absolute Vertical Split
+               | AbsHSplit Int    -- ^ Absolute Horizontal Split
+               | RelVSplit Float  -- ^ Relative Veritcal Split
+               | RelHSplit Float  -- ^ Relative Horizontal Split
 	deriving Show
 
 -- | Normalize the seperator
@@ -19,7 +19,7 @@ relSep sep com = toInt (sep * toFloat com) where
 	toInt = floor
 
 -- | Generate two sub windows based on the layout information.
-split :: SplitLayout -> Window -> (Window, Window)
+split :: SplitInfo -> Window -> (Window, Window)
 
 -- Absolute Vertical Split
 split (AbsVSplit sep') (x, y, w, h) = (left, right) where
