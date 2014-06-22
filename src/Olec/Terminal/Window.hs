@@ -36,10 +36,10 @@ defaultWindow = do
 --   The given x- and y-coordinates are relative to the window's origin.
 subWindow :: Window -> Position -> Dimension -> Window
 subWindow (origX, origY, origW, origH) (x', y') (w', h') = (x, y, w, h) where
-	x = min (origX + origW) (max origX x')
-	y = min (origY + origH) (max origY y')
-	w = min (origW - (x - origX)) w'
-	h = min (origH - (y - origY)) h'
+	x = max 0 $ min (origX + origW) (max origX x')
+	y = max 0 $ min (origY + origH) (max origY y')
+	w = max 0 $ min (origW - (x - origX)) w'
+	h = max 0 $ min (origH - (y - origY)) h'
 
 -- | Create an entirely new window.
 newWindow :: Position -> Dimension -> IO Window
