@@ -1,19 +1,28 @@
 import Olec.Terminal
 import Olec.Terminal.Input
+import Data.List
 
 loop y my = do
-	input <- readKey
+	keys <- fmap (parseInput) readSome
 
-	moveCursor 0 y
-	drawString (show input)
-	clearToEOL
+	let displayKey y k =
+		(mod (y + 1) my, moveCursor 0 y >> drawString (show k) >> clearToEOL)
+
+	let (endY, ops) = mapAccumL displayKey y keys
+
+	sequence ops
 	render
 
-	case input of
-		KeyPrint _ 'q' -> return ()
-		_              -> loop (mod (y + 1) my) my
+	let cond k = case k of
+		KeyPrint _ 'q' -> True
+		_              -> False
+
+	if any cond keys
+		then return ()
+		else loop endY my
 
 main = withTerm $ do
 	(_, h) <- termDimension
 	render
 	loop 0 (h - 1)
+

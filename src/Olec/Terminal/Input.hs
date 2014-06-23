@@ -1,4 +1,4 @@
-module Olec.Terminal.Input (KeyStroke (..), readKey) where
+module Olec.Terminal.Input (KeyStroke (..), parseInput, readSome) where
 
 import Data.Char
 import System.IO (stdin)
@@ -16,7 +16,7 @@ data SpecialKey = KeyReturn
 -- | Key Stroke
 data KeyStroke = KeyPrint     KeyModifier Char
                | KeySpecial   KeyModifier SpecialKey
-               | KeyUndefined [Char]
+               | KeyUndefined Char
 	deriving (Show, Eq)
 
 -- Is c control modified?
@@ -25,37 +25,33 @@ isCtrlMod c = 1 <= ord c && ord c <= 26
 -- Fix the control modifier offset
 fixCtrlOffset c = chr (ord c + 96)
 
+-- | Parse an input sequence.
+parseInput :: [Char] -> [KeyStroke]
+parseInput cs = parseInput' cs []
+
 -- Special sequences
-parseInput "\r"       = KeySpecial KeyNoMod KeyReturn
-parseInput "\n"       = KeySpecial KeyCtrl  KeyReturn
-parseInput "\ESC\n"   = KeySpecial KeyAlt   KeyReturn
-parseInput "\ESC\r"   = KeySpecial KeyAlt   KeyReturn
-parseInput "\ESC"     = KeySpecial KeyNoMod KeyEscape
-parseInput "\ESC\ESC" = KeySpecial KeyAlt   KeyEscape
+parseInput' "\r"       t = KeySpecial KeyNoMod KeyReturn : parseInput' t []
+parseInput' "\n"       t = KeySpecial KeyCtrl  KeyReturn : parseInput' t []
+parseInput' "\ESC\n"   t = KeySpecial KeyAlt   KeyReturn : parseInput' t []
+parseInput' "\ESC\r"   t = KeySpecial KeyAlt   KeyReturn : parseInput' t []
+parseInput' "\ESC"     t = KeySpecial KeyNoMod KeyEscape : parseInput' t []
+parseInput' "\ESC\ESC" t = KeySpecial KeyAlt   KeyEscape : parseInput' t []
 
 -- Ordinary characters
-parseInput (x : [])
-	| isPrint x       = KeyPrint KeyNoMod x
-	| isCtrlMod x     = KeyPrint KeyCtrl  (fixCtrlOffset x)
+parseInput' (x : [])   t
+	| isPrint x   = KeyPrint KeyNoMod x : parseInput' t []
+	| isCtrlMod x = KeyPrint KeyCtrl (fixCtrlOffset x) : parseInput' t []
 
 -- Alt + Ordinary character
-parseInput ('\ESC' : x : [])
-	| isPrint x       = KeyPrint KeyAlt     x
-	| isCtrlMod x     = KeyPrint KeyCtrlAlt (fixCtrlOffset x)
-
--- Recycle bad sequences
--- This is bad! The proper way would be to put all input facilities into a State Monad
--- and cache left-overs.
-parseInput (_ : xs)   = parseInput xs
+parseInput' ('\ESC' : x : []) t
+	| isPrint x   = KeyPrint KeyAlt x : parseInput' t []
+	| isCtrlMod x = KeyPrint KeyCtrlAlt (fixCtrlOffset x) : parseInput' t []
 
 -- Anything else
-parseInput xs         = KeyUndefined xs
+parseInput' [] []       = []
+parseInput' [] (t : ts) = KeyUndefined t : parseInput' ts []
+parseInput' xs t        = parseInput' (init xs) (last xs : t)
 
--- | Read a KeyStroke.
-readKey :: IO KeyStroke
-readKey = do
-	input <- B.hGetSome stdin 10
-	return $ if B.length input > 0
-		then parseInput (B.unpack input)
-		else KeyUndefined []
-
+-- | Read some characters
+readSome :: IO [Char]
+readSome = fmap B.unpack (B.hGetSome stdin 64)
