@@ -1,4 +1,4 @@
-module Olec.Terminal.Layout where
+module Olec.Terminal.Layout (SplitInfo (..), split) where
 
 import Olec.Terminal.Window
 
@@ -7,7 +7,6 @@ data SplitInfo = AbsVSplit Int    -- ^ Absolute Vertical Split
                | AbsHSplit Int    -- ^ Absolute Horizontal Split
                | RelVSplit Float  -- ^ Relative Veritcal Split
                | RelHSplit Float  -- ^ Relative Horizontal Split
-	deriving Show
 
 -- | Normalize the seperator
 normSep sep com
