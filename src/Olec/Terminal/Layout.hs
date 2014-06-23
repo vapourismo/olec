@@ -2,6 +2,8 @@ module Olec.Terminal.Layout (SplitInfo (..), split) where
 
 import Olec.Terminal.Window
 
+import Control.Applicative
+
 -- | Split Information
 data SplitInfo = AbsVSplit Int    -- ^ Absolute Vertical Split
                | AbsHSplit Int    -- ^ Absolute Horizontal Split
