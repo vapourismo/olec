@@ -1,29 +1,19 @@
 import Olec.Terminal
-import Olec.Terminal.Window
+import Olec.Terminal.Input
 
-import Control.Lens
-import Control.Monad.State
+loop y my = do
+	input <- readKey
 
-type ViewStateT = StateT ViewState IO
+	moveCursor 0 y
+	drawString (show input)
+	clearToEOL
+	render
 
-data ViewState = ViewState { _statusbar :: Window
-                           , _viewport  :: Window }
-	deriving Show
+	case input of
+		KeyPrint _ 'q' -> return ()
+		_              -> loop (mod (y + 1) my) my
 
-statusbar :: Lens' ViewState Window
-statusbar = lens _statusbar (\f x -> f { _statusbar = x })
-
-viewport :: Lens' ViewState Window
-viewport = lens _viewport (\f x -> f { _viewport = x })
-
-updateView :: Window -> ViewStateT ()
-updateView win = do
-	statusbar .= win
-	viewport .= win
-
-main = do
-	stdscr <- withTerminal defaultWindow
-	(a, s) <- runStateT (updateView stdscr) (ViewState nullWindow nullWindow)
-
-	print a
-	print s
+main = withTerm $ do
+	(_, h) <- termDimension
+	render
+	loop 0 (h - 1)
