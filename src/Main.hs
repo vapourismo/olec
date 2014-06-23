@@ -1,21 +1,29 @@
 import Olec.Terminal
 import Olec.Terminal.Window
-import Olec.Terminal.Layout
 
-import Control.Applicative
+import Control.Lens
+import Control.Monad.State
 
-renderA _ win = fillWindow win 'A'
-renderB _ win = fillWindow win 'B'
+type ViewStateT = StateT ViewState IO
 
-myLayout :: SplitLayout ()
-myLayout =
-	SplitLayout (RelHSplit 0.5)
-		(Renderer nullWindow renderA)
-		(Renderer nullWindow renderB)
+data ViewState = ViewState { _statusbar :: Window
+                           , _viewport  :: Window }
+	deriving Show
 
-main = withTerminal $ do
-	lay <- updateLayout myLayout <$> defaultWindow
-	renderLayout lay ()
+statusbar :: Lens' ViewState Window
+statusbar = lens _statusbar (\f x -> f { _statusbar = x })
 
-	render
-	getChar
+viewport :: Lens' ViewState Window
+viewport = lens _viewport (\f x -> f { _viewport = x })
+
+updateView :: Window -> ViewStateT ()
+updateView win = do
+	statusbar .= win
+	viewport .= win
+
+main = do
+	stdscr <- withTerminal defaultWindow
+	(a, s) <- runStateT (updateView stdscr) (ViewState nullWindow nullWindow)
+
+	print a
+	print s
