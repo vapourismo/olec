@@ -13,8 +13,8 @@ EXTERN_DIR    = ext
 EXTERN_OBJS   = bin/terminal.o
 
 ## Compilation Flags
-GHCFLAGS      = -j6 -W -O3 -outputdir $(OUTPUT_DIR) -i$(SOURCE_DIR) -lncurses
-CFLAGS        = -std=c11 -fmessage-length=0 -Wall -Wpedantic -O3
+GHCFLAGS      = -j6 -W -O3 -outputdir $(OUTPUT_DIR) -i$(SOURCE_DIR) -lncursesw
+CFLAGS        = -std=c11 -fmessage-length=0 -Wall -Wpedantic -O3 -fPIC
 
 ## Programs
 GHC           = ghc
