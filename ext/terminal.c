@@ -41,3 +41,7 @@ extern void terminal_draw_char(char c) {
 extern void terminal_render(void) {
 	refresh();
 }
+
+extern void terminal_clear() {
+	clear();
+}
