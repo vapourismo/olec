@@ -43,6 +43,11 @@ parseInput ('\ESC' : x : [])
 	| isPrint x       = KeyPrint KeyAlt     x
 	| isCtrlMod x     = KeyPrint KeyCtrlAlt (fixCtrlOffset x)
 
+-- Recycle bad sequences
+-- This is bad! The proper way would be to put all input facilities into a State Monad
+-- and cache left-overs.
+parseInput (_ : xs)   = parseInput xs
+
 -- Anything else
 parseInput xs         = KeyUndefined xs
 
