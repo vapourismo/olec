@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module Olec.Terminal (withTerm,
-                      clearTerm,
+                      clearTerm, clearToEOL,
                       termDimension,
                       moveCursor,
                       drawString, drawChar,
@@ -49,6 +49,10 @@ foreign import ccall unsafe "terminal_draw_string"
 -- | Clear the terminal.
 foreign import ccall unsafe "terminal_clear"
 	clearTerm :: IO ()
+
+-- | Clear the rest of the line
+foreign import ccall unsafe "terminal_clear_eol"
+	clearToEOL :: IO ()
 
 -- | Commit changes to the terminal.
 foreign import ccall unsafe "terminal_render"

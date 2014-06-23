@@ -42,6 +42,10 @@ extern void terminal_render(void) {
 	refresh();
 }
 
-extern void terminal_clear() {
+extern void terminal_clear(void) {
 	clear();
+}
+
+extern void terminal_clear_eol(void) {
+	clrtoeol();
 }
