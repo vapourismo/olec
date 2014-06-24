@@ -1,11 +1,9 @@
-module Olec.Terminal.Input (KeyStroke (..),
-                            parseInput, readSome,
-                            inputWorker) where
+module Olec.Terminal.Input (KeyStroke (..), KeyModifier (..), SpecialKey (..),
+                            KeyQueue, processInput, readKeyStroke) where
 
+import System.IO
 import Data.Char
 import Control.Monad
-import System.IO
-
 import Control.Concurrent
 
 -- | Key Modifer
@@ -56,7 +54,7 @@ parseInput' [] []       = []
 parseInput' [] (t : ts) = KeyUndefined t : parseInput' ts []
 parseInput' xs t        = parseInput' (init xs) (last xs : t)
 
--- | Read some characters
+-- | Read all available characters.
 readSome :: IO [Char]
 readSome = do
 	ready <- hReady stdin
@@ -64,13 +62,26 @@ readSome = do
 		then liftM2 (:) (hGetChar stdin) readSome
 		else return []
 
--- | Input worker.
-inputWorker :: Chan KeyStroke -> IO ()
+-- | Source to KeyStrokes from an input worker.
+type KeyQueue = Chan KeyStroke
+
+-- | Process the standard input and push the resulting KeyStrokes
+--   onto the KeyQueue.
+inputWorker :: KeyQueue -> IO ()
 inputWorker q = do
 	eof <- hIsEOF stdin
 	when (not eof) $ do
 		keys <- fmap parseInput readSome
 		forM_ keys (writeChan q)
-		-- yield? maybe?
 		inputWorker q
 
+-- | Start processing input events.
+processInput :: IO KeyQueue
+processInput = do
+	q <- newChan
+	forkIO (inputWorker q)
+	return q
+
+-- | Fetch a KeyStroke.
+readKeyStroke :: KeyQueue -> IO KeyStroke
+readKeyStroke = readChan
