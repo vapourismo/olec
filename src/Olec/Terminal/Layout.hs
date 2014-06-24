@@ -5,10 +5,11 @@ import Olec.Terminal.Window
 import Control.Applicative
 
 -- | Split Information
-data SplitInfo = AbsVSplit Int    -- ^ Absolute Vertical Split
-               | AbsHSplit Int    -- ^ Absolute Horizontal Split
-               | RelVSplit Float  -- ^ Relative Veritcal Split
-               | RelHSplit Float  -- ^ Relative Horizontal Split
+data SplitInfo
+	= AbsVSplit Int    -- ^ Absolute Vertical Split
+	| AbsHSplit Int    -- ^ Absolute Horizontal Split
+	| RelVSplit Float  -- ^ Relative Veritcal Split
+	| RelHSplit Float  -- ^ Relative Horizontal Split
 
 -- | Normalize the seperator
 normSep sep com

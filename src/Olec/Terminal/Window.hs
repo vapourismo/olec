@@ -44,7 +44,7 @@ nullWindow = (0, 0, 0, 0)
 -- | Position the cursor relative to the Window's origin.
 wMoveCursor :: Window -> Position -> IO ()
 wMoveCursor (wx, wy, ww, wh) (x, y) =
-	when (x < ww && y < wh) $ moveCursor (wx + x) (wy + y)
+	moveCursor (wx + x) (wy + y)
 
 -- | Draw a String within a Window.
 wDrawString :: Window -> String -> IO ()
