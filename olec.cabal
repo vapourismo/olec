@@ -1,4 +1,6 @@
 name:                olec
+synopsis:            Another Fucking Editor
+description:         With this editor you can edit things.
 version:             0.0.1
 license:             GPL-3
 license-file:        LICENSE
@@ -7,6 +9,10 @@ maintainer:          itstheimp@gmail.com
 category:            Development, Editor
 build-type:          Simple
 cabal-version:       >=1.10
+
+source-repository head
+  type: git
+  location: https://github.com/vapourismo/olec.git
 
 executable olec
   ghc-options:         -threaded -j6 -O3 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures
