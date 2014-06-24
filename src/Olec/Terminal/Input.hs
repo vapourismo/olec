@@ -1,5 +1,14 @@
-module Olec.Terminal.Input (KeyStroke (..), KeyModifier (..), SpecialKey (..),
-                            KeyQueue, processInput, readKeyStroke) where
+module Olec.Terminal.Input (
+	-- * Key Types
+	KeyStroke (..),
+	KeyModifier (..),
+	SpecialKey (..),
+
+	-- * Input Processing
+	KeyQueue,
+	processInput,
+	readKeyStroke
+) where
 
 import System.IO
 import Data.Char

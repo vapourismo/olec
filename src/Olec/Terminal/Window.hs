@@ -1,10 +1,32 @@
-module Olec.Terminal.Window (Window, wMoveCursor,
-                             wDimension, wOrigin, wEncloses,
-                             wDrawChar,
-                             wDrawString, wDrawByteString, wDrawByteString8,
-                             defaultWindow, nullWindow,
-                             newWindow, subWindow,
-                             fillWindow) where
+module Olec.Terminal.Window (
+	-- * Window Type
+	Window,
+
+	-- * Cursor
+	wMoveCursor,
+
+	-- * Properties
+	wDimension,
+	wOrigin,
+	wEncloses,
+
+	-- * Drawing
+	wDrawChar,
+	wDrawString,
+	wDrawByteString,
+	wDrawByteString8,
+
+	-- * Special Windows
+	defaultWindow,
+	nullWindow,
+
+	-- * Window Creation
+	newWindow,
+	subWindow,
+
+	-- * Auxiliary
+ 	fillWindow
+ ) where
 
 import Olec.Terminal
 import Control.Monad

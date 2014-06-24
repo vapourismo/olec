@@ -1,13 +1,29 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Olec.Terminal (withTerm,
-                      clearTerm, clearToEOL,
-                      termDimension,
-                      moveCursor,
-                      drawString, drawChar,
-                      drawByteString, drawByteString8,
-                      cursor,
-                      render) where
+module Olec.Terminal (
+	-- * Terminal Interaction
+	withTerm,
+	beginTerm,
+	endTerm,
+
+	-- * Properties
+	termDimension,
+
+	-- * Cursor
+	moveCursor,
+	cursor,
+
+	-- * Drawing
+	drawString,
+	drawChar,
+	drawByteString,
+	drawByteString8,
+	clearTerm,
+	clearToEOL,
+
+	-- * Rendering
+	render
+) where
 
 import Foreign.C
 import Foreign.Marshal.Alloc (free)
@@ -20,10 +36,10 @@ import qualified Data.ByteString.Char8 as C
 
 -- Foreign Imports
 foreign import ccall unsafe "terminal_begin"
-	_termBegin :: IO ()
+	beginTerm :: IO ()
 
 foreign import ccall unsafe "terminal_end"
-	_termEnd :: IO ()
+	endTerm :: IO ()
 
 foreign import ccall unsafe "terminal_width"
 	_termWidth :: IO CInt
@@ -72,7 +88,7 @@ cursor = (,) <$> fmap cint2int _termCursorX
 
 -- | Perform actions within an initialized terminal. The terminal will be destroyed afterwards.
 withTerm :: IO a -> IO a
-withTerm = bracket_ _termBegin _termEnd
+withTerm = bracket_ beginTerm endTerm
 
 -- | Draw a ByteString.
 drawByteString :: B.ByteString -> IO ()
