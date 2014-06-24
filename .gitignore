@@ -1,4 +1,4 @@
 *.o
 *.d
 *.log
-bin/
+dist/
