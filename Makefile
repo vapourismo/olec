@@ -13,8 +13,9 @@ EXTERN_DIR    = ext
 EXTERN_OBJS   = bin/terminal.o
 
 ## Compilation Flags
-GHCFLAGS      = -j6 -W -O3 -outputdir $(OUTPUT_DIR) -i$(SOURCE_DIR) -lncursesw
+GHCFLAGS      = -j6 -W -O3 -threaded -outputdir $(OUTPUT_DIR) -i$(SOURCE_DIR) -lncursesw
 CFLAGS        = -std=c11 -fmessage-length=0 -Wall -Wpedantic -O3 -fPIC
+RUNFLAGS      =
 
 ## Programs
 GHC           = ghc
@@ -28,7 +29,7 @@ clean:
 	$(RM) $(OUTPUT_DIR)/*
 
 run: $(OUTPUT_TARGET)
-	$(shell realpath $(OUTPUT_TARGET))
+	$(shell realpath $(OUTPUT_TARGET)) $(RUNFLAGS)
 
 ## C Targets
 $(OUTPUT_DIR)/%.o: $(EXTERN_DIR)/%.c
