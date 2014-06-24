@@ -1,30 +1,28 @@
 import Olec.Terminal
 import Olec.Terminal.Input
 
+import Control.Monad.State
 import Control.Concurrent
+import Control.Lens
 
-showKey (KeyPrint mod k) = "KeyPrint " ++ show mod ++ " '" ++ k : "'"
-showKey x = show x
+type AppStateT s = StateT s IO
 
-loop q y my = do
-	k <- readChan q
+--processInputForever :: (KeyStroke -> AppStateT s Bool) -> AppStateT s ()
+--processInputForever hook = do
+--	(q, t) <- liftIO $ do
+--		q <- newChan
+--		t <- forkIO (inputWorker q)
+--		return (q, t)
 
-	moveCursor 0 y
+--	let looper = do
+--		k <- liftIO (readChan q)
+--		cont <- hook k
+--		when cont looper
 
-	drawString (showKey k)
-	clearToEOL
-
-	render
-
-	case k of
-		KeyPrint _ 'q' -> return ()
-		_              -> loop q (mod (y + 1) my) my
+--	looper
+--	liftIO (killThread t)
 
 main = withTerm $ do
-	q <- newChan
-	forkIO (inputWorker q)
-
-	(_, h) <- termDimension
+	src <- processInput
 	render
-
-	loop q 0 (h - 1)
+	readKeyStroke src
