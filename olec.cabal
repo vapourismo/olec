@@ -19,7 +19,7 @@ executable olec
   main-is:             Main.hs
   extra-libraries:     ncursesw
   other-extensions:    ForeignFunctionInterface
-  build-depends:       base >=4.7 && <4.8, bytestring >=0.10 && <0.11
+  build-depends:       base >=4.7 && <4.8, bytestring >=0.10 && <0.11, mtl >= 2.2.1
   build-tools:         c2hs
   c-sources:           ext/terminal.c
   hs-source-dirs:      src
