@@ -1,8 +1,12 @@
-module Olec.Terminal.Input (KeyStroke (..), parseInput, readSome) where
+module Olec.Terminal.Input (KeyStroke (..),
+                            parseInput, readSome,
+                            inputWorker) where
 
 import Data.Char
-import System.IO (stdin)
-import qualified Data.ByteString.Char8 as B
+import Control.Monad
+import System.IO
+
+import Control.Concurrent
 
 -- | Key Modifer
 data KeyModifier = KeyCtrl | KeyCtrlAlt | KeyAlt | KeyNoMod
@@ -54,4 +58,19 @@ parseInput' xs t        = parseInput' (init xs) (last xs : t)
 
 -- | Read some characters
 readSome :: IO [Char]
-readSome = fmap B.unpack (B.hGetSome stdin 64)
+readSome = do
+	ready <- hReady stdin
+	if ready
+		then liftM2 (:) (hGetChar stdin) readSome
+		else return []
+
+-- | Input worker.
+inputWorker :: Chan KeyStroke -> IO ()
+inputWorker q = do
+	eof <- hIsEOF stdin
+	when (not eof) $ do
+		keys <- fmap parseInput readSome
+		forM_ keys (writeChan q)
+		-- yield? maybe?
+		inputWorker q
+
