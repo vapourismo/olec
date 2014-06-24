@@ -15,7 +15,7 @@ source-repository head
   location: https://github.com/vapourismo/olec.git
 
 executable olec
-  ghc-options:         -threaded -j6 -O3 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures
+  ghc-options:         -threaded -j6 -O3 -W
   main-is:             Main.hs
   extra-libraries:     ncursesw
   other-extensions:    ForeignFunctionInterface
