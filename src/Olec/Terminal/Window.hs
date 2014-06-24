@@ -25,7 +25,7 @@ module Olec.Terminal.Window (
 	subWindow,
 
 	-- * Auxiliary
- 	fillWindow
+ 	wFill
  ) where
 
 import Olec.Terminal
@@ -36,14 +36,12 @@ import qualified Data.ByteString.Char8 as C
 
 -- Data types
 type Window = (Int, Int, Int, Int)
-type Dimension = (Int, Int)
-type Position = (Int, Int)
 
 -- | An empty window
 nullWindow :: Window
 nullWindow = (0, 0, 0, 0)
 
--- | Position the cursor relative to the window's origin.
+-- | Position the cursor relative to the Window's origin.
 wMoveCursor :: Window -> Position -> IO ()
 wMoveCursor (wx, wy, ww, wh) (x, y) =
 	when (x < ww && y < wh) $ moveCursor (wx + x) (wy + y)
@@ -92,7 +90,7 @@ wFitEntity x winX winW len =
 			then (x + len) - (winX + winW)
 			else 0
 
--- | Draw a character within the window.
+-- | Draw a character within the Window.
 wDrawChar :: Window -> Char -> IO ()
 wDrawChar win c =
 	fmap (wEncloses win) cursor >>= flip when (drawChar c)
@@ -103,23 +101,23 @@ wEncloses (x, y, w, h) (cx, cy) =
 	x <= cx && cx < x + w
 	&& y <= cy && cy < y + h
 
--- | Retrieve the window's origin.
+-- | Retrieve the Window's origin.
 wOrigin :: Window -> Position
 wOrigin (x, y, _, _) = (x, y)
 
--- | Retrieve the window's width and height.
-wDimension :: Window -> Dimension
+-- | Retrieve the Window's width and height.
+wDimension :: Window -> Size
 wDimension (_, _, w, h) = (w, h)
 
--- | Fetch the default window (root window).
+-- | Fetch the default Window (root).
 defaultWindow :: IO Window
 defaultWindow = do
-	(w, h) <- termDimension
+	(w, h) <- termSize
 	return (0, 0, w, h)
 
--- | Create a window within another window.
---   The given x- and y-coordinates are relative to the window's origin.
-subWindow :: Window -> Position -> Dimension -> Window
+-- | Create a Window within another Window.
+--   The given x- and y-coordinates are relative to the Window's origin.
+subWindow :: Window -> Position -> Size -> Window
 subWindow (origX, origY, origW, origH) (x', y') (w', h') = (x, y, w, h) where
 	x = max 0 $ min (origX + origW) (max origX x')
 	y = max 0 $ min (origY + origH) (max origY y')
@@ -127,13 +125,13 @@ subWindow (origX, origY, origW, origH) (x', y') (w', h') = (x, y, w, h) where
 	h = max 0 $ min (origH - (y - origY)) h'
 
 -- | Create an entirely new window.
-newWindow :: Position -> Dimension -> IO Window
+newWindow :: Position -> Size -> IO Window
 newWindow pos dim = do
 	scr <- defaultWindow
 	return (subWindow scr pos dim)
 
 -- | Fill a window with a given character.
-fillWindow :: Window -> Char -> IO ()
-fillWindow win c = forM_ [0 .. (h - 1)] (renderLine $ replicate w c) where
+wFill :: Window -> Char -> IO ()
+wFill win c = forM_ [0 .. (h - 1)] (renderLine $ replicate w c) where
 	(w, h) = wDimension win
 	renderLine line y = wMoveCursor win (0, y) >> drawString line

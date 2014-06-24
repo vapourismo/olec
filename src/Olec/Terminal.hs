@@ -1,13 +1,17 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module Olec.Terminal (
+	-- * General Types
+	Position,
+	Size,
+
 	-- * Terminal Interaction
 	withTerm,
 	beginTerm,
 	endTerm,
 
 	-- * Properties
-	termDimension,
+	termSize,
 
 	-- * Cursor
 	moveCursor,
@@ -26,7 +30,7 @@ module Olec.Terminal (
 ) where
 
 import Foreign.C
-import Foreign.Marshal.Alloc (free)
+import Foreign.Marshal.Alloc
 
 import Control.Applicative
 import Control.Exception
@@ -35,12 +39,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 
 -- Foreign Imports
-foreign import ccall unsafe "terminal_begin"
-	beginTerm :: IO ()
-
-foreign import ccall unsafe "terminal_end"
-	endTerm :: IO ()
-
 foreign import ccall unsafe "terminal_width"
 	_termWidth :: IO CInt
 
@@ -62,6 +60,14 @@ foreign import ccall unsafe "terminal_draw_char"
 foreign import ccall unsafe "terminal_draw_string"
 	_termDrawCString :: CString -> IO ()
 
+-- | Initialize the terminal.
+foreign import ccall unsafe "terminal_begin"
+	beginTerm :: IO ()
+
+-- | Finalize the terminal.
+foreign import ccall unsafe "terminal_end"
+	endTerm :: IO ()
+
 -- | Clear the terminal.
 foreign import ccall unsafe "terminal_clear"
 	clearTerm :: IO ()
@@ -74,19 +80,20 @@ foreign import ccall unsafe "terminal_clear_eol"
 foreign import ccall unsafe "terminal_render"
 	render :: IO ()
 
--- | Groups terminal width and height.
-termDimension :: IO (Int, Int)
-termDimension = (,) <$> fmap cint2int _termWidth
-                    <*> fmap cint2int _termHeight where
+-- | A cow.
+type Size = (Int, Int)
+
+-- | A sheep.
+type Position = (Int, Int)
+
+-- | Get the terminal width and height.
+termSize :: IO Size
+termSize = (,) <$> fmap cint2int _termWidth
+               <*> fmap cint2int _termHeight where
 	cint2int = fromInteger . toInteger
 
--- | Get the current cursor position.
-cursor :: IO (Int, Int)
-cursor = (,) <$> fmap cint2int _termCursorX
-             <*> fmap cint2int _termCursorY where
-	cint2int = fromInteger . toInteger
-
--- | Perform actions within an initialized terminal. The terminal will be destroyed afterwards.
+-- | Perform actions within an initialized terminal.
+--   The terminal will be destroyed afterwards.
 withTerm :: IO a -> IO a
 withTerm = bracket_ beginTerm endTerm
 
@@ -98,18 +105,24 @@ drawByteString bstr = B.useAsCString bstr _termDrawCString
 drawByteString8 :: C.ByteString -> IO ()
 drawByteString8 bstr = C.useAsCString bstr _termDrawCString
 
--- | Draw a string
+-- | Draw a String.
 drawString :: String -> IO ()
 drawString s = do
 	cstr <- newCString s
 	_termDrawCString cstr
 	free cstr
 
--- | Draw a character
+-- | Draw a Char.
 drawChar :: Char -> IO ()
 drawChar = _termDrawChar . castCharToCChar
 
--- | Change the cursor's position
+-- | Get the cursor's position.
+cursor :: IO Position
+cursor = (,) <$> fmap cint2int _termCursorX
+             <*> fmap cint2int _termCursorY where
+	cint2int = fromInteger . toInteger
+
+-- | Move the cursor to the given position.
 moveCursor :: Int -> Int -> IO ()
 moveCursor x y = _termMoveCursor (int2cint x) (int2cint y) where
 	int2cint = fromInteger . toInteger

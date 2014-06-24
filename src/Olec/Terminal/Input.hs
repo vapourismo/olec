@@ -1,13 +1,13 @@
 module Olec.Terminal.Input (
 	-- * Key Types
-	KeyStroke (..),
-	KeyModifier (..),
-	SpecialKey (..),
+	InputEvent (..),
+	Modifier (..),
+	Key (..),
 
 	-- * Input Processing
-	KeyQueue,
+	InputQueue,
 	processInput,
-	readKeyStroke
+	readKeyEvent
 ) where
 
 import System.IO
@@ -15,20 +15,25 @@ import Data.Char
 import Control.Monad
 import Control.Concurrent
 
--- | Key Modifer
-data KeyModifier = KeyCtrl | KeyCtrlAlt | KeyAlt | KeyNoMod
+data Modifier
+	= ModControl
+	| ModControlAlt
+	| ModAlt
+	| ModNone
 	deriving (Show, Eq)
 
--- | Special Keys
-data SpecialKey = KeyReturn
-                | KeyEscape
+data Key
+	= KeyPrintable Char
+	| KeyReturn
+	| KeyEscape
 	deriving (Show, Eq)
 
--- | Key Stroke
-data KeyStroke = KeyPrint     KeyModifier Char
-               | KeySpecial   KeyModifier SpecialKey
-               | KeyUndefined Char
+data InputEvent
+	= KeyPress Modifier Key
+    | Undefined Char
 	deriving (Show, Eq)
+
+type InputQueue = Chan InputEvent
 
 -- Is c control modified?
 isCtrlMod c = 1 <= ord c && ord c <= 26
@@ -37,30 +42,30 @@ isCtrlMod c = 1 <= ord c && ord c <= 26
 fixCtrlOffset c = chr (ord c + 96)
 
 -- | Parse an input sequence.
-parseInput :: [Char] -> [KeyStroke]
+parseInput :: [Char] -> [InputEvent]
 parseInput cs = parseInput' cs []
 
 -- Special sequences
-parseInput' "\r"       t = KeySpecial KeyNoMod KeyReturn : parseInput' t []
-parseInput' "\n"       t = KeySpecial KeyCtrl  KeyReturn : parseInput' t []
-parseInput' "\ESC\n"   t = KeySpecial KeyAlt   KeyReturn : parseInput' t []
-parseInput' "\ESC\r"   t = KeySpecial KeyAlt   KeyReturn : parseInput' t []
-parseInput' "\ESC"     t = KeySpecial KeyNoMod KeyEscape : parseInput' t []
-parseInput' "\ESC\ESC" t = KeySpecial KeyAlt   KeyEscape : parseInput' t []
+parseInput' "\r"       t = KeyPress ModNone    KeyReturn : parseInput' t []
+parseInput' "\n"       t = KeyPress ModControl KeyReturn : parseInput' t []
+parseInput' "\ESC\n"   t = KeyPress ModAlt     KeyReturn : parseInput' t []
+parseInput' "\ESC\r"   t = KeyPress ModAlt     KeyReturn : parseInput' t []
+parseInput' "\ESC"     t = KeyPress ModNone    KeyEscape : parseInput' t []
+parseInput' "\ESC\ESC" t = KeyPress ModAlt     KeyEscape : parseInput' t []
 
 -- Ordinary characters
 parseInput' (x : [])   t
-	| isPrint x   = KeyPrint KeyNoMod x : parseInput' t []
-	| isCtrlMod x = KeyPrint KeyCtrl (fixCtrlOffset x) : parseInput' t []
+	| isPrint x   = KeyPress ModNone (KeyPrintable x) : parseInput' t []
+	| isCtrlMod x = KeyPress ModControl (KeyPrintable $ fixCtrlOffset x) : parseInput' t []
 
--- Alt + Ordinary character
+-- ModAlt + Ordinary character
 parseInput' ('\ESC' : x : []) t
-	| isPrint x   = KeyPrint KeyAlt x : parseInput' t []
-	| isCtrlMod x = KeyPrint KeyCtrlAlt (fixCtrlOffset x) : parseInput' t []
+	| isPrint x   = KeyPress ModAlt (KeyPrintable x) : parseInput' t []
+	| isCtrlMod x = KeyPress ModControlAlt (KeyPrintable $ fixCtrlOffset x) : parseInput' t []
 
 -- Anything else
 parseInput' [] []       = []
-parseInput' [] (t : ts) = KeyUndefined t : parseInput' ts []
+parseInput' [] (t : ts) = Undefined t : parseInput' ts []
 parseInput' xs t        = parseInput' (init xs) (last xs : t)
 
 -- | Read all available characters.
@@ -71,12 +76,9 @@ readSome = do
 		then liftM2 (:) (hGetChar stdin) readSome
 		else return []
 
--- | Source to KeyStrokes from an input worker.
-type KeyQueue = Chan KeyStroke
-
--- | Process the standard input and push the resulting KeyStrokes
---   onto the KeyQueue.
-inputWorker :: KeyQueue -> IO ()
+-- | Process the standard input and push the resulting InputEvents
+--   onto the InputQueue.
+inputWorker :: InputQueue -> IO ()
 inputWorker q = do
 	eof <- hIsEOF stdin
 	when (not eof) $ do
@@ -84,13 +86,13 @@ inputWorker q = do
 		forM_ keys (writeChan q)
 		inputWorker q
 
--- | Start processing input events.
-processInput :: IO KeyQueue
+-- | Start processing InputEvents.
+processInput :: IO InputQueue
 processInput = do
 	q <- newChan
 	forkIO (inputWorker q)
 	return q
 
--- | Fetch a KeyStroke.
-readKeyStroke :: KeyQueue -> IO KeyStroke
-readKeyStroke = readChan
+-- | Fetch an InputEvent.
+readKeyEvent :: InputQueue -> IO InputEvent
+readKeyEvent = readChan
