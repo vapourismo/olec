@@ -1,6 +1,8 @@
 module Olec.Editor (
 	-- * Construction
 	Editor,
+	rows,
+	numRows,
 	makeEditor,
 
 	-- * Modification
@@ -21,7 +23,9 @@ data Editor = Editor { rows :: [L.Line],
 -- | Construct an editor.
 makeEditor :: String -> Editor
 makeEditor txt = Editor rs (length rs) where
-	rs = map L.makeLine (lines txt)
+	rs = map L.makeLine $ case lines txt of
+		[] -> [""]
+		xs -> xs
 
 -- | Transform a line using a function.
 transformLine :: Int -> (L.Line -> L.Line) -> Editor -> Editor
