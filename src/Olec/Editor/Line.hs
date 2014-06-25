@@ -11,7 +11,8 @@ module Olec.Editor.Line (
 	-- * Extraction
 	split,
 	split',
-	raw
+	raw,
+	visual
 ) where
 
 import Data.Char
@@ -53,6 +54,10 @@ split' c line = (mLeft, mRight) where
 -- | Get the raw line contents.
 raw :: Line -> String
 raw line = replicate (indentLevel line) '\t' ++ contents line
+
+-- | Get the visual representation of the line.
+visual :: Int -> Line -> String
+visual tabWidth line = replicate (indentLevel line * tabWidth) ' ' ++ contents line
 
 -- | Clean a string.
 clean :: String -> String
