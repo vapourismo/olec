@@ -23,7 +23,7 @@ data Modifier
 	deriving (Show, Eq)
 
 data Key
-	= KeyPrintable Char
+	= KeyChar Char
 	| KeyReturn
 	| KeyEscape
 	deriving (Show, Eq)
@@ -55,13 +55,13 @@ parseInput' "\ESC\ESC" t = KeyPress ModAlt     KeyEscape : parseInput' t []
 
 -- Ordinary characters
 parseInput' (x : [])   t
-	| isPrint x   = KeyPress ModNone (KeyPrintable x) : parseInput' t []
-	| isCtrlMod x = KeyPress ModControl (KeyPrintable $ fixCtrlOffset x) : parseInput' t []
+	| isPrint x   = KeyPress ModNone (KeyChar x) : parseInput' t []
+	| isCtrlMod x = KeyPress ModControl (KeyChar $ fixCtrlOffset x) : parseInput' t []
 
 -- ModAlt + Ordinary character
 parseInput' ('\ESC' : x : []) t
-	| isPrint x   = KeyPress ModAlt (KeyPrintable x) : parseInput' t []
-	| isCtrlMod x = KeyPress ModControlAlt (KeyPrintable $ fixCtrlOffset x) : parseInput' t []
+	| isPrint x   = KeyPress ModAlt (KeyChar x) : parseInput' t []
+	| isCtrlMod x = KeyPress ModControlAlt (KeyChar $ fixCtrlOffset x) : parseInput' t []
 
 -- Anything else
 parseInput' [] []       = []
