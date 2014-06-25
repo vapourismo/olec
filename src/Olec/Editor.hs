@@ -11,7 +11,7 @@ module Olec.Editor (
 	splitLine,
 	splitLine',
 
-	-- * Transforma
+	-- * Transformation
 	EditorT,
 	transformLineT,
 	insertT,
@@ -78,20 +78,9 @@ splitLine' l c e
 -- | Editor Transformer
 type EditorT = State Editor
 
-transformLineT :: Int -> (L.Line -> L.Line) -> EditorT ()
 transformLineT l f = modify (transformLine l f)
-
-insertT :: Int -> Int -> String -> EditorT ()
 insertT l c txt = modify (insert l c txt)
-
-appendLineT :: Int -> String -> EditorT ()
 appendLineT l txt = modify (appendLine l txt)
-
-prependLineT :: Int -> String -> EditorT ()
 prependLineT l txt = modify (prependLine l txt)
-
-splitLineT :: Int -> Int -> EditorT ()
 splitLineT l c = modify (splitLine l c)
-
-splitLineT' :: Int -> Int -> EditorT ()
 splitLineT' l c = modify (splitLine' l c)
