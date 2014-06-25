@@ -9,21 +9,10 @@ module Olec.Editor (
 	appendLine,
 	prependLine,
 	splitLine,
-	splitLine',
-
-	-- * Transformation
-	EditorT,
-	transformLineT,
-	insertT,
-	appendLineT,
-	prependLineT,
-	splitLineT,
-	splitLineT'
+	splitLine'
 ) where
 
 import qualified Olec.Editor.Line as L
-
-import Control.Monad.State
 
 data Editor = Editor { rows :: [L.Line],
                        numRows :: Int }
@@ -74,13 +63,3 @@ splitLine' l c e
 		newRows = h ++ x : y : t
 		(h, line : t) = splitAt l (rows e)
 		(x, y) = L.split' c line
-
--- | Editor Transformer
-type EditorT = State Editor
-
-transformLineT l f = modify (transformLine l f)
-insertT l c txt = modify (insert l c txt)
-appendLineT l txt = modify (appendLine l txt)
-prependLineT l txt = modify (prependLine l txt)
-splitLineT l c = modify (splitLine l c)
-splitLineT' l c = modify (splitLine' l c)
