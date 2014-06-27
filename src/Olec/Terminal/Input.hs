@@ -26,6 +26,7 @@ data Key
 	= KeyChar Char
 	| KeyReturn
 	| KeyEscape
+	| KeyBackspace
 	deriving (Show, Eq)
 
 data InputEvent
@@ -52,6 +53,8 @@ parseInput' "\ESC\n"   t = KeyPress ModAlt     KeyReturn : parseInput' t []
 parseInput' "\ESC\r"   t = KeyPress ModAlt     KeyReturn : parseInput' t []
 parseInput' "\ESC"     t = KeyPress ModNone    KeyEscape : parseInput' t []
 parseInput' "\ESC\ESC" t = KeyPress ModAlt     KeyEscape : parseInput' t []
+parseInput' "\DEL"     t = KeyPress ModNone    KeyBackspace : parseInput' t []
+parseInput' "\ESC\DEL" t = KeyPress ModAlt     KeyBackspace : parseInput' t []
 
 -- Ordinary characters
 parseInput' (x : [])   t
