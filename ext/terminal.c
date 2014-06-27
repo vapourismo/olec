@@ -11,11 +11,11 @@ extern void terminal_end(void) {
 }
 
 extern int terminal_width(void) {
-	return getmaxx(stdscr) + 1;
+	return getmaxx(stdscr);
 }
 
 extern int terminal_height(void) {
-	return getmaxy(stdscr) + 1;
+	return getmaxy(stdscr);
 }
 
 extern int terminal_cursor_x(void) {
