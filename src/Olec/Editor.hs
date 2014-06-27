@@ -8,8 +8,8 @@ module Olec.Editor (
 	-- * Modification
 	transformLine,
 	insert,
-	appendLine,
-	prependLine,
+	append,
+	prepend,
 	splitLine,
 	splitLine'
 ) where
@@ -41,12 +41,12 @@ insert :: Int -> Int -> String -> Editor -> Editor
 insert l c txt = transformLine l (L.insert c txt)
 
 -- | Append text to a line.
-appendLine :: Int -> String -> Editor -> Editor
-appendLine l txt = transformLine l (L.append txt)
+append :: Int -> String -> Editor -> Editor
+append l txt = transformLine l (L.append txt)
 
 -- | Prepend text to a line.
-prependLine :: Int -> String -> Editor -> Editor
-prependLine l txt = transformLine l (L.prepend txt)
+prepend :: Int -> String -> Editor -> Editor
+prepend l txt = transformLine l (L.prepend txt)
 
 -- | Split a line.
 splitLine :: Int -> Int -> Editor -> Editor
