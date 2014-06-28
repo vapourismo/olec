@@ -7,7 +7,7 @@ module Olec.Terminal.Input (
 	-- * Input Processing
 	InputQueue,
 	processInput,
-	readKeyEvent
+	readInputEvent
 ) where
 
 import System.IO
@@ -97,5 +97,5 @@ processInput = do
 	return q
 
 -- | Fetch an InputEvent.
-readKeyEvent :: InputQueue -> IO InputEvent
-readKeyEvent = readChan
+readInputEvent :: InputQueue -> IO InputEvent
+readInputEvent = readChan
