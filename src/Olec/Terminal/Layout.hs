@@ -29,10 +29,10 @@ split (AbsVSplit sep') (x, y, w, h) = (left, right) where
 	right = (x + sep, y, w - sep, h)
 
 -- Absolute Horizontal Split
-split (AbsHSplit sep') (x, y, w, h) = (left, right) where
+split (AbsHSplit sep') (x, y, w, h) = (top, bottom) where
 	sep = normSep sep' h
-	left = (x, y, w, sep)
-	right = (x, y + sep, w, h - sep)
+	top = (x, y, w, sep)
+	bottom = (x, y + sep, w, h - sep)
 
 -- Relative Vertical Split
 split (RelVSplit sep') (x, y, w, h) = (left, right) where
@@ -41,7 +41,7 @@ split (RelVSplit sep') (x, y, w, h) = (left, right) where
 	right = (x + sep, y, w - sep, h)
 
 -- Relative Horizontal Split
-split (RelHSplit sep') (x, y, w, h) = (left, right) where
+split (RelHSplit sep') (x, y, w, h) = (top, bottom) where
 	sep = normSep (relSep sep' h) h
-	left = (x, y, w, sep)
-	right = (x, y + sep, w, h - sep)
+	top = (x, y, w, sep)
+	bottom = (x, y + sep, w, h - sep)
