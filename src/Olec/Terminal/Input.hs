@@ -80,41 +80,43 @@ parseInput :: [Char] -> [InputEvent]
 parseInput cs = parseInput' cs []
 
 -- Escape sequence
-parseInput' ('\ESC' : '[' : xs) t = parseEscSeq r (splitParams h) : parseInput (rs ++ t) where
-	-- Break the escape sequence
-	-- 'h' contains the parameters seperated by ';'
-	-- 'r' is the command character
-	(h, r : rs) = break (`notElem` "0123456789;") xs
+parseInput' ('\ESC' : '[' : xs) t =
+	parseEscSeq r (splitParams h) : parseInput (rs ++ t) where
+		-- Break the escape sequence
+		-- 'h' contains the parameters seperated by ';'
+		-- 'r' is the command character
+		(h, r : rs) = break (`notElem` "0123456789;") xs
 
-	-- Split a string using the ';' character
-	splitParams [] = []
-	splitParams xs = case break (== ';') xs of
-		(a, ';' : as) -> a : splitParams as
-		(a, _) -> [a]
+		-- Split a string using the ';' character
+		splitParams [] = []
+		splitParams xs = case break (== ';') xs of
+			(a, ';' : as) -> a : splitParams as
+			(a, _) -> [a]
 
 -- Esc/Alt modified
-parseInput' ('\ESC' : xs) t = case parseInput (xs ++ t) of
-	-- Normal key presses can be modified by Alt
-	KeyPress mod key : rs -> KeyPress mod' key : rs where
-		mod' = case mod of
-			ModControl      | key == KeyReturn -> ModAlt
-			ModControl      -> ModControlAlt
-			ModControlShift -> ModControlAltShift
-			ModShift        -> ModAltShift
-			ModNone         -> ModAlt
-			m               -> m
+parseInput' ('\ESC' : xs) t =
+	case parseInput (xs ++ t) of
+		-- Normal key presses can be modified by Alt
+		KeyPress mod key : rs -> KeyPress mod' key : rs where
+			mod' = case mod of
+				ModControl       | key == KeyReturn -> ModAlt
+				ModControl      -> ModControlAlt
+				ModControlShift -> ModControlAltShift
+				ModShift        -> ModAltShift
+				ModNone         -> ModAlt
+				m               -> m
 
-	-- Keep the rest the way it is
-	rs -> KeyPress ModNone KeyEscape : rs
+		-- Keep the rest the way it is
+		rs -> KeyPress ModNone KeyEscape : rs
 
 -- Special sequences
-parseInput' "\n"       t = KeyPress ModControl KeyReturn : parseInput t
-parseInput' "\r"       t = KeyPress ModNone KeyReturn    : parseInput t
-parseInput' "\t"       t = KeyPress ModNone KeyTab       : parseInput t
-parseInput' "\DEL"     t = KeyPress ModNone KeyBackspace : parseInput t
+parseInput' "\n"   t = KeyPress ModControl KeyReturn : parseInput t
+parseInput' "\r"   t = KeyPress ModNone KeyReturn    : parseInput t
+parseInput' "\t"   t = KeyPress ModNone KeyTab       : parseInput t
+parseInput' "\DEL" t = KeyPress ModNone KeyBackspace : parseInput t
 
 -- Ordinary characters
-parseInput' (x : [])   t
+parseInput' (x : []) t
 	| isPrint x   = KeyPress ModNone (KeyChar x) : parseInput t
 	| isCtrlMod x = KeyPress ModControl (KeyChar $ fixCtrlOffset x) : parseInput t
 
