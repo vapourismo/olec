@@ -17,21 +17,32 @@ import Control.Concurrent
 
 data Modifier
 	= ModControl
-	| ModControlAlt
 	| ModAlt
+	| ModShift
+	| ModControlAlt
+	| ModControlAltShift
+	| ModControlShift
+	| ModAltShift
 	| ModNone
+	| ModUnknown [String]
 	deriving (Show, Eq)
 
 data Key
 	= KeyChar Char
 	| KeyReturn
 	| KeyEscape
+	| KeyTab
 	| KeyBackspace
+	| KeyArrowLeft
+	| KeyArrowRight
+	| KeyArrowUp
+	| KeyArrowDown
 	deriving (Show, Eq)
 
 data InputEvent
 	= KeyPress Modifier Key
     | Undefined Char
+    | Escaped [String] Char
 	deriving (Show, Eq)
 
 type InputQueue = Chan InputEvent
@@ -42,29 +53,70 @@ isCtrlMod c = 1 <= ord c && ord c <= 26
 -- Fix the control modifier offset
 fixCtrlOffset c = chr (ord c + 96)
 
+-- Translate parameters passed to escape sequences with a movement command (e.g. A, B, C, D, etc.)
+translateArrowMod [_, "2"] = ModShift
+translateArrowMod [_, "3"] = ModAlt
+translateArrowMod [_, "4"] = ModAltShift
+translateArrowMod [_, "5"] = ModControl
+translateArrowMod [_, "6"] = ModControlShift
+translateArrowMod [_, "7"] = ModControlAlt
+translateArrowMod [_, "8"] = ModControlAltShift
+translateArrowMod _ = ModNone
+
+-- | Parse an escape sequence.
+parseEscSeq :: Char -> [String] -> InputEvent
+
+-- Arrow keys
+parseEscSeq 'A' params = KeyPress (translateArrowMod params) KeyArrowUp
+parseEscSeq 'B' params = KeyPress (translateArrowMod params) KeyArrowDown
+parseEscSeq 'C' params = KeyPress (translateArrowMod params) KeyArrowRight
+parseEscSeq 'D' params = KeyPress (translateArrowMod params) KeyArrowLeft
+
+-- Other escape sequences
+parseEscSeq cmd params = Escaped params cmd
+
 -- | Parse an input sequence.
 parseInput :: [Char] -> [InputEvent]
 parseInput cs = parseInput' cs []
 
+-- Escape sequence
+parseInput' ('\ESC' : '[' : xs) t = parseEscSeq r (splitParams h) : parseInput (rs ++ t) where
+	-- Break the escape sequence
+	-- 'h' contains the parameters seperated by ';'
+	-- 'r' is the command character
+	(h, r : rs) = break (`notElem` "0123456789;") xs
+
+	-- Split a string using the ';' character
+	splitParams [] = []
+	splitParams xs = case break (== ';') xs of
+		(a, ';' : as) -> a : splitParams as
+		(a, _) -> [a]
+
+-- Esc/Alt modified
+parseInput' ('\ESC' : xs) t = case parseInput (xs ++ t) of
+	-- Normal key presses can be modified by Alt
+	KeyPress mod key : rs -> KeyPress mod' key : rs where
+		mod' = case mod of
+			ModControl      | key == KeyReturn -> ModAlt
+			ModControl      -> ModControlAlt
+			ModControlShift -> ModControlAltShift
+			ModShift        -> ModAltShift
+			ModNone         -> ModAlt
+			m               -> m
+
+	-- Keep the rest the way it is
+	rs -> KeyPress ModNone KeyEscape : rs
+
 -- Special sequences
-parseInput' "\r"       t = KeyPress ModNone    KeyReturn : parseInput' t []
-parseInput' "\n"       t = KeyPress ModControl KeyReturn : parseInput' t []
-parseInput' "\ESC\n"   t = KeyPress ModAlt     KeyReturn : parseInput' t []
-parseInput' "\ESC\r"   t = KeyPress ModAlt     KeyReturn : parseInput' t []
-parseInput' "\ESC"     t = KeyPress ModNone    KeyEscape : parseInput' t []
-parseInput' "\ESC\ESC" t = KeyPress ModAlt     KeyEscape : parseInput' t []
-parseInput' "\DEL"     t = KeyPress ModNone    KeyBackspace : parseInput' t []
-parseInput' "\ESC\DEL" t = KeyPress ModAlt     KeyBackspace : parseInput' t []
+parseInput' "\n"       t = KeyPress ModControl KeyReturn : parseInput t
+parseInput' "\r"       t = KeyPress ModNone KeyReturn    : parseInput t
+parseInput' "\t"       t = KeyPress ModNone KeyTab       : parseInput t
+parseInput' "\DEL"     t = KeyPress ModNone KeyBackspace : parseInput t
 
 -- Ordinary characters
 parseInput' (x : [])   t
-	| isPrint x   = KeyPress ModNone (KeyChar x) : parseInput' t []
-	| isCtrlMod x = KeyPress ModControl (KeyChar $ fixCtrlOffset x) : parseInput' t []
-
--- ModAlt + Ordinary character
-parseInput' ('\ESC' : x : []) t
-	| isPrint x   = KeyPress ModAlt (KeyChar x) : parseInput' t []
-	| isCtrlMod x = KeyPress ModControlAlt (KeyChar $ fixCtrlOffset x) : parseInput' t []
+	| isPrint x   = KeyPress ModNone (KeyChar x) : parseInput t
+	| isCtrlMod x = KeyPress ModControl (KeyChar $ fixCtrlOffset x) : parseInput t
 
 -- Anything else
 parseInput' [] []       = []
