@@ -1,34 +1,21 @@
-{-# LANGUAGE ExistentialQuantification #-}
-
 import Olec.Terminal
 import Olec.Terminal.Window
-import Olec.Terminal.Layout
 import Olec.Terminal.Input
 
-import Control.Monad.State
+data Provider s a = Provider { state :: s
+                             , updateHook :: Window -> s -> IO s
+                             , renderHook :: Window -> s -> IO a }
 
-data AppState = forall a. AppState { statusbar :: Window
-                                   , viewport  :: Window
-                                   , content   :: Window -> IO a }
+updateProvider (Provider s u r) w = u w s >>= \s' -> return (Provider s' u r)
+renderProvider (Provider s _ r) w = r w s >> render
 
-type AppStateT = StateT AppState IO
-
-updateLayout :: AppStateT ()
-updateLayout = do
-	(wViewport, wStatusbar) <- liftIO (fmap (split $ AbsHSplit (-1)) defaultWindow)
-	modify (\app -> app {statusbar = wStatusbar, viewport = wViewport})
-
-renderViewport :: AppStateT ()
-renderViewport = do
-	AppState _ vp cnt <- get
-	liftIO (cnt vp >> render)
-
-initAppState = AppState nullWindow nullWindow (\w -> wFill w '#')
+fillProvider = Provider '#' noUpdate wFill where
+	noUpdate _ s = return s
 
 main = withTerm $ do
 	src <- processInput
-	flip execStateT initAppState $ do
-		updateLayout
-		renderViewport
+
+	win <- defaultWindow
+	renderProvider fillProvider win
 
 	readInputEvent src
