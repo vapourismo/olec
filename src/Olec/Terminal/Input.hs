@@ -139,8 +139,8 @@ inputWorker :: InputQueue -> IO ()
 inputWorker q = do
 	eof <- hIsEOF stdin
 	when (not eof) $ do
-		keys <- fmap parseInput readSome
-		forM_ keys (writeChan q)
+		keys <- readSome
+		forM_ (parseInput keys) (writeChan q)
 		inputWorker q
 
 -- | Start processing InputEvents.
