@@ -1,6 +1,14 @@
-module Olec.Terminal.Layout (SplitInfo (..), split) where
+module Olec.Terminal.Layout (
+	SplitInfo (..),
+	split,
+	SplitProviderS,
+	splitProvider
+) where
 
 import Olec.Terminal.Window
+import Olec.Provider
+
+import Control.Monad
 
 -- | Split Information
 data SplitInfo
@@ -45,3 +53,23 @@ split (RelHSplit sep') (x, y, w, h) = (top, bottom) where
 	sep = normSep (relSep sep' h) h
 	top = (x, y, w, sep)
 	bottom = (x, y + sep, w, h - sep)
+
+-- | Split Provider State
+data SplitProviderS s t a b
+	= SplitProviderS SplitInfo (Window, Window) (Provider s a, Provider t b)
+
+-- Update hook for a split provider
+updateSplitProvider :: Window -> SplitProviderS s t a b -> SplitProviderS s t a b
+updateSplitProvider win (SplitProviderS info _ (a, b)) = SplitProviderS info (winA, winB) (a', b') where
+	(winA, winB) = split info win
+	a' = updateProvider a winA
+	b' = updateProvider b winB
+
+renderSplitProvider :: Window -> SplitProviderS s t a b -> IO (a, b)
+renderSplitProvider _ (SplitProviderS _ (winA, winB) (Provider stateA _ renderA, Provider stateB _ renderB)) =
+	liftM2 (,) (renderA winA stateA) (renderB winB stateB)
+
+-- | Split Provider
+splitProvider :: SplitInfo -> Provider s a -> Provider t b -> Provider (SplitProviderS s t a b) (a, b)
+splitProvider sinfo a b =
+	Provider (SplitProviderS sinfo (nullWindow, nullWindow) (a, b)) updateSplitProvider renderSplitProvider

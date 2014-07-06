@@ -1,21 +1,20 @@
 import Olec.Terminal
 import Olec.Terminal.Window
 import Olec.Terminal.Input
+import Olec.Terminal.Layout
+import Olec.Provider
 
-data Provider s a = Provider { state :: s
-                             , updateHook :: Window -> s -> IO s
-                             , renderHook :: Window -> s -> IO a }
+noUpdate _ s = s
 
-updateProvider (Provider s u r) w = u w s >>= \s' -> return (Provider s' u r)
-renderProvider (Provider s _ r) w = r w s >> render
+providerA = Provider 'A' noUpdate wFill
+providerB = Provider 'B' noUpdate wFill
 
-fillProvider = Provider '#' noUpdate wFill where
-	noUpdate _ s = return s
+provider = splitProvider (RelVSplit 0.5) providerA providerB
 
 main = withTerm $ do
 	src <- processInput
 
 	win <- defaultWindow
-	renderProvider fillProvider win
+	renderProvider (updateProvider provider win) win
 
 	readInputEvent src
