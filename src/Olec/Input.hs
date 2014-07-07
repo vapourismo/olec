@@ -1,4 +1,4 @@
-module Olec.Terminal.Input (
+module Olec.Input (
 	-- * Key Types
 	InputEvent (..),
 	Modifier (..),
@@ -14,6 +14,7 @@ import System.IO
 import Data.Char
 import Control.Monad
 import Control.Concurrent
+
 
 data Modifier
 	= ModControl
@@ -47,11 +48,13 @@ data InputEvent
 
 type InputQueue = Chan InputEvent
 
+
 -- Is c control modified?
 isCtrlMod c = 1 <= ord c && ord c <= 26
 
 -- Fix the control modifier offset
 fixCtrlOffset c = chr (ord c + 96)
+
 
 -- Translate parameters passed to escape sequences with a movement command (e.g. A, B, C, D, etc.)
 translateArrowMod [_, "2"] = ModShift
@@ -74,6 +77,7 @@ parseEscSeq 'D' params = KeyPress (translateArrowMod params) KeyArrowLeft
 
 -- Other escape sequences
 parseEscSeq cmd params = Escaped params cmd
+
 
 -- | Parse an input sequence.
 parseInput :: [Char] -> [InputEvent]
@@ -132,6 +136,7 @@ readSome = do
 	if ready
 		then liftM2 (:) (hGetChar stdin) readSome
 		else return []
+
 
 -- | Process the standard input and push the resulting InputEvents
 --   onto the InputQueue.
