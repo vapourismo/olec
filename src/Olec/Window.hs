@@ -1,11 +1,10 @@
 module Olec.Window (
 	-- * Window
 	Window,
-	defaultWindow,
 
 	-- * Update
 	Update,
-	runUpdate,
+	liftUpdate,
 
 	-- * Cursor
 	moveCursor,
@@ -16,7 +15,15 @@ module Olec.Window (
 	drawChar,
 
 	-- * Properties
-	windowSize,
+	winSize,
+
+	-- * Windows
+	subWindow,
+	withWindow,
+
+	-- * Splitting
+	SplitInfo (..),
+	splitWindow
 ) where
 
 import Olec.Terminal
@@ -28,10 +35,16 @@ import qualified Data.ByteString as B
 
 
 -- | A potato.
-type Window = (Int, Int, Int, Int)
+data Window
+	= Window { _wx      :: Int
+             , _wy      :: Int
+             , _wwidth  :: Int
+             , _wheight :: Int }
+	deriving (Ord, Eq, Show)
 
 -- | Update Capsule
-newtype Update a = Update { runUpdate :: Window -> IO a }
+newtype Update a
+	= Update { runUpdate :: Window -> IO a }
 
 
 -- Instances for Update
@@ -65,30 +78,46 @@ drawChar :: Char -> Update ()
 drawChar = Update . wDrawChar
 
 -- | Get the target Window dimensions
-windowSize :: Update Size
-windowSize = Update (return . wDimension)
+winSize :: Update Size
+winSize = Update $ \win -> return (_wwidth win, _wheight win)
 
+-- | Create a new Window.
+subWindow :: Position -> Size -> Update Window
+subWindow (x, y) (w, h) = Update $ \(Window px py pw ph) -> return $
+	if x < pw && y < ph
+		then let
+			x' = max 0 x
+			y' = max 0 y
+			w' = min (pw - x') (max 0 w)
+			h' = min (ph - y') (max 0 h)
+			in Window (px + x') (py + y') w' h'
+		else Window 0 0 0 0
+
+-- | Update another Window.
+withWindow :: Window -> Update a -> Update a
+withWindow w u = Update $ \_ -> runUpdate u w
+
+
+-- | Apply update to the root window.
+liftUpdate :: Update a -> IO a
+liftUpdate u = defaultWindow >>= runUpdate u
 
 -- | Fetch the default Window (root).
 defaultWindow :: IO Window
 defaultWindow = do
 	(w, h) <- termSize
-	return (0, 0, w, h)
-
--- | Retrieve the Window's width and height.
-wDimension :: Window -> Size
-wDimension (_, _, w, h) = (w, h)
+	return (Window 0 0 w h)
 
 
 -- | Position the cursor relative to the Window's origin.
 wMoveCursor :: Position -> Window -> IO ()
-wMoveCursor (x, y) (wx, wy, _, _) =
-	gMoveCursor (wx + x) (wy + y)
+wMoveCursor (x, y) win =
+	gMoveCursor (_wx win + x) (_wy win + y)
 
 
 -- | Draw a String within a Window.
 wDrawString :: String -> Window -> IO ()
-wDrawString str (winX, winY, winW, winH) = do
+wDrawString str (Window winX winY winW winH) = do
 	(x, y) <- gCursor
 	when (y >= winY && y < winY + winH && x < winX + winW && x + length str >= winX) $ do
 		let (cutFront, cutBack, curX) = wFitEntity x winX winW (length str)
@@ -99,7 +128,7 @@ wDrawString str (winX, winY, winW, winH) = do
 
 -- | Draw a ByteString within a Window.
 wDrawByteString :: B.ByteString -> Window -> IO ()
-wDrawByteString str (winX, winY, winW, winH) = do
+wDrawByteString str (Window winX winY winW winH) = do
 	(x, y) <- gCursor
 	when (y >= winY && y < winY + winH && x < winX + winW && x + B.length str >= winX) $ do
 		let (cutFront, cutBack, curX) = wFitEntity x winX winW (B.length str)
@@ -112,12 +141,6 @@ wDrawByteString str (winX, winY, winW, winH) = do
 wDrawChar :: Char -> Window -> IO ()
 wDrawChar c win =
 	fmap (wEncloses win) gCursor >>= flip when (gDrawChar c)
-
--- -- | Fill a window with a given character.
--- _wFill :: Window -> Char -> IO ()
--- _wFill win c = forM_ [0 .. (h - 1)] (renderLine $ replicate w c) where
--- 	(w, h) = wDimension win
--- 	renderLine line y = wMoveCursor (0, y) win >> gDrawString line
 
 
 -- | Fit an entity inside a Window.
@@ -142,22 +165,57 @@ wFitEntity x winX winW len =
 
 -- | Does the given Position lay within the given Window?
 wEncloses :: Window -> Position -> Bool
-wEncloses (x, y, w, h) (cx, cy) =
+wEncloses (Window x y w h) (cx, cy) =
 	x <= cx && cx < x + w
 	&& y <= cy && cy < y + h
 
 
--- -- | Create a Window within another Window.
--- --   The given x- and y-coordinates are relative to the Window's origin.
--- subWindow :: Window -> Position -> Size -> Window
--- subWindow (origX, origY, origW, origH) (x', y') (w', h') = (x, y, w, h) where
--- 	x = max 0 $ min (origX + origW) (max origX x')
--- 	y = max 0 $ min (origY + origH) (max origY y')
--- 	w = max 0 $ min (origW - (x - origX)) w'
--- 	h = max 0 $ min (origH - (y - origY)) h'
+-- | Split Information
+data SplitInfo
+	= AbsVSplit Int    -- ^ Absolute Vertical Split
+	| AbsHSplit Int    -- ^ Absolute Horizontal Split
+	| RelVSplit Float  -- ^ Relative Veritcal Split
+	| RelHSplit Float  -- ^ Relative Horizontal Split
 
--- -- | Create an entirely new window.
--- newWindow :: Position -> Size -> IO Window
--- newWindow pos dim = do
--- 	scr <- defaultWindow
--- 	return (subWindow scr pos dim)
+
+-- | Normalize the seperator
+normSep sep com
+	| sep < 0 = max 0 (min com (com + sep))
+	| otherwise = max 0 (min com sep)
+
+-- | Generate an absolute seperator value from a relative seperator
+relSep sep com = toInt (sep * toFloat com) where
+	toFloat = fromInteger . toInteger
+	toInt = floor
+
+
+-- | Generate two sub windows based on the layout information.
+split :: SplitInfo -> Window -> (Window, Window)
+
+-- Absolute Vertical Split
+split (AbsVSplit sep') (Window x y w h) = (left, right) where
+	sep = normSep sep' w
+	left = Window x y sep h
+	right = Window (x + sep) y (w - sep) h
+
+-- Absolute Horizontal Split
+split (AbsHSplit sep') (Window x y w h) = (top, bottom) where
+	sep = normSep sep' h
+	top = Window x y w sep
+	bottom = Window x (y + sep) w (h - sep)
+
+-- Relative Vertical Split
+split (RelVSplit sep') (Window x y w h) = (left, right) where
+	sep = normSep (relSep sep' w) w
+	left = Window x y sep h
+	right = Window (x + sep) y (w - sep) h
+
+-- Relative Horizontal Split
+split (RelHSplit sep') (Window x y w h) = (top, bottom) where
+	sep = normSep (relSep sep' h) h
+	top = Window x y w sep
+	bottom = Window x (y + sep) w (h - sep)
+
+-- | Split a window
+splitWindow :: SplitInfo -> Update (Window, Window)
+splitWindow info = Update (return . split info)
