@@ -14,15 +14,14 @@ module Olec.Terminal (
 	termSize,
 
 	-- * Cursor
-	moveCursor,
-	cursor,
+	gMoveCursor,
+	gCursor,
 
 	-- * Drawing
-	drawString,
-	drawChar,
-	drawByteString,
+	gDrawString,
+	gDrawChar,
+	gDrawByteString,
 	clearTerm,
-	clearToEOL,
 	render
 ) where
 
@@ -70,10 +69,6 @@ foreign import ccall unsafe "terminal_end"
 foreign import ccall unsafe "terminal_clear"
 	clearTerm :: IO ()
 
--- | Clear the rest of the line.
-foreign import ccall unsafe "terminal_clear_eol"
-	clearToEOL :: IO ()
-
 -- | Commit changes to the terminal.
 foreign import ccall unsafe "terminal_render"
 	render :: IO ()
@@ -100,28 +95,28 @@ termSize = (,) <$> fmap cint2int _termWidth
 
 
 -- | Draw a ByteString.
-drawByteString :: B.ByteString -> IO ()
-drawByteString bstr = B.useAsCString bstr _termDrawCString
+gDrawByteString :: B.ByteString -> IO ()
+gDrawByteString bstr = B.useAsCString bstr _termDrawCString
 
 -- | Draw a String.
-drawString :: String -> IO ()
-drawString s = do
+gDrawString :: String -> IO ()
+gDrawString s = do
 	cstr <- newCString s
 	_termDrawCString cstr
 	free cstr
 
 -- | Draw a Char.
-drawChar :: Char -> IO ()
-drawChar = _termDrawChar . castCharToCChar
+gDrawChar :: Char -> IO ()
+gDrawChar = _termDrawChar . castCharToCChar
 
 
 -- | Get the cursor's position.
-cursor :: IO Position
-cursor = (,) <$> fmap cint2int _termCursorX
+gCursor :: IO Position
+gCursor = (,) <$> fmap cint2int _termCursorX
              <*> fmap cint2int _termCursorY where
 	cint2int = fromInteger . toInteger
 
 -- | Move the cursor to the given position.
-moveCursor :: Int -> Int -> IO ()
-moveCursor x y = _termMoveCursor (int2cint x) (int2cint y) where
+gMoveCursor :: Int -> Int -> IO ()
+gMoveCursor x y = _termMoveCursor (int2cint x) (int2cint y) where
 	int2cint = fromInteger . toInteger
