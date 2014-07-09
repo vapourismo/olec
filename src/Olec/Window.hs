@@ -36,16 +36,75 @@ import qualified Data.ByteString as B
 
 -- | A potato.
 data Window
-	= Window { _wx      :: Int
-             , _wy      :: Int
-             , _wwidth  :: Int
-             , _wheight :: Int }
+	= Window Int Int Int Int
 	deriving (Ord, Eq, Show)
+
+-- | Position the cursor relative to the Window's origin.
+wMoveCursor :: Position -> Window -> IO ()
+wMoveCursor (x, y) (Window wx wy _ _) =
+	gMoveCursor (wx + x) (wy + y)
+
+-- | Draw a String within a Window.
+wDrawString :: String -> Window -> IO ()
+wDrawString str (Window winX winY winW winH) = do
+	(x, y) <- gCursor
+	when (y >= winY && y < winY + winH && x < winX + winW && x + length str >= winX) $ do
+		-- Calculate bounds and x-position
+		let (cutFront, cutBack, curX) = fitEntity x winX winW (length str)
+		let result = drop cutFront (take (length str - cutBack) str)
+
+		-- When there is something to be drawn
+		when (length result > 0) $ do
+			gMoveCursor curX y
+			gDrawString result
+
+-- | Draw a ByteString within a Window.
+wDrawByteString :: B.ByteString -> Window -> IO ()
+wDrawByteString str (Window winX winY winW winH) = do
+	(x, y) <- gCursor
+	when (y >= winY && y < winY + winH && x < winX + winW && x + B.length str >= winX) $ do
+		-- Calculate bounds and x-position
+		let (cutFront, cutBack, curX) = fitEntity x winX winW (B.length str)
+		let result = B.drop cutFront (B.take (B.length str - cutBack) str)
+
+		-- When there is something to be drawn
+		when (B.length result > 0) $ do
+			gMoveCursor curX y
+			gDrawByteString result
+
+-- | Draw a character within the Window.
+wDrawChar :: Char -> Window -> IO ()
+wDrawChar c win =
+	fmap (wEncloses win) gCursor >>= flip when (gDrawChar c)
+
+-- | Fit an entity inside a Window.
+fitEntity :: Int -- ^ X-positon
+           -> Int -- ^ Window X-origin
+           -> Int -- ^ Window width
+           -> Int -- ^ Segment length
+           -> (-- | Cut front
+               Int,
+               -- | Cut back
+               Int,
+               -- | X-position
+               Int)
+fitEntity x winX winW len =
+	(cutFront,
+	 cutBack,
+	 max winX (min (winX + winW) x)) where
+		cutFront = if x < winX then winX - x else 0
+		cutBack = if x + len > winX + winW then (x + len) - (winX + winW) else 0
+
+-- | Does the given Position lay within the given Window?
+wEncloses :: Window -> Position -> Bool
+wEncloses (Window x y w h) (cx, cy) =
+	x <= cx && cx < x + w
+	&& y <= cy && cy < y + h
+
 
 -- | Update Capsule
 newtype Update a
 	= Update { runUpdate :: Window -> IO a }
-
 
 -- Instances for Update
 instance Functor Update where
@@ -59,7 +118,6 @@ instance Monad Update where
 	return = pure
 	Update f >>= g = Update $ \w ->
 		f w >>= \r -> runUpdate (g r) w
-
 
 -- | Move the cursor.
 moveCursor :: Position -> Update ()
@@ -77,9 +135,13 @@ drawByteString = Update . wDrawByteString
 drawChar :: Char -> Update ()
 drawChar = Update . wDrawChar
 
--- | Get the target Window dimensions
+-- | Split a window
+splitWindow :: SplitInfo -> Update (Window, Window)
+splitWindow info = Update (return . split info)
+
+-- | Get the target Window dimensions.
 winSize :: Update Size
-winSize = Update $ \win -> return (_wwidth win, _wheight win)
+winSize = Update $ \(Window _ _ w h) -> return (w, h)
 
 -- | Create a new Window.
 subWindow :: Position -> Size -> Update Window
@@ -109,74 +171,12 @@ defaultWindow = do
 	return (Window 0 0 w h)
 
 
--- | Position the cursor relative to the Window's origin.
-wMoveCursor :: Position -> Window -> IO ()
-wMoveCursor (x, y) win =
-	gMoveCursor (_wx win + x) (_wy win + y)
-
-
--- | Draw a String within a Window.
-wDrawString :: String -> Window -> IO ()
-wDrawString str (Window winX winY winW winH) = do
-	(x, y) <- gCursor
-	when (y >= winY && y < winY + winH && x < winX + winW && x + length str >= winX) $ do
-		let (cutFront, cutBack, curX) = wFitEntity x winX winW (length str)
-		let result = drop cutFront (take (length str - cutBack) str)
-		when (length result > 0) $ do
-			gMoveCursor curX y
-			gDrawString result
-
--- | Draw a ByteString within a Window.
-wDrawByteString :: B.ByteString -> Window -> IO ()
-wDrawByteString str (Window winX winY winW winH) = do
-	(x, y) <- gCursor
-	when (y >= winY && y < winY + winH && x < winX + winW && x + B.length str >= winX) $ do
-		let (cutFront, cutBack, curX) = wFitEntity x winX winW (B.length str)
-		let result = B.drop cutFront (B.take (B.length str - cutBack) str)
-		when (B.length result > 0) $ do
-			gMoveCursor curX y
-			gDrawByteString result
-
--- | Draw a character within the Window.
-wDrawChar :: Char -> Window -> IO ()
-wDrawChar c win =
-	fmap (wEncloses win) gCursor >>= flip when (gDrawChar c)
-
-
--- | Fit an entity inside a Window.
-wFitEntity :: Int -- ^ X-positon
-           -> Int -- ^ Window X-origin
-           -> Int -- ^ Window width
-           -> Int -- ^ Segment length
-           -> (-- | Cut front
-               Int,
-               -- | Cut back
-               Int,
-               -- | X-position
-               Int)
-wFitEntity x winX winW len =
-	(cutFront, cutBack, max winX (min (winX + winW) x)) where
-		cutFront = if x < winX
-			then winX - x
-			else 0
-		cutBack = if x + len > winX + winW
-			then (x + len) - (winX + winW)
-			else 0
-
--- | Does the given Position lay within the given Window?
-wEncloses :: Window -> Position -> Bool
-wEncloses (Window x y w h) (cx, cy) =
-	x <= cx && cx < x + w
-	&& y <= cy && cy < y + h
-
-
 -- | Split Information
 data SplitInfo
 	= AbsVSplit Int    -- ^ Absolute Vertical Split
 	| AbsHSplit Int    -- ^ Absolute Horizontal Split
 	| RelVSplit Float  -- ^ Relative Veritcal Split
 	| RelHSplit Float  -- ^ Relative Horizontal Split
-
 
 -- | Normalize the seperator
 normSep sep com
@@ -187,7 +187,6 @@ normSep sep com
 relSep sep com = toInt (sep * toFloat com) where
 	toFloat = fromInteger . toInteger
 	toInt = floor
-
 
 -- | Generate two sub windows based on the layout information.
 split :: SplitInfo -> Window -> (Window, Window)
@@ -215,7 +214,3 @@ split (RelHSplit sep') (Window x y w h) = (top, bottom) where
 	sep = normSep (relSep sep' h) h
 	top = Window x y w sep
 	bottom = Window x (y + sep) w (h - sep)
-
--- | Split a window
-splitWindow :: SplitInfo -> Update (Window, Window)
-splitWindow info = Update (return . split info)
