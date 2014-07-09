@@ -18,7 +18,7 @@ executable olec
   ghc-options:         -threaded -j6 -O3 -W
   main-is:             Main.hs
   extra-libraries:     ncursesw
-  other-extensions:    ForeignFunctionInterface
+  other-extensions:    ForeignFunctionInterface, ExistentialQuantification
   build-depends:       base >=4.7 && <4.8,
                        bytestring >=0.10 && <0.11,
                        mtl >=2.2.1,
