@@ -88,10 +88,10 @@ subWindow (x, y) (w, h) = Update $ \(Window px py pw ph) -> return $
 		then let
 			x' = max 0 x
 			y' = max 0 y
-			w' = min (pw - x') (max 0 w)
-			h' = min (ph - y') (max 0 h)
+			w' = min (pw - x') (max 0 w) -- Make the new width fit within the parent window
+			h' = min (ph - y') (max 0 h) -- Same for height
 			in Window (px + x') (py + y') w' h'
-		else Window 0 0 0 0
+		else Window (px + pw) (py + ph) 0 0 -- Out-of-bounds request are truncated to a nil-Window
 
 -- | Update another Window.
 withWindow :: Window -> Update a -> Update a
