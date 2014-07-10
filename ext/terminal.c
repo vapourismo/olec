@@ -4,6 +4,8 @@ extern void terminal_begin(void) {
 	initscr();
 	raw();
 	noecho();
+	keypad(stdscr, true);
+	start_color();
 }
 
 extern void terminal_end(void) {
@@ -44,4 +46,17 @@ extern void terminal_render(void) {
 
 extern void terminal_clear(void) {
 	clear();
+}
+
+extern void terminal_bind_pair(int pair, short fg, short bg) {
+	init_pair(pair, fg, bg);
+}
+
+extern void terminal_bind_color(short col, short r, short g, short b) {
+	init_color(col, r, g, b);
+}
+
+
+extern void terminal_attr_color(int pair) {
+	attrset(COLOR_PAIR(pair));
 }
