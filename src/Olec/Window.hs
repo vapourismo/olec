@@ -81,15 +81,15 @@ wDrawChar c win =
 
 -- | Fit an entity inside a Window.
 fitEntity :: Int -- ^ X-positon
-           -> Int -- ^ Window X-origin
-           -> Int -- ^ Window width
-           -> Int -- ^ Segment length
-           -> (-- | Cut front
-               Int,
-               -- | Cut back
-               Int,
-               -- | X-position
-               Int)
+          -> Int -- ^ Window X-origin
+          -> Int -- ^ Window width
+          -> Int -- ^ Segment length
+          -> (-- | Cut front
+              Int,
+              -- | Cut back
+              Int,
+              -- | X-position
+              Int)
 fitEntity x winX winW len =
 	(cutFront,
 	 cutBack,
