@@ -13,6 +13,7 @@ module Olec.Window (
 	drawString,
 	drawByteString,
 	drawChar,
+	renderPair,
 
 	-- * Properties
 	winSize,
@@ -27,6 +28,7 @@ module Olec.Window (
 ) where
 
 import Olec.Terminal
+import Olec.Color
 
 import Control.Applicative
 import Control.Monad
@@ -142,6 +144,10 @@ splitWindow info = Update (return . split info)
 -- | Get the target Window dimensions.
 winSize :: Update Size
 winSize = Update $ \(Window _ _ w h) -> return (w, h)
+
+-- | Active a color pair.
+renderPair :: ColorPairID -> Update ()
+renderPair = Update . const . setRenderPair
 
 -- | Create a new Window.
 subWindow :: Position -> Size -> Update Window

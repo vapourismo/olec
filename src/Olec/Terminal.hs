@@ -22,12 +22,7 @@ module Olec.Terminal (
 	gDrawChar,
 	gDrawByteString,
 	clearTerm,
-	render,
-
-	-- * Color
-	bindColor,
-	bindPair,
-	setRenderPair
+	render
 ) where
 
 import Foreign.C
@@ -77,27 +72,6 @@ foreign import ccall unsafe "terminal_clear"
 -- | Commit changes to the terminal.
 foreign import ccall unsafe "terminal_render"
 	render :: IO ()
-
--- | Associate a color pair with a foreground and background.
-foreign import ccall unsafe "terminal_bind_pair"
-	bindPair :: CInt   -- ^ Pair ID
-	         -> CShort -- ^ Foreground
-	         -> CShort -- ^ Background
-	         -> IO ()
-
--- | Rebind a color.
---   Most terminals don't support true color and will approximate the color.
-foreign import ccall unsafe "terminal_bind_color"
-	bindColor :: CShort -- ^ Color ID
-	          -> CShort -- ^ Red (0-1000)
-	          -> CShort -- ^ Green (0-1000)
-	          -> CShort -- ^ Blue (0-1000)
-	          -> IO ()
-
--- | Sets the color pair to be rendered.
-foreign import ccall unsafe "terminal_attr_color"
-	setRenderPair :: CInt -> IO ()
-
 
 -- | A cow.
 type Size = (Int, Int)
