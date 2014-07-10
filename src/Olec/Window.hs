@@ -13,10 +13,12 @@ module Olec.Window (
 	drawString,
 	drawByteString,
 	drawChar,
-	renderPair,
+	setStyle,
+	setStyleN,
 
 	-- * Properties
 	winSize,
+	wEncloses,
 
 	-- * Windows
 	subWindow,
@@ -145,9 +147,21 @@ splitWindow info = Update (return . split info)
 winSize :: Update Size
 winSize = Update $ \(Window _ _ w h) -> return (w, h)
 
--- | Active a color pair.
-renderPair :: ColorPairID -> Update ()
-renderPair = Update . const . setRenderPair
+-- | Set the style for the following drawing actions.
+setStyle :: ColorPairID -> Update ()
+setStyle = Update . const . setStyle'
+
+-- | Set the style for n characters starting from the current cursor position.
+setStyleN :: Int -> ColorPairID -> Update ()
+setStyleN n' p = Update $ \(Window x y w h) -> do
+	(px, py) <- gCursor
+	when (py >= y && py < y + h) $ do
+		let n = if n' < 0 then w else n'
+		let (cf, cb, xpos) = fitEntity px x w n
+		gMoveCursor xpos py
+		setStyleN' (n - cf - cb) p
+		gMoveCursor px py
+
 
 -- | Create a new Window.
 subWindow :: Position -> Size -> Update Window

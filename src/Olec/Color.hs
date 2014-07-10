@@ -4,7 +4,8 @@ module Olec.Color (
 	-- * Bindings
 	bindPair,
 	bindColor,
-	setRenderPair,
+	setStyle',
+	setStyleN',
 
 	-- * Colors
 	ColorPairID,
@@ -23,7 +24,7 @@ import Foreign.C
 
 -- | Associate a color pair with a foreground and background.
 foreign import ccall unsafe "terminal_bind_pair"
-	bindPair :: CInt   -- ^ Pair ID
+	bindPair :: CShort -- ^ Pair ID
 	         -> CShort -- ^ Foreground
 	         -> CShort -- ^ Background
 	         -> IO ()
@@ -39,10 +40,17 @@ foreign import ccall unsafe "terminal_bind_color"
 
 -- | Sets the color pair to be rendered.
 foreign import ccall unsafe "terminal_attr_color"
-	setRenderPair :: CInt -> IO ()
+	setStyle' :: ColorPairID -> IO ()
+
+foreign import ccall unsafe "terminal_change_attr"
+	_changePain :: CInt -> ColorPairID -> IO ()
+
+-- | Change the style for the next n characters.
+setStyleN' :: Int -> ColorPairID -> IO ()
+setStyleN' n p = _changePain (fromInteger $ toInteger n) p
 
 -- | Color Pair ID
-type ColorPairID = CInt
+type ColorPairID = CShort
 
 -- | Color ID
 type ColorID = CShort
