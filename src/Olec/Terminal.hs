@@ -1,28 +1,24 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module Olec.Terminal (
-	-- * General Types
-	Position,
-	Size,
-
 	-- * Terminal Interaction
 	withTerm,
-	beginTerm,
-	endTerm,
+	termBegin,
+	termEnd,
 
 	-- * Properties
 	termSize,
 
 	-- * Cursor
-	gMoveCursor,
-	gCursor,
+	termMoveCursor,
+	termGetCursor,
 
 	-- * Drawing
-	gDrawString,
-	gDrawChar,
-	gDrawByteString,
-	clearTerm,
-	render
+	termDrawString,
+	termDrawChar,
+	termDrawByteString,
+	termClear,
+	termRender
 ) where
 
 import Foreign.C
@@ -31,6 +27,7 @@ import Foreign.Marshal.Alloc
 import Control.Applicative
 import Control.Exception
 
+import Data.Word
 import qualified Data.ByteString as B
 
 
@@ -59,63 +56,59 @@ foreign import ccall unsafe "terminal_draw_string"
 
 -- | Initialize the terminal.
 foreign import ccall unsafe "terminal_begin"
-	beginTerm :: IO ()
+	termBegin :: IO ()
 
 -- | Finalize the terminal.
 foreign import ccall unsafe "terminal_end"
-	endTerm :: IO ()
+	termEnd :: IO ()
 
 -- | Clear the terminal.
 foreign import ccall unsafe "terminal_clear"
-	clearTerm :: IO ()
+	termClear :: IO ()
 
 -- | Commit changes to the terminal.
 foreign import ccall unsafe "terminal_render"
-	render :: IO ()
-
--- | A cow.
-type Size = (Int, Int)
-
--- | A sheep.
-type Position = (Int, Int)
+	termRender :: IO ()
 
 
 -- | Perform actions within an initialized terminal.
 --   The terminal will be destroyed afterwards.
 withTerm :: IO a -> IO a
-withTerm = bracket_ beginTerm endTerm
+withTerm = bracket_ termBegin termEnd
 
 
 -- | Get the terminal width and height.
-termSize :: IO Size
-termSize = (,) <$> fmap cint2int _termWidth
-               <*> fmap cint2int _termHeight where
-	cint2int = fromInteger . toInteger
+termSize :: IO (Word, Word)
+termSize = (,) <$> fmap cvNum _termWidth
+               <*> fmap cvNum _termHeight
 
 
 -- | Draw a ByteString.
-gDrawByteString :: B.ByteString -> IO ()
-gDrawByteString bstr = B.useAsCString bstr _termDrawCString
+termDrawByteString :: B.ByteString -> IO ()
+termDrawByteString bstr = B.useAsCString bstr _termDrawCString
 
 -- | Draw a String.
-gDrawString :: String -> IO ()
-gDrawString s = do
+termDrawString :: String -> IO ()
+termDrawString s = do
 	cstr <- newCString s
 	_termDrawCString cstr
 	free cstr
 
 -- | Draw a Char.
-gDrawChar :: Char -> IO ()
-gDrawChar = _termDrawChar . castCharToCChar
+termDrawChar :: Char -> IO ()
+termDrawChar = _termDrawChar . castCharToCChar
 
 
 -- | Get the cursor's position.
-gCursor :: IO Position
-gCursor = (,) <$> fmap cint2int _termCursorX
-             <*> fmap cint2int _termCursorY where
-	cint2int = fromInteger . toInteger
+termGetCursor :: IO (Word, Word)
+termGetCursor = (,) <$> fmap cvNum _termCursorX
+                    <*> fmap cvNum _termCursorY
 
 -- | Move the cursor to the given position.
-gMoveCursor :: Int -> Int -> IO ()
-gMoveCursor x y = _termMoveCursor (int2cint x) (int2cint y) where
-	int2cint = fromInteger . toInteger
+termMoveCursor :: Int -> Int -> IO ()
+termMoveCursor x y = _termMoveCursor (cvNum x) (cvNum y)
+
+
+-- | Convert numbers
+cvNum :: (Integral a, Num b) => a -> b
+cvNum = fromInteger . toInteger
