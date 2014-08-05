@@ -26,7 +26,6 @@ import Foreign.C
 import Control.Applicative
 import Control.Exception
 
-import Data.Word
 import qualified Data.ByteString as B
 
 
@@ -77,7 +76,7 @@ withTerm = bracket_ termBegin termEnd
 
 
 -- | Get the terminal width and height.
-termSize :: IO (Word, Word)
+termSize :: IO (Int, Int)
 termSize = (,) <$> fmap cvNum _termWidth
                <*> fmap cvNum _termHeight
 
@@ -96,7 +95,7 @@ termDrawChar = _termDrawChar . castCharToCChar
 
 
 -- | Get the cursor's position.
-termGetCursor :: IO (Word, Word)
+termGetCursor :: IO (Int, Int)
 termGetCursor = (,) <$> fmap cvNum _termCursorX
                     <*> fmap cvNum _termCursorY
 
