@@ -24,7 +24,7 @@ import Foreign.C
 
 -- | Associate a color pair with a foreground and background.
 foreign import ccall unsafe "terminal_bind_pair"
-	bindPair :: CShort -- ^ Pair ID
+	bindPair :: CShort  -- ^ Pair ID
 	         -> ColorID -- ^ Foreground
 	         -> ColorID -- ^ Background
 	         -> IO ()
