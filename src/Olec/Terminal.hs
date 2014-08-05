@@ -22,7 +22,6 @@ module Olec.Terminal (
 ) where
 
 import Foreign.C
-import Foreign.Marshal.Alloc
 
 import Control.Applicative
 import Control.Exception
@@ -89,10 +88,7 @@ termDrawByteString bstr = B.useAsCString bstr _termDrawCString
 
 -- | Draw a String.
 termDrawString :: String -> IO ()
-termDrawString s = do
-	cstr <- newCString s
-	_termDrawCString cstr
-	free cstr
+termDrawString s = withCString s _termDrawCString
 
 -- | Draw a Char.
 termDrawChar :: Char -> IO ()
