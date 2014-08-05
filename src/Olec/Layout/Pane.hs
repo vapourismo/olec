@@ -1,15 +1,43 @@
-module Olec.Layout.Pane where
+module Olec.Layout.Pane (
+	-- * Pane
+	Pane (..),
+	rootPane,
 
-import Control.Applicative
-import Data.Word
+	-- * Bounds checking
+	paneSize,
+	withinPane,
+	fitIntoPane,
+) where
+
 import Olec.Terminal
+import Control.Applicative
+--import qualified Data.ByteString as B
 
 
 -- | A cat.
 data Pane
-	= Pane { paneOrigin :: (Word, Word)
-	       , paneSize   :: (Word, Word) }
+	= Pane { paneOrigin  :: (Int, Int) -- ^ Top-left point (inside)
+	       , paneStopper :: (Int, Int) -- ^ Bottom-right point (outside)
+	       }
 
 -- | Root pane.
 rootPane :: IO Pane
 rootPane = Pane (0, 0) <$> termSize
+
+-- | Check if the given absolute coordinates lie within the given pane.
+withinPane :: (Int, Int) -> Pane -> Bool
+withinPane (x, y) (Pane (ox, oy) (sx, sy)) =
+	x >= ox && y >= oy && x < sx && y < sy
+
+-- | Get the pane's width and height.
+paneSize :: Pane -> (Int, Int)
+paneSize (Pane (ox, oy) (sx, sy)) = (sx - ox, sy - oy)
+
+-- | Fit an entity within a pane.
+fitIntoPane :: Int -> Int -> Pane -> Maybe (Int, Int)
+fitIntoPane x w (Pane (ox, _) (sx, _))
+	| left >= ox && left < sx = Just (left, right - left)
+	| otherwise = Nothing
+	where
+		left = max x ox
+		right = min sx (x + w)
