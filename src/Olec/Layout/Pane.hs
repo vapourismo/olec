@@ -34,8 +34,9 @@ paneSize (Pane (ox, oy) (sx, sy)) = (sx - ox, sy - oy)
 -- | Fit an entity within a pane.
 fitIntoPane :: Int -> Int -> Pane -> Maybe (Int, Int)
 fitIntoPane x w (Pane (ox, _) (sx, _))
-	| left >= ox && left < sx = Just (left, right - left)
+	| left < sx && len > 0 = Just (left, len)
 	| otherwise = Nothing
 	where
 		left = max x ox
 		right = min sx (x + w)
+		len = right - left
