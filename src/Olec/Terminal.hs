@@ -100,8 +100,8 @@ termGetCursor = (,) <$> fmap cvNum _termCursorX
                     <*> fmap cvNum _termCursorY
 
 -- | Move the cursor to the given position.
-termMoveCursor :: Int -> Int -> IO ()
-termMoveCursor x y = _termMoveCursor (cvNum x) (cvNum y)
+termMoveCursor :: (Int, Int) -> IO ()
+termMoveCursor (x, y) = _termMoveCursor (cvNum x) (cvNum y)
 
 
 -- | Convert numbers
