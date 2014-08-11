@@ -15,10 +15,8 @@ import Control.Applicative
 
 
 -- | A cat.
-data Pane
-	= Pane { paneOrigin  :: (Int, Int) -- ^ Top-left point (inside)
-	       , paneStopper :: (Int, Int) -- ^ Bottom-right point (outside)
-	       }
+data Pane = Pane { paneOrigin  :: (Int, Int)
+                 , paneStopper :: (Int, Int) }
 
 -- | Root pane.
 rootPane :: IO Pane
