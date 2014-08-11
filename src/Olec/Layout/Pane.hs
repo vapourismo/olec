@@ -40,3 +40,7 @@ fitIntoPane x w (Pane (ox, _) (sx, _))
 		left = max x ox
 		right = min sx (x + w)
 		len = right - left
+
+-- | Move the cursor relative to the given pane's origin.
+paneMoveCursor :: Pane -> (Int, Int) -> IO ()
+paneMoveCursor (Pane (ox, oy) _) (x, y) = termMoveCursor (ox + x, oy + y)
