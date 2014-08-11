@@ -3,6 +3,7 @@ module Olec.Layout.Pane (
 	Pane (..),
 	rootPane,
 	derivePane,
+	newPane,
 	paneSize,
 
 	-- * Cursor
@@ -31,6 +32,10 @@ derivePane :: (Int, Int) -> (Int, Int) -> Pane -> Pane
 derivePane pos bounds p =
 	maybe (Pane (0, 0) (0, 0)) make (fitPanes pos bounds p) where
 		make (left, top, right, bottom) = Pane (left, top) (right, bottom)
+
+-- | Create a new pane.
+newPane :: (Int, Int) -> (Int, Int) -> IO Pane
+newPane pos bounds = derivePane pos bounds <$> rootPane
 
 -- | Get the pane's width and height.
 paneSize :: Pane -> (Int, Int)
