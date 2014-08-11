@@ -7,10 +7,17 @@ module Olec.Layout.Pane (
 	paneSize,
 	withinPane,
 	fitIntoPane,
+
+	-- * Cursor
+	paneMoveCursor,
+
+	-- * Drawing
+	paneDrawString
 ) where
 
 import Olec.Terminal
 import Control.Applicative
+import Control.Monad
 --import qualified Data.ByteString as B
 
 
@@ -44,3 +51,12 @@ fitIntoPane x w (Pane (ox, _) (sx, _))
 -- | Move the cursor relative to the given pane's origin.
 paneMoveCursor :: Pane -> (Int, Int) -> IO ()
 paneMoveCursor (Pane (ox, oy) _) (x, y) = termMoveCursor (ox + x, oy + y)
+
+-- | Draw within a given pane.
+paneDrawString :: Pane -> String -> IO ()
+paneDrawString p@(Pane (_, oy) (_, sy)) str = do
+	(cx, cy) <- termGetCursor
+	let draw (left, len) = do
+		termMoveCursor (left, cy)
+		termDrawString $ take len (drop (left - cx) str)
+	when (oy <= cy && cy < sy) $ maybe (return ()) draw (fitIntoPane cx (length str) p)
