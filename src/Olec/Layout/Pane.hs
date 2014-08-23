@@ -16,7 +16,6 @@ module Olec.Layout.Pane (
 import Olec.Terminal
 import Control.Applicative
 import Control.Monad
---import qualified Data.ByteString as B
 
 
 -- | A cat.
