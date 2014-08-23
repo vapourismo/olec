@@ -5,6 +5,7 @@ import Olec.Layout.Pane
 import Control.Monad
 
 
+fillPane :: Pane -> Char -> IO ()
 fillPane pane chr = do
 	let (w, h) = paneSize pane
 	let str = replicate w chr
@@ -12,6 +13,7 @@ fillPane pane chr = do
 		paneMoveCursor pane (0, y)
 		paneDrawString pane str
 
+main :: IO ()
 main = withTerm $ do
 	src <- processInput
 
@@ -24,4 +26,4 @@ main = withTerm $ do
 	fillPane p2 '2'
 	termRender
 
-	readInputEvent src
+	void (readInputEvent src)
