@@ -15,7 +15,7 @@ source-repository head
   location: https://github.com/vapourismo/olec.git
 
 executable olec
-  ghc-options:         -threaded -j6 -O2 -Wall
+  ghc-options:         -threaded -j6 -O2 -Wall -fno-warn-name-shadowing -fno-warn-unused-do-bind
   main-is:             Main.hs
   extra-libraries:     ncursesw
   build-depends:       base >=4.7 && <4.8,
