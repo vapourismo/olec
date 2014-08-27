@@ -1,104 +1,124 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module Olec.Terminal (
-	-- * Terminal Interaction
+	-- * Initialization
 	withTerm,
-	termBegin,
-	termEnd,
-
-	-- * Properties
-	termSize,
 
 	-- * Cursor
-	termMoveCursor,
-	termGetCursor,
+	moveCursor,
 
-	-- * Drawing
-	termDrawString,
-	termDrawChar,
-	termDrawByteString,
-	termClear,
-	termRender
+	-- * Window
+	Window,
+	newWindow,
+	deleteWindow,
+	resizeWindow,
+	moveWindow,
+	resizeWindow,
+	refreshWindow,
+	windowMaxX,
+	windowMaxY,
+	windowSize,
+	windowX,
+	windowY,
+	drawCString,
+	drawString,
+	drawByteString
 ) where
 
-import Foreign.C
+import Foreign.C.Types
+import Foreign.C.String
+import Foreign.Ptr
 
-import Control.Applicative
 import Control.Exception
 
 import qualified Data.ByteString as B
 
 
--- Bindings for internal use
-foreign import ccall unsafe "terminal_width"
-	_termWidth :: IO CInt
-
-foreign import ccall unsafe "terminal_height"
-	_termHeight :: IO CInt
-
-foreign import ccall unsafe "terminal_cursor_x"
-	_termCursorX :: IO CInt
-
-foreign import ccall unsafe "terminal_cursor_y"
-	_termCursorY :: IO CInt
-
-foreign import ccall unsafe "terminal_move_cursor"
-	_termMoveCursor :: CInt -> CInt -> IO ()
-
-foreign import ccall unsafe "terminal_draw_char"
-	_termDrawChar :: CChar -> IO ()
-
-foreign import ccall unsafe "terminal_draw_string"
-	_termDrawCString :: CString -> IO ()
-
-
 -- | Initialize the terminal.
-foreign import ccall unsafe "terminal_begin"
-	termBegin :: IO ()
+foreign import ccall unsafe "olec_initterm"
+	beginTerm :: IO ()
 
 -- | Finalize the terminal.
-foreign import ccall unsafe "terminal_end"
-	termEnd :: IO ()
+foreign import ccall unsafe "endwin"
+	endTerm :: IO ()
 
--- | Clear the terminal.
-foreign import ccall unsafe "terminal_clear"
-	termClear :: IO ()
+-- |
+foreign import ccall unsafe "newwin"
+	newWindow_ :: CInt -> CInt -> CInt -> CInt -> IO (Ptr Window)
 
--- | Commit changes to the terminal.
-foreign import ccall unsafe "terminal_render"
-	termRender :: IO ()
+-- |
+foreign import ccall unsafe "delwin"
+	deleteWindow :: Ptr Window -> IO CInt
+
+-- |
+foreign import ccall unsafe "mvwin"
+	moveWindow_ :: Ptr Window -> CInt -> CInt -> IO CInt
+
+-- |
+foreign import ccall unsafe "wresize"
+	resizeWindow_ :: Ptr Window -> CInt -> CInt -> IO CInt
+
+-- |
+foreign import ccall unsafe "wrefresh"
+	refreshWindow :: Ptr Window -> IO CInt
+
+-- |
+foreign import ccall unsafe "getmaxx"
+	windowMaxX :: Ptr Window -> IO CInt
+
+-- |
+foreign import ccall unsafe "getmaxy"
+	windowMaxY :: Ptr Window -> IO CInt
+
+-- |
+foreign import ccall unsafe "getbegx"
+	windowX :: Ptr Window -> IO CInt
+
+-- |
+foreign import ccall unsafe "getbegy"
+	windowY :: Ptr Window -> IO CInt
+
+-- |
+foreign import ccall unsafe "wmove"
+	moveCursor :: Ptr Window -> CInt -> CInt -> IO CInt
+
+-- |
+foreign import ccall unsafe "waddstr"
+	drawCString :: Ptr Window -> CString -> IO CInt
+
+
+-- | Pseudo Window Type
+data Window
 
 
 -- | Perform actions within an initialized terminal.
 --   The terminal will be destroyed afterwards.
 withTerm :: IO a -> IO a
-withTerm = bracket_ termBegin termEnd
+withTerm = bracket_ beginTerm endTerm
 
+-- |
+newWindow :: (CInt, CInt) -> (CInt, CInt) -> IO (Ptr Window)
+newWindow (x, y) (w, h) = newWindow_ h w y x
 
--- | Get the terminal width and height.
-termSize :: IO (Int, Int)
-termSize = (,) <$> fmap fromIntegral _termWidth
-               <*> fmap fromIntegral _termHeight
+-- |
+resizeWindow :: Ptr Window -> (CInt, CInt) -> IO CInt
+resizeWindow win (w, h) = resizeWindow_ win h w
 
+-- |
+moveWindow :: Ptr Window -> (CInt, CInt) -> IO CInt
+moveWindow win (x, y) = moveWindow_ win y x
 
--- | Draw a ByteString.
-termDrawByteString :: B.ByteString -> IO ()
-termDrawByteString bstr = B.useAsCString bstr _termDrawCString
+-- |
+drawByteString :: Ptr Window -> B.ByteString -> IO CInt
+drawByteString win bs = B.useAsCString bs (drawCString win)
 
--- | Draw a String.
-termDrawString :: String -> IO ()
-termDrawString s = withCString s _termDrawCString
+-- |
+drawString :: Ptr Window -> String -> IO CInt
+drawString win str = withCString str (drawCString win)
 
--- | Draw a Char.
-termDrawChar :: Char -> IO ()
-termDrawChar = _termDrawChar . castCharToCChar
-
-
--- | Get the cursor's position.
-termGetCursor :: IO (Int, Int)
-termGetCursor = (,) <$> fmap fromIntegral _termCursorX
-                    <*> fmap fromIntegral _termCursorY
-
--- | Move the cursor to the given position.
-termMoveCursor :: (Int, Int) -> IO ()
-termMoveCursor (x, y) = _termMoveCursor (fromIntegral x) (fromIntegral y)
+-- |
+windowSize :: Ptr Window -> IO (CInt, CInt)
+windowSize win = do
+	x <- windowMaxX win
+	y <- windowMaxY win
+	return (x + 1, y + 1)
