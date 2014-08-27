@@ -77,8 +77,8 @@ withTerm = bracket_ termBegin termEnd
 
 -- | Get the terminal width and height.
 termSize :: IO (Int, Int)
-termSize = (,) <$> fmap cvNum _termWidth
-               <*> fmap cvNum _termHeight
+termSize = (,) <$> fmap fromIntegral _termWidth
+               <*> fmap fromIntegral _termHeight
 
 
 -- | Draw a ByteString.
@@ -96,14 +96,9 @@ termDrawChar = _termDrawChar . castCharToCChar
 
 -- | Get the cursor's position.
 termGetCursor :: IO (Int, Int)
-termGetCursor = (,) <$> fmap cvNum _termCursorX
-                    <*> fmap cvNum _termCursorY
+termGetCursor = (,) <$> fmap fromIntegral _termCursorX
+                    <*> fmap fromIntegral _termCursorY
 
 -- | Move the cursor to the given position.
 termMoveCursor :: (Int, Int) -> IO ()
-termMoveCursor (x, y) = _termMoveCursor (cvNum x) (cvNum y)
-
-
--- | Convert numbers
-cvNum :: (Integral a, Num b) => a -> b
-cvNum = fromInteger . toInteger
+termMoveCursor (x, y) = _termMoveCursor (fromIntegral x) (fromIntegral y)
