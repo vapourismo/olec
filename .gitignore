@@ -1,6 +1,3 @@
 *.o
 *.d
-*.log
-dist/
-.cabal-sandbox/
-cabal.sandbox.config
+olec
