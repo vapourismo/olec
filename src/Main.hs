@@ -1,17 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main (main) where
 
+import Control.Monad
+import Olec.Terminal.Bindings
 import Olec.Terminal.Input
-import Olec.Terminal.Actions
-
 
 main :: IO ()
-main = withTerminal $ do
+main = withTerm $ do
 	input <- processInput
 
-	runAction' $ do
-		moveCursor (10, 10)
-		drawString "Hello World"
-	refresh
+	root <- defaultWindow
+	addString root "Hello World"
+	refreshWindow root
 
-	readInputEvent input
-	return ()
+	void (readInputEvent input)
