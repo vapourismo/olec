@@ -4,7 +4,6 @@ module Main (main) where
 
 import Control.Monad
 import Foreign.C.Types
-
 import Olec.Terminal.Bindings
 import Olec.Terminal.Input
 
@@ -13,13 +12,12 @@ main :: IO ()
 main = withTerm $ do
 	input <- processInput
 
-	root <- defaultWindow
 	win <- newWindow (5, 5) (20, 20)
 
-	o <- origin win
-	m <- maxXY win
+	o <- windowOrigin win
+	m <- windowSize win
 
-	addString root (show (o, m))
-	refreshWindow root
+	addString win (show (o, m))
+	refreshWindow win
 
 	void (readInputEvent input)

@@ -8,8 +8,12 @@ extern void olec_init(void) {
 	start_color();
 }
 
-extern WINDOW* olec_stdwin(void) {
-	return stdscr;
+extern int olec_width(void) {
+	return getmaxx(stdscr) + 1;
+}
+
+extern int olec_height(void) {
+	return getmaxy(stdscr) + 1;
 }
 
 extern WINDOW* olec_parent(WINDOW* win) {

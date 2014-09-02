@@ -2,9 +2,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Olec.Terminal.Bindings (
+	-- * Types
+	Window,
+
 	-- * Basics
 	withTerm,
-	defaultWindow,
+	termWidth,
+	termHeight,
+	termSize,
 
 	-- * Window Interaction
 	newWindow,
@@ -12,9 +17,8 @@ module Olec.Terminal.Bindings (
 	resizeWindow,
 
 	-- Window Properties
-	parent,
-	origin,
-	maxXY,
+	windowOrigin,
+	windowSize,
 
 	-- * Content Modification
 	addString,
@@ -43,9 +47,11 @@ foreign import ccall unsafe "olec_init"
 foreign import ccall unsafe "endwin"
 	disposeTerm :: IO ()
 
--- Default Window
-foreign import ccall unsafe "olec_stdwin"
-	defaultWindow_ :: IO (Ptr RawWindow)
+foreign import ccall unsafe "olec_width"
+	termWidth :: IO CInt
+
+foreign import ccall unsafe "olec_height"
+	termHeight :: IO CInt
 
 -- Window Interaction
 foreign import ccall unsafe "newwin"
@@ -60,10 +66,7 @@ foreign import ccall unsafe "mvwin"
 foreign import ccall unsafe "wresize"
 	resizeWindow_ :: Ptr RawWindow -> CInt -> CInt -> IO ()
 
--- Window Properties
-foreign import ccall unsafe "olec_parent"
-	parent_ :: Ptr RawWindow -> IO (Ptr RawWindow)
-
+-- | Window Properties
 foreign import ccall unsafe "getbegy"
 	windowY :: Ptr RawWindow -> IO CInt
 
@@ -104,17 +107,12 @@ type Window = ForeignPtr RawWindow
 withTerm :: IO a -> IO a
 withTerm = bracket_ initTerm disposeTerm
 
--- | Default Window
-defaultWindow :: IO Window
-defaultWindow = defaultWindow_ >>= newForeignPtr_
-
--- | Get the parent window, if it has one.
-parent :: Window -> IO (Maybe Window)
-parent win = withForeignPtr win $ \t -> do
-	par <- parent_ t
-	if par == nullPtr
-		then return Nothing
-		else fmap Just (newForeignPtr_ par)
+-- | The the terminal size.
+termSize :: IO (CInt, CInt)
+termSize = do
+	w <- termWidth
+	h <- termHeight
+	return (w, h)
 
 -- | Create a new window using a location and size.
 newWindow :: (CInt, CInt) -> (CInt, CInt) -> IO Window
@@ -141,18 +139,18 @@ refreshWindow :: Window -> IO ()
 refreshWindow win = withForeignPtr win refreshWindow_
 
 -- | Get the window origin.
-origin :: Window -> IO (CInt, CInt)
-origin win = withForeignPtr win $ \t -> do
+windowOrigin :: Window -> IO (CInt, CInt)
+windowOrigin win = withForeignPtr win $ \t -> do
 	x <- windowX t
 	y <- windowY t
 	return (x, y)
 
--- | Get the biggest possible coordinates within the window.
-maxXY :: Window -> IO (CInt, CInt)
-maxXY win = withForeignPtr win $ \t -> do
+-- | Get the window size.
+windowSize :: Window -> IO (CInt, CInt)
+windowSize win = withForeignPtr win $ \t -> do
 	x <- windowMaxX t
 	y <- windowMaxY t
-	return (x, y)
+	return (x + 1, y + 1)
 
 -- | Move the cursor to a specified position.
 moveCursor :: Window -> (CInt, CInt) -> IO ()
