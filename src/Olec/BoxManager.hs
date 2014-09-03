@@ -61,10 +61,3 @@ instance Box BoxManager where
 	setBounds (SplitHP f a b) (x, y, w, h) = splitH (round $ fromIntegral h * f) a b (x, y, w, h)
 	setBounds (SplitV sep a b) r = splitV sep a b r
 	setBounds (SplitVP f a b) (x, y, w, h) = splitV (round $ fromIntegral w * f) a b (x, y, w, h)
-
-instance Render BoxManager where
-	render (Single box) = render box
-	render (SplitH _ a b) = render a >> render b
-	render (SplitHP _ a b) = render a >> render b
-	render (SplitV _ a b) = render a >> render b
-	render (SplitVP _ a b) = render a >> render b
