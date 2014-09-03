@@ -1,5 +1,4 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module Olec.Terminal.Bindings (
 	-- * Types
