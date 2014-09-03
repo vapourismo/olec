@@ -37,7 +37,6 @@ splitH sep' a b (x, y, w, h) = do
 	setBounds a ab
 	setBounds b (ax, ay + ah, aw, h - ah)
 
-
 splitV :: (Box a, Box b) => CInt -> a -> b -> Bounds -> IO ()
 splitV sep' a b (x, y, w, h) = do
 	let sep = min (max sep' (- (w - 1))) (w - 1)
@@ -51,10 +50,10 @@ splitV sep' a b (x, y, w, h) = do
 
 
 instance Box BoxManager where
-	getBounds (Single box)   = getBounds box
-	getBounds (SplitH _ a b) = outerBounds <$> getBounds a <*> getBounds b
+	getBounds (Single box)    = getBounds box
+	getBounds (SplitH _ a b)  = outerBounds <$> getBounds a <*> getBounds b
 	getBounds (SplitHP _ a b) = outerBounds <$> getBounds a <*> getBounds b
-	getBounds (SplitV _ a b) = outerBounds <$> getBounds a <*> getBounds b
+	getBounds (SplitV _ a b)  = outerBounds <$> getBounds a <*> getBounds b
 	getBounds (SplitVP _ a b) = outerBounds <$> getBounds a <*> getBounds b
 
 	setBounds (Single box)     r = setBounds box r
