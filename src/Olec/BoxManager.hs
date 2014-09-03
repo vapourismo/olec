@@ -56,8 +56,15 @@ instance Box BoxManager where
 	getBounds (SplitV _ a b)  = outerBounds <$> getBounds a <*> getBounds b
 	getBounds (SplitVP _ a b) = outerBounds <$> getBounds a <*> getBounds b
 
-	setBounds (Single box)     r = setBounds box r
+	setBounds (Single box) r = setBounds box r
 	setBounds (SplitH sep a b) r = splitH sep a b r
-	setBounds (SplitHP f a b)  (x, y, w, h) = splitH (round $ fromIntegral h * f) a b (x, y, w, h)
+	setBounds (SplitHP f a b) (x, y, w, h) = splitH (round $ fromIntegral h * f) a b (x, y, w, h)
 	setBounds (SplitV sep a b) r = splitV sep a b r
-	setBounds (SplitVP f a b)  (x, y, w, h) = splitV (round $ fromIntegral w * f) a b (x, y, w, h)
+	setBounds (SplitVP f a b) (x, y, w, h) = splitV (round $ fromIntegral w * f) a b (x, y, w, h)
+
+instance Render BoxManager where
+	render (Single box) = render box
+	render (SplitH _ a b) = render a >> render b
+	render (SplitHP _ a b) = render a >> render b
+	render (SplitV _ a b) = render a >> render b
+	render (SplitVP _ a b) = render a >> render b

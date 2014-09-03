@@ -1,7 +1,8 @@
 module Olec.Visual (
 	Bounds,
 	Box (..),
-	Canvas (..)
+	Canvas (..),
+	Render (..)
 ) where
 
 import Foreign.C.Types
@@ -21,7 +22,6 @@ class Box a => Canvas a where
 	setCursor :: a -> (CInt, CInt) -> IO ()
 	getCursor :: a -> IO (CInt, CInt)
 	drawCString :: a -> CString -> IO ()
-	render :: a -> IO ()
 	clear :: a -> IO ()
 
 	drawString :: a -> String -> IO ()
@@ -29,3 +29,6 @@ class Box a => Canvas a where
 
 	drawByteString :: a -> B.ByteString -> IO ()
 	drawByteString c b = B.useAsCString b (drawCString c)
+
+class Box a => Render a where
+	render :: a -> IO ()

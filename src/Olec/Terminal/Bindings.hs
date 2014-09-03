@@ -118,6 +118,9 @@ instance Box (ForeignPtr RawWindow) where
 		moveWindow_ t y x
 		resizeWindow_ t h w
 
+instance Render (ForeignPtr RawWindow) where
+	render win = withForeignPtr win refreshWindow_
+
 instance Canvas (ForeignPtr RawWindow) where
 	setCursor win (x, y) = withForeignPtr win (\t -> moveCursor_ t y x)
 
@@ -125,8 +128,6 @@ instance Canvas (ForeignPtr RawWindow) where
 		x <- windowCursorX t
 		y <- windowCursorY t
 		return (x, y)
-
-	render win = withForeignPtr win refreshWindow_
 
 	drawCString win str = withForeignPtr win (\t -> addString_ t str)
 
