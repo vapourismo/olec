@@ -101,7 +101,8 @@ termSize = do
 newWindow :: (CInt, CInt) -> (CInt, CInt) -> IO Window
 newWindow (x, y) (w, h) = newWindow_ h w y x >>= newForeignPtr deleteWindow_
 
-instance Screen (ForeignPtr RawWindow) where
+
+instance Box (ForeignPtr RawWindow) where
 	getBounds win = withForeignPtr win $ \t -> do
 		x <- windowX t
 		y <- windowY t
@@ -116,9 +117,12 @@ instance Screen (ForeignPtr RawWindow) where
 
 instance Canvas (ForeignPtr RawWindow) where
 	setCursor win (x, y) = withForeignPtr win (\t -> moveCursor_ t y x)
+
 	getCursor win = withForeignPtr win $ \t -> do
 		x <- windowCursorX t
 		y <- windowCursorY t
 		return (x, y)
+
 	render win = withForeignPtr win refreshWindow_
+
 	drawCString win str = withForeignPtr win (\t -> addString_ t str)

@@ -1,5 +1,6 @@
 module Olec.Visual (
-	Screen (..),
+	Bounds,
+	Box (..),
 	Canvas (..)
 ) where
 
@@ -12,11 +13,11 @@ import qualified Data.ByteString as B
 type Bounds = (CInt, CInt, CInt, CInt)
 
 
-class Screen a where
+class Box a where
 	getBounds :: a -> IO Bounds
 	setBounds :: a -> Bounds -> IO ()
 
-class Screen a => Canvas a where
+class Box a => Canvas a where
 	setCursor :: a -> (CInt, CInt) -> IO ()
 	getCursor :: a -> IO (CInt, CInt)
 	drawCString :: a -> CString -> IO ()
