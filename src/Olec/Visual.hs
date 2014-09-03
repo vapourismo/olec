@@ -22,6 +22,7 @@ class Box a => Canvas a where
 	getCursor :: a -> IO (CInt, CInt)
 	drawCString :: a -> CString -> IO ()
 	render :: a -> IO ()
+	clear :: a -> IO ()
 
 	drawString :: a -> String -> IO ()
 	drawString c s = withCString s (drawCString c)

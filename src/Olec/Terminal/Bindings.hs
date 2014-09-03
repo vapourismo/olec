@@ -49,7 +49,7 @@ foreign import ccall unsafe "mvwin"
 foreign import ccall unsafe "wresize"
 	resizeWindow_ :: Ptr RawWindow -> CInt -> CInt -> IO ()
 
--- | Window Properties
+-- Window Properties
 foreign import ccall unsafe "getbegy"
 	windowY :: Ptr RawWindow -> IO CInt
 
@@ -78,6 +78,9 @@ foreign import ccall unsafe "waddstr"
 
 foreign import ccall unsafe "wrefresh"
 	refreshWindow_ :: Ptr RawWindow -> IO ()
+
+foreign import ccall unsafe "wclear"
+	clearWindow_ :: Ptr RawWindow -> IO ()
 
 
 data RawWindow
@@ -126,3 +129,5 @@ instance Canvas (ForeignPtr RawWindow) where
 	render win = withForeignPtr win refreshWindow_
 
 	drawCString win str = withForeignPtr win (\t -> addString_ t str)
+
+	clear win = withForeignPtr win clearWindow_
