@@ -1,23 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
 import Control.Monad
-import Olec.Terminal.Bindings
-import Olec.Terminal.Input
-import Olec.Visual
+import Control.Monad.Primitive
+import qualified Data.ByteString as B
+import qualified Data.Vector.Mutable as V
 
 
-fill :: Canvas a => a -> Char -> IO ()
-fill c chr = do
-	(_, _, w, h) <- getBounds c
-	forM_ [0 .. h - 1] $ \y -> do
-		setCursor c (0, y)
-		drawString c (replicate (fromIntegral w) chr)
+type LineBuffer = V.MVector (PrimState IO)
+
+newLineBuffer :: Int -> a -> IO (LineBuffer a)
+newLineBuffer n d = do
+	v <- V.new n
+	forM_ [0 .. n - 1] (\m -> V.write v m d)
+	return v
 
 main :: IO ()
-main = withTerm $ do
-	input <- processInput
+main = do
+	v <- newLineBuffer 10 "Hello"
+	n <- V.read v 0 :: IO B.ByteString
 
-	void (readInputEvent input)
+	print n
