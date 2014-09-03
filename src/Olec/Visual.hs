@@ -1,0 +1,29 @@
+module Olec.Visual (
+	Screen (..),
+	Canvas (..)
+) where
+
+import Foreign.C.Types
+import Foreign.C.String
+
+import qualified Data.ByteString as B
+
+
+type Bounds = (CInt, CInt, CInt, CInt)
+
+
+class Screen a where
+	getBounds :: a -> IO Bounds
+	setBounds :: a -> Bounds -> IO ()
+
+class Screen a => Canvas a where
+	setCursor :: a -> (CInt, CInt) -> IO ()
+	getCursor :: a -> IO (CInt, CInt)
+	drawCString :: a -> CString -> IO ()
+	render :: a -> IO ()
+
+	drawString :: a -> String -> IO ()
+	drawString c s = withCString s (drawCString c)
+
+	drawByteString :: a -> B.ByteString -> IO ()
+	drawByteString c b = B.useAsCString b (drawCString c)

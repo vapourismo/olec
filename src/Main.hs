@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
 import Control.Monad
-import Foreign.C.Types
+
 import Olec.Terminal.Bindings
 import Olec.Terminal.Input
+import Olec.Visual
 
 
 main :: IO ()
@@ -13,11 +15,9 @@ main = withTerm $ do
 	input <- processInput
 
 	win <- newWindow (5, 5) (20, 20)
+	b <- getBounds win
 
-	o <- windowOrigin win
-	m <- windowSize win
-
-	addString win (show (o, m))
-	refreshWindow win
+	drawString win (show b)
+	render win
 
 	void (readInputEvent input)

@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Olec.Terminal.Bindings (
 	-- * Types
@@ -6,37 +7,20 @@ module Olec.Terminal.Bindings (
 
 	-- * Basics
 	withTerm,
-	termWidth,
-	termHeight,
 	termSize,
 
-	-- * Window Interaction
+	-- * Windows
 	newWindow,
-	moveWindow,
-	resizeWindow,
-
-	-- Window Properties
-	windowOrigin,
-	windowSize,
-
-	-- * Content Modification
-	addString,
-	addCString,
-	refreshWindow,
-
-	-- * Cursor
-	moveCursor,
-	getCursor
 ) where
 
 import Control.Exception
-
---import qualified Data.ByteString as B
 
 import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Ptr
 import Foreign.ForeignPtr
+
+import Olec.Visual
 
 
 -- Initialization and finalization
@@ -117,47 +101,24 @@ termSize = do
 newWindow :: (CInt, CInt) -> (CInt, CInt) -> IO Window
 newWindow (x, y) (w, h) = newWindow_ h w y x >>= newForeignPtr deleteWindow_
 
--- | Move a window to a different location.
-moveWindow :: Window -> (CInt, CInt) -> IO ()
-moveWindow win (x, y) = withForeignPtr win (\h -> moveWindow_ h y x)
+instance Screen (ForeignPtr RawWindow) where
+	getBounds win = withForeignPtr win $ \t -> do
+		x <- windowX t
+		y <- windowY t
+		w <- windowMaxX t
+		h <- windowMaxY t
+		return (x, y, w + 1, h + 1)
 
--- | Change the size of a window.
-resizeWindow :: Window -> (CInt, CInt) -> IO ()
-resizeWindow win (w, h) = withForeignPtr win (\t -> resizeWindow_ t h w)
+	setBounds win (x, y, w, h) = withForeignPtr win $ \t -> do
+		resizeWindow_ t 1 1
+		moveWindow_ t y x
+		resizeWindow_ t h w
 
--- | Add a string to a window.
-addString :: Window -> String -> IO ()
-addString win str = withForeignPtr win (withCString str . addString_)
-
--- | Add a C native string to a window.
-addCString :: Window -> CString -> IO ()
-addCString win str = withForeignPtr win (\t -> addString_ t str)
-
--- | Refresh the contents so the changes will be visible in the terminal.
-refreshWindow :: Window -> IO ()
-refreshWindow win = withForeignPtr win refreshWindow_
-
--- | Get the window origin.
-windowOrigin :: Window -> IO (CInt, CInt)
-windowOrigin win = withForeignPtr win $ \t -> do
-	x <- windowX t
-	y <- windowY t
-	return (x, y)
-
--- | Get the window size.
-windowSize :: Window -> IO (CInt, CInt)
-windowSize win = withForeignPtr win $ \t -> do
-	x <- windowMaxX t
-	y <- windowMaxY t
-	return (x + 1, y + 1)
-
--- | Move the cursor to a specified position.
-moveCursor :: Window -> (CInt, CInt) -> IO ()
-moveCursor win (x, y) = withForeignPtr win (\t -> moveCursor_ t y x)
-
--- | Get the cursor position within the window.
-getCursor :: Window -> IO (CInt, CInt)
-getCursor win = withForeignPtr win $ \t -> do
-	x <- windowCursorX t
-	y <- windowCursorY t
-	return (x, y)
+instance Canvas (ForeignPtr RawWindow) where
+	setCursor win (x, y) = withForeignPtr win (\t -> moveCursor_ t y x)
+	getCursor win = withForeignPtr win $ \t -> do
+		x <- windowCursorX t
+		y <- windowCursorY t
+		return (x, y)
+	render win = withForeignPtr win refreshWindow_
+	drawCString win str = withForeignPtr win (\t -> addString_ t str)
