@@ -1,0 +1,4 @@
+# Compilation side products
+*.o
+*.d
+olec
