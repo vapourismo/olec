@@ -14,7 +14,7 @@ BASENAME        = olec
 SRCDIR          = src
 
 # Artifacts
-FILES           = main.c
+FILES           = main.c terminal.c
 OBJS            = $(FILES:%.c=$(SRCDIR)/%.o)
 DEPS            = $(FILES:%.c=$(SRCDIR)/%.d)
 EXEOUTPUT       = $(BASENAME)
@@ -29,9 +29,9 @@ CC              ?= clang
 CFLAGS          += -std=c99 -O2 -fmessage-length=0 \
                    -Wall -Wextra -pedantic -Wno-unused-parameter \
                    -D_POSIX_SOURCE -D_GNU_SOURCE $(DEBUGCFLAGS) \
-                   $(shell pkg-config --cflags clutter-1.0)
+                   $(shell pkg-config --cflags gtk+-3.0 vte-2.91)
 LDFLAGS         += -flto
-LDLIBS          := $(shell pkg-config --libs clutter-1.0)
+LDLIBS          := $(shell pkg-config --libs gtk+-3.0 vte-2.91)
 
 # Default Targets
 all: $(EXEOUTPUT)
