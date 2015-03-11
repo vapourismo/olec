@@ -7,6 +7,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/**
+ * Terminal
+ */
 typedef struct {
 	GtkWindow* window;
 	VteTerminal* terminal;
@@ -17,12 +20,24 @@ typedef struct {
 	char** child_args;
 } OlecTerminal;
 
+/**
+ * Initialize the terminal
+ */
 bool olec_terminal_init(OlecTerminal* term);
 
+/**
+ * Display the terminal
+ */
 void olec_terminal_show(const OlecTerminal* term);
 
+/**
+ * Spawn a child to run within the terminal
+ */
 bool olec_terminal_spawn(OlecTerminal* term, char** args);
 
+/**
+ * Clean resources after usage
+ */
 void olec_terminal_clean(const OlecTerminal* term);
 
 #endif

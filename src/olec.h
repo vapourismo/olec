@@ -8,8 +8,14 @@
 #include <ncurses.h>
 #include <event2/event.h>
 
+/**
+ * NCurses Window
+ */
 typedef WINDOW OlecWindow;
 
+/**
+ * Olec Application
+ */
 typedef struct {
 	int event_fd;
 	OlecWindow* stage;
@@ -18,8 +24,14 @@ typedef struct {
 	struct event_base* event_base;
 } Olec;
 
+/**
+ * Initialize the application
+ */
 bool olec_init(Olec* olec, const char* ipc_path);
 
+/**
+ * Application main loop
+ */
 int olec_main(Olec* olec);
 
 #endif
