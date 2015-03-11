@@ -26,6 +26,7 @@ static gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, c
 
 static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecTerminal* term) {
 	switch (WEXITSTATUS(status)) {
+		// Child wants to be reloaded
 		case OLEC_CHILD_EXIT_RELOAD:
 			close(term->ipc_fifo);
 			term->ipc_fifo = -1;
@@ -37,6 +38,7 @@ static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecT
 
 			break;
 
+		// Good or bad doesn't matter, we'll exit
 		default:
 			printf("Child exited with status %i\n", WEXITSTATUS(status));
 			gtk_main_quit();
