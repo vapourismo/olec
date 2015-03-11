@@ -19,15 +19,25 @@ static int olec_lauch_as_parent(int argc, char** argv) {
 
 	OlecTerminal term;
 	if (olec_terminal_init(&term)) {
-		g_signal_connect(term.terminal, "child-exited", G_CALLBACK(gtk_main_quit), NULL);
-
-		char* arguments[] = {self_program, NULL};
+		// Environment for child
 		char* environment[] = {"OLEC_ISCHILD=1", NULL};
+
+		// Generate child program arguments
+		char* arguments[argc + 2];
+		arguments[0] = self_program;
+		arguments[argc + 1] = NULL;
+
+		for (int i = 1; i < argc; i++)
+			arguments[i] = argv[i];
+
+		// Spawn child process
 		olec_terminal_spawn(&term, arguments, environment);
 
+		// Give control to GTK
 		olec_terminal_show(&term);
 		gtk_main();
 
+		// Terminate the child process
 		olec_terminal_terminate(&term);
 
 		return 0;
