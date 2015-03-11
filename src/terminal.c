@@ -1,9 +1,11 @@
 #include "terminal.h"
 #include "event.h"
+#include "child.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <malloc.h>
 
@@ -22,6 +24,25 @@ static gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, c
 	return true;
 }
 
+static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecTerminal* term) {
+	switch (WEXITSTATUS(status)) {
+		case OLEC_CHILD_EXIT_RELOAD:
+			close(term->ipc_fifo);
+			term->ipc_fifo = -1;
+
+			if (!olec_terminal_spawn(term, NULL)) {
+				fputs("Failed to respawn child", stderr);
+				gtk_main_quit();
+			}
+
+			break;
+
+		default:
+			gtk_main_quit();
+			break;
+	}
+}
+
 bool olec_terminal_init(OlecTerminal* term) {
 	GtkWidget* window_ = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	GtkWidget* terminal_ = vte_terminal_new();
@@ -32,6 +53,8 @@ bool olec_terminal_init(OlecTerminal* term) {
 		return false;
 	}
 
+	term->child_args = NULL;
+	term->ipc_fifo = -1;
 	term->window = GTK_WINDOW(window_);
 	term->terminal = VTE_TERMINAL(terminal_);
 
@@ -41,7 +64,7 @@ bool olec_terminal_init(OlecTerminal* term) {
 
 	// Connect signals
 	g_signal_connect(term->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(term->terminal, "child-exited", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(term->terminal, "child-exited", G_CALLBACK(olec_terminal_child_exited), term);
 	g_signal_connect(term->window, "key-press-event", G_CALLBACK(olec_terminal_key_press), term);
 
 	// Setup layout
@@ -78,7 +101,6 @@ bool olec_terminal_init(OlecTerminal* term) {
 	snprintf(term->ipc_path, 108, "/tmp/olec-%i", getpid());
 
 	// Setup IPC fifo
-	term->ipc_fifo = -1;
 	if (mkfifo(term->ipc_path, S_IFIFO | S_IWUSR | S_IRUSR) != 0)
 		return false;
 
@@ -89,17 +111,49 @@ void olec_terminal_show(const OlecTerminal* term) {
 	gtk_widget_show_all(GTK_WIDGET(term->window));
 }
 
-bool olec_terminal_spawn(OlecTerminal* term, char** args, char** env) {
+bool olec_terminal_spawn(OlecTerminal* term, char** args) {
+	// Environment for child
+	char environ_var[strlen(term->ipc_path) + 14];
+	environ_var[0] = 0;
+
+	strcat(environ_var, "OLEC_IPC=");
+	strcat(environ_var, term->ipc_path);
+
+	char* environment[] = {environ_var, NULL};
+
+	// Setup arguments
+	if (args) {
+		if (term->child_args) {
+			for (char** it = term->child_args; *it; it++)
+				free(*it);
+
+			free(term->child_args);
+		}
+
+		size_t counter = 1;
+		for (char** it = args; *it; it++)
+			counter++;
+
+		term->child_args = (char**) malloc(sizeof(char*) * counter);
+		for (size_t i = 0; i < counter - 1; i++)
+			term->child_args[i] = strdup(args[i]);
+
+		term->child_args[counter - 1] = NULL;
+	}
+
+	GPid pid;
 	if (!vte_terminal_spawn_sync(term->terminal,
 	                             VTE_PTY_DEFAULT,
 	                             NULL,
-	                             args,
-	                             env,
+	                             term->child_args,
+	                             environment,
 	                             G_SPAWN_DEFAULT,
 	                             NULL, NULL,
-	                             NULL,
+	                             &pid,
 	                             NULL, NULL))
 		return false;
+
+	vte_terminal_watch_child(term->terminal, pid);
 
 	return (term->ipc_fifo = open(term->ipc_path, O_WRONLY)) >= 0;
 }
