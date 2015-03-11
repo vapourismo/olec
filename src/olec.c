@@ -32,6 +32,7 @@ static void olec_read_fd(int event_fd, short what, Olec* olec) {
 			return;
 		} else if (event.info.key_press.mod == GDK_CONTROL_MASK &&
 		           event.info.key_press.key == GDK_KEY_q) {
+
 			olec->exit_status = OLEC_CHILD_EXIT_OK;
 			event_base_loopbreak(olec->event_base);
 			return;
