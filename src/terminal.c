@@ -1,15 +1,16 @@
 #include "terminal.h"
 
 #include <stdio.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 static gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, const OlecTerminal* term) {
 	if (!event->is_modifier) {
-		if ((event->state & GDK_MODIFIER_MASK) == GDK_CONTROL_MASK && event->keyval == 'q') {
-			gtk_main_quit();
-		}
+		// if ((event->state & GDK_MODIFIER_MASK) == GDK_CONTROL_MASK && event->keyval == 'q') {
+		// 	gtk_main_quit();
+		// }
 	}
 
-	// Capture all
 	return true;
 }
 
@@ -25,6 +26,10 @@ bool olec_terminal_init(OlecTerminal* term) {
 
 	term->window = GTK_WINDOW(window_);
 	term->terminal = VTE_TERMINAL(terminal_);
+
+	// Set window details
+	gtk_window_set_title(term->window, "Olec Text Editor");
+	gtk_window_set_wmclass(term->window, "olec", "olec");
 
 	// Connect signals
 	g_signal_connect(term->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -58,6 +63,9 @@ bool olec_terminal_init(OlecTerminal* term) {
 	vte_terminal_set_cursor_shape(term->terminal, VTE_CURSOR_SHAPE_IBEAM);
 	vte_terminal_set_scrollback_lines(term->terminal, 0);
 
+	// Clear pid field
+	term->child_pid = -1;
+
 	return true;
 }
 
@@ -65,7 +73,7 @@ void olec_terminal_show(const OlecTerminal* term) {
 	gtk_widget_show_all(GTK_WIDGET(term->window));
 }
 
-bool olec_terminal_spawn(const OlecTerminal* term, char** args, char** env) {
+bool olec_terminal_spawn(OlecTerminal* term, char** args, char** env) {
 	return vte_terminal_spawn_sync(term->terminal,
 	                               VTE_PTY_DEFAULT,
 	                               NULL,
@@ -73,6 +81,20 @@ bool olec_terminal_spawn(const OlecTerminal* term, char** args, char** env) {
 	                               env,
 	                               G_SPAWN_DEFAULT,
 	                               NULL, NULL,
-	                               NULL,
+	                               &term->child_pid,
 	                               NULL, NULL);
+}
+
+int olec_terminal_terminate(OlecTerminal* term) {
+	if (term->child_pid < 0)
+		return -1;
+
+	kill(term->child_pid, SIGTERM);
+
+	int result = 0;
+	waitpid(term->child_pid, &result, 0);
+
+	term->child_pid = -1;
+
+	return result;
 }

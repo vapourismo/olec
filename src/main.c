@@ -27,6 +27,9 @@ static int olec_lauch_as_parent(int argc, char** argv) {
 
 		olec_terminal_show(&term);
 		gtk_main();
+
+		olec_terminal_terminate(&term);
+
 		return 0;
 	} else {
 		fputs("Failed to initialize terminal\n", stderr);
