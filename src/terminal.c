@@ -48,11 +48,8 @@ bool olec_terminal_init(OlecTerminal* term) {
 	GtkWidget* window_ = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	GtkWidget* terminal_ = vte_terminal_new();
 
-	if (!window_ || !terminal_) {
-		term->window = NULL;
-		term->terminal = NULL;
+	if (!window_ || !terminal_)
 		return false;
-	}
 
 	term->child_args = NULL;
 	term->ipc_fifo = -1;
@@ -163,9 +160,11 @@ bool olec_terminal_spawn(OlecTerminal* term, char** args) {
 }
 
 void olec_terminal_clean(const OlecTerminal* term) {
+	// Close IPC channel
 	if (term->ipc_fifo >= 0)
 		close(term->ipc_fifo);
 
+	// Remove FIFO
 	if (term->ipc_path) {
 		unlink(term->ipc_path);
 		free(term->ipc_path);
