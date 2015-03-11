@@ -14,7 +14,7 @@ BASENAME        = olec
 SRCDIR          = src
 
 # Artifacts
-FILES           = main.c terminal.c
+FILES           = main.c terminal.c event.c parent.c child.c
 OBJS            = $(FILES:%.c=$(SRCDIR)/%.o)
 DEPS            = $(FILES:%.c=$(SRCDIR)/%.d)
 EXEOUTPUT       = $(BASENAME)
@@ -31,7 +31,7 @@ CFLAGS          += -std=c99 -O2 -fmessage-length=0 \
                    -D_POSIX_SOURCE -D_GNU_SOURCE $(DEBUGCFLAGS) \
                    $(shell pkg-config --cflags gtk+-3.0 vte-2.91)
 LDFLAGS         += -flto
-LDLIBS          := $(shell pkg-config --libs gtk+-3.0 vte-2.91)
+LDLIBS          := $(shell pkg-config --libs gtk+-3.0 vte-2.91) -lncurses
 
 # Default Targets
 all: $(EXEOUTPUT)

@@ -10,7 +10,9 @@
 typedef struct {
 	GtkWindow* window;
 	VteTerminal* terminal;
-	GPid child_pid;
+
+	char* ipc_path;
+	int ipc_fifo;
 } OlecTerminal;
 
 bool olec_terminal_init(OlecTerminal* term);
@@ -19,6 +21,6 @@ void olec_terminal_show(const OlecTerminal* term);
 
 bool olec_terminal_spawn(OlecTerminal* term, char** args, char** env);
 
-int olec_terminal_terminate(OlecTerminal* term);
+void olec_terminal_clean(const OlecTerminal* term);
 
 #endif

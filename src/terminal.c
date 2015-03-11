@@ -1,14 +1,22 @@
 #include "terminal.h"
+#include "event.h"
 
 #include <stdio.h>
-#include <signal.h>
-#include <sys/wait.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <malloc.h>
 
 static gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, const OlecTerminal* term) {
 	if (!event->is_modifier) {
-		// if ((event->state & GDK_MODIFIER_MASK) == GDK_CONTROL_MASK && event->keyval == 'q') {
-		// 	gtk_main_quit();
-		// }
+		OlecEvent ev = {
+			.type = OLEC_KEY_PRESS,
+			.info = {
+				.key_press = {event->state & GDK_MODIFIER_MASK, event->keyval}
+			}
+		};
+
+		olec_event_write(term->ipc_fifo, &ev);
 	}
 
 	return true;
@@ -63,8 +71,16 @@ bool olec_terminal_init(OlecTerminal* term) {
 	vte_terminal_set_cursor_shape(term->terminal, VTE_CURSOR_SHAPE_IBEAM);
 	vte_terminal_set_scrollback_lines(term->terminal, 0);
 
-	// Clear pid field
-	term->child_pid = -1;
+	// Setup IPC path
+	if ((term->ipc_path = malloc(108)) == NULL)
+		return false;
+
+	snprintf(term->ipc_path, 108, "/tmp/olec-%i", getpid());
+
+	// Setup IPC fifo
+	term->ipc_fifo = -1;
+	if (mkfifo(term->ipc_path, S_IFIFO | S_IWUSR | S_IRUSR) != 0)
+		return false;
 
 	return true;
 }
@@ -74,27 +90,26 @@ void olec_terminal_show(const OlecTerminal* term) {
 }
 
 bool olec_terminal_spawn(OlecTerminal* term, char** args, char** env) {
-	return vte_terminal_spawn_sync(term->terminal,
-	                               VTE_PTY_DEFAULT,
-	                               NULL,
-	                               args,
-	                               env,
-	                               G_SPAWN_DEFAULT,
-	                               NULL, NULL,
-	                               &term->child_pid,
-	                               NULL, NULL);
+	if (!vte_terminal_spawn_sync(term->terminal,
+	                             VTE_PTY_DEFAULT,
+	                             NULL,
+	                             args,
+	                             env,
+	                             G_SPAWN_DEFAULT,
+	                             NULL, NULL,
+	                             NULL,
+	                             NULL, NULL))
+		return false;
+
+	return (term->ipc_fifo = open(term->ipc_path, O_WRONLY)) >= 0;
 }
 
-int olec_terminal_terminate(OlecTerminal* term) {
-	if (term->child_pid < 0)
-		return -1;
+void olec_terminal_clean(const OlecTerminal* term) {
+	if (term->ipc_fifo >= 0)
+		close(term->ipc_fifo);
 
-	kill(term->child_pid, SIGTERM);
-
-	int result = 0;
-	waitpid(term->child_pid, &result, 0);
-
-	term->child_pid = -1;
-
-	return result;
+	if (term->ipc_path) {
+		unlink(term->ipc_path);
+		free(term->ipc_path);
+	}
 }
