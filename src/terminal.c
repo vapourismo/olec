@@ -38,6 +38,7 @@ static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecT
 			break;
 
 		default:
+			printf("Child exited with status %i\n", WEXITSTATUS(status));
 			gtk_main_quit();
 			break;
 	}
@@ -140,6 +141,9 @@ bool olec_terminal_spawn(OlecTerminal* term, char** args) {
 
 		term->child_args[counter - 1] = NULL;
 	}
+
+	// Clear terminal screen
+	vte_terminal_reset(term->terminal, true, true);
 
 	GPid pid;
 	if (!vte_terminal_spawn_sync(term->terminal,
