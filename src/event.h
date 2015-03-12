@@ -7,11 +7,21 @@
 #include <stdint.h>
 
 /**
- * Event Type
+ * Event type
  */
 typedef enum {
 	OLEC_KEY_PRESS = 0,
 } OlecEventType;
+
+/**
+ * Key modifier
+ */
+typedef GdkModifierType OlecKeyModifier;
+
+/**
+ * Key symbol
+ */
+typedef uint32_t OlecKeySymbol;
 
 /**
  * Event
@@ -20,8 +30,8 @@ typedef struct {
 	OlecEventType type;
 	union {
 		struct {
-			GdkModifierType mod;
-			uint32_t key;
+			OlecKeyModifier mod;
+			OlecKeySymbol key;
 		} key_press;
 	} info;
 } OlecEvent;
