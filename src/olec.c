@@ -62,7 +62,7 @@ int olec_main(Olec* olec) {
 	start_color();
 
 	// Setup default widget
-	olec_widget_reuse(&olec->stage, stdscr);
+	olec->stage = stdscr;
 
 	// Create input event
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
