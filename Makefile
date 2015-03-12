@@ -49,6 +49,9 @@ gdb: $(EXEOUTPUT)
 valgrind: $(EXEOUTPUT)
 	$(MEMCHECKER) $(realpath $(EXEOUTPUT))
 
+reload: all
+	kill -s USR1 $$(pidof $(BASENAME) | cut -d " " -f 1)
+
 # Targets
 -include $(DEPS)
 

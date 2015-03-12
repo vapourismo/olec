@@ -41,9 +41,17 @@ static void olec_read_fd(int event_fd, short what, Olec* olec) {
 }
 
 int olec_main(Olec* olec) {
+	// Initialize screen
+	initscr();
+	noecho();
+	raw();
+	start_color();
+
+	// Create input event
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
 	                                      (event_callback_fn) olec_read_fd, olec);
 
+	// Main loop
 	if (input_event) {
 		event_add(input_event, NULL);
 		event_base_dispatch(olec->event_base);
@@ -51,8 +59,10 @@ int olec_main(Olec* olec) {
 		event_free(input_event);
 	}
 
+	// Clean resources
 	event_base_free(olec->event_base);
 	close(olec->event_fd);
+	endwin();
 
 	return olec->exit_status;
 }
