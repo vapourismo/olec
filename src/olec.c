@@ -61,11 +61,8 @@ int olec_main(Olec* olec) {
 	raw();
 	start_color();
 
-	init_pair(1, COLOR_BLACK, COLOR_RED);
-
-	attrset(COLOR_PAIR(1));
-	addstr("Hello World!");
-	refresh();
+	// Setup default widget
+	olec_widget_reuse(&olec->stage, stdscr);
 
 	// Create input event
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
@@ -80,9 +77,9 @@ int olec_main(Olec* olec) {
 	}
 
 	// Clean resources
+	endwin();
 	event_base_free(olec->event_base);
 	close(olec->event_fd);
-	endwin();
 
 	return olec->exit_status;
 }
