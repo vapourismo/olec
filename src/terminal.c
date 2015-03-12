@@ -46,12 +46,23 @@ static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecT
 	}
 }
 
-bool olec_terminal_init(OlecTerminal* term) {
+static
+const OlecTerminalConfig olec_default_config = {
+	"#D5D5D5",
+	"#1A1A1A",
+	{"#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5",
+	 "#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5"}
+};
+
+bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 	GtkWidget* window_ = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	GtkWidget* terminal_ = vte_terminal_new();
 
 	if (!window_ || !terminal_)
 		return false;
+
+	if (!config)
+		config = &olec_default_config;
 
 	term->child_args = NULL;
 	term->ipc_fifo = -1;
@@ -76,17 +87,21 @@ bool olec_terminal_init(OlecTerminal* term) {
 	PangoFontDescription* font = pango_font_description_from_string("Inconsolata 10.5");
 	vte_terminal_set_font(term->terminal, font);
 
-	// Configure background color
-	GdkRGBA term_bg_color;
-	gdk_rgba_parse(&term_bg_color, "#1a1a1a");
-	vte_terminal_set_color_background(term->terminal, &term_bg_color);
-	vte_terminal_set_color_highlight(term->terminal, &term_bg_color);
+	// Configure colors
+	GdkRGBA term_fg_color, term_bg_color, term_palette[16];
+	gdk_rgba_parse(&term_fg_color, config->foreground);
+	gdk_rgba_parse(&term_bg_color, config->background);
 
-	// Configure foreground color
-	GdkRGBA term_fg_color;
-	gdk_rgba_parse(&term_fg_color, "#d5d5d5");
-	vte_terminal_set_color_foreground(term->terminal, &term_fg_color);
-	vte_terminal_set_color_highlight_foreground(term->terminal, &term_fg_color);
+	for (size_t i = 0; i < 15; i++)
+		gdk_rgba_parse(term_palette + i, config->palette[i]);
+
+	vte_terminal_set_colors(term->terminal, &term_fg_color, &term_bg_color,
+	                        term_palette, 16);
+
+	// vte_terminal_set_color_background(term->terminal, &term_bg_color);
+	// vte_terminal_set_color_highlight(term->terminal, &term_bg_color);
+	// vte_terminal_set_color_foreground(term->terminal, &term_fg_color);
+	// vte_terminal_set_color_highlight_foreground(term->terminal, &term_fg_color);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(term->terminal, true);

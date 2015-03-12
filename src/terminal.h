@@ -8,6 +8,15 @@
 #include <stdbool.h>
 
 /**
+ * Terminal configuration
+ */
+typedef struct {
+	const char* foreground;
+	const char* background;
+	const char* palette[16];
+} OlecTerminalConfig;
+
+/**
  * Terminal
  */
 typedef struct {
@@ -23,7 +32,7 @@ typedef struct {
 /**
  * Initialize the terminal
  */
-bool olec_terminal_init(OlecTerminal* term);
+bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config);
 
 /**
  * Display the terminal
