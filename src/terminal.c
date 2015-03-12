@@ -89,11 +89,11 @@ bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 
 	// Configure colors
 	GdkRGBA term_fg_color, term_bg_color, term_palette[16];
-	gdk_rgba_parse(&term_fg_color, config->foreground);
-	gdk_rgba_parse(&term_bg_color, config->background);
+	gdk_rgba_parse(&term_fg_color, config->foreground ? config->foreground : "#ffffff");
+	gdk_rgba_parse(&term_bg_color, config->background ? config->background : "#ffffff");
 
 	for (size_t i = 0; i < 15; i++)
-		gdk_rgba_parse(term_palette + i, config->palette[i]);
+		gdk_rgba_parse(term_palette + i, config->palette[i] ? config->palette[i] : "#ffffff");
 
 	vte_terminal_set_colors(term->terminal, &term_fg_color, &term_bg_color,
 	                        term_palette, 16);
