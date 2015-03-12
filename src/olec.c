@@ -61,6 +61,12 @@ int olec_main(Olec* olec) {
 	raw();
 	start_color();
 
+	init_pair(1, COLOR_BLACK, COLOR_RED);
+
+	attrset(COLOR_PAIR(1));
+	addstr("Hello World!");
+	refresh();
+
 	// Create input event
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
 	                                      (event_callback_fn) olec_read_fd, olec);

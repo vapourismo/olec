@@ -8,7 +8,7 @@ int olec_parent_launch(int argc, char** argv) {
 	gtk_init(&argc, &argv);
 
 	OlecTerminal term;
-	if (olec_terminal_init(&term)) {
+	if (olec_terminal_init(&term, NULL)) {
 		// Generate child program arguments
 		char* arguments[argc + 2];
 		arguments[0] = self_program;
