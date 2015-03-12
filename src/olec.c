@@ -1,20 +1,25 @@
 #include "olec.h"
 
-bool olec_init(Olec* olec, const char* ipc_path) {
-	olec->event_base = event_base_new();
-	if (!olec->event_base)
-		return false;
+#include <unistd.h>
 
-	olec->event_fd = open(ipc_path, O_RDONLY | O_NONBLOCK, 0);
-	if (olec->event_fd < 0)
-		return false;
-
+static
+bool olec_kb_quit(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
 	olec->exit_status = OLEC_CHILD_EXIT_OK;
+	event_base_loopbreak(olec->event_base);
 
 	return true;
 }
 
-static void olec_read_fd(int event_fd, short what, Olec* olec) {
+static
+bool olec_kb_reload(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
+	olec->exit_status = OLEC_CHILD_EXIT_RELOAD;
+	event_base_loopbreak(olec->event_base);
+
+	return true;
+}
+
+static
+void olec_read_fd(int event_fd, short what, Olec* olec) {
 	OlecEvent event;
 
 	if (!olec_event_read(event_fd, &event)) {
@@ -24,20 +29,29 @@ static void olec_read_fd(int event_fd, short what, Olec* olec) {
 	}
 
 	if (event.type == OLEC_KEY_PRESS) {
-		if (event.info.key_press.mod == GDK_CONTROL_MASK &&
-		    event.info.key_press.key == GDK_KEY_r) {
-
-			olec->exit_status = OLEC_CHILD_EXIT_RELOAD;
-			event_base_loopbreak(olec->event_base);
-			return;
-		} else if (event.info.key_press.mod == GDK_CONTROL_MASK &&
-		           event.info.key_press.key == GDK_KEY_q) {
-
-			olec->exit_status = OLEC_CHILD_EXIT_OK;
-			event_base_loopbreak(olec->event_base);
-			return;
-		}
+		olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod, event.info.key_press.key);
 	}
+}
+
+bool olec_init(Olec* olec, const char* ipc_path) {
+	olec->exit_status = OLEC_CHILD_EXIT_OK;
+
+	olec->event_base = event_base_new();
+	if (!olec->event_base)
+		return false;
+
+	olec->event_fd = open(ipc_path, O_RDONLY | O_NONBLOCK, 0);
+	if (olec->event_fd < 0)
+		return false;
+
+	// Setup keymap
+	olec_key_map_init(&olec->global_keymap);
+	olec_key_map_bind(&olec->global_keymap, GDK_CONTROL_MASK, GDK_KEY_q,
+	                  (OlecKeyHook) olec_kb_quit, olec);
+	olec_key_map_bind(&olec->global_keymap, GDK_CONTROL_MASK, GDK_KEY_r,
+	                  (OlecKeyHook) olec_kb_reload, olec);
+
+	return true;
 }
 
 int olec_main(Olec* olec) {
