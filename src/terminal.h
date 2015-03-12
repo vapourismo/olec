@@ -11,8 +11,6 @@
  * Terminal configuration
  */
 typedef struct {
-	const char* foreground;
-	const char* background;
 	const char* palette[16];
 } OlecTerminalConfig;
 

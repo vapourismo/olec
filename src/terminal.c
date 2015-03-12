@@ -48,8 +48,6 @@ static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecT
 
 static
 const OlecTerminalConfig olec_default_config = {
-	"#D5D5D5",
-	"#1A1A1A",
 	{"#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5",
 	 "#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5"}
 };
@@ -88,15 +86,11 @@ bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 	vte_terminal_set_font(term->terminal, font);
 
 	// Configure colors
-	GdkRGBA term_fg_color, term_bg_color, term_palette[16];
-	gdk_rgba_parse(&term_fg_color, config->foreground ? config->foreground : "#ffffff");
-	gdk_rgba_parse(&term_bg_color, config->background ? config->background : "#ffffff");
-
+	GdkRGBA term_palette[16];
 	for (size_t i = 0; i < 15; i++)
 		gdk_rgba_parse(term_palette + i, config->palette[i] ? config->palette[i] : "#ffffff");
 
-	vte_terminal_set_colors(term->terminal, &term_fg_color, &term_bg_color,
-	                        term_palette, 16);
+	vte_terminal_set_colors(term->terminal, NULL, NULL, term_palette, 16);
 
 	// vte_terminal_set_color_background(term->terminal, &term_bg_color);
 	// vte_terminal_set_color_highlight(term->terminal, &term_bg_color);
