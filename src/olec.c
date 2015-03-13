@@ -28,8 +28,15 @@ void olec_read_fd(int event_fd, short what, Olec* olec) {
 		return;
 	}
 
-	if (event.type == OLEC_KEY_PRESS) {
-		olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod, event.info.key_press.key);
+	switch (event.type) {
+		case OLEC_KEY_PRESS:
+			olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod,
+			                    event.info.key_press.key);
+			break;
+
+		case OLEC_RESIZE:
+			// Update windows
+			break;
 	}
 }
 

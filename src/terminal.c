@@ -9,7 +9,8 @@
 #include <fcntl.h>
 #include <malloc.h>
 
-static gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, const OlecTerminal* term) {
+static
+gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, const OlecTerminal* term) {
 	if (!event->is_modifier) {
 		OlecEvent ev = {
 			.type = OLEC_KEY_PRESS,
@@ -24,7 +25,8 @@ static gboolean olec_terminal_key_press(GtkWidget* widget, GdkEventKey* event, c
 	return true;
 }
 
-static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecTerminal* term) {
+static
+void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecTerminal* term) {
 	switch (WEXITSTATUS(status)) {
 		// Child wants to be reloaded
 		case OLEC_CHILD_EXIT_RELOAD:
@@ -44,6 +46,18 @@ static void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecT
 			gtk_main_quit();
 			break;
 	}
+}
+
+static
+void olec_terminal_resize(VteTerminal* terminal, guint width, guint height, OlecTerminal* term) {
+	OlecEvent ev = {
+		.type = OLEC_RESIZE,
+		.info = {
+			.resize = {width, height}
+		}
+	};
+
+	olec_event_write(term->ipc_fifo, &ev);
 }
 
 static
@@ -73,8 +87,9 @@ bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 
 	// Connect signals
 	g_signal_connect(term->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(term->terminal, "child-exited", G_CALLBACK(olec_terminal_child_exited), term);
 	g_signal_connect(term->window, "key-press-event", G_CALLBACK(olec_terminal_key_press), term);
+	g_signal_connect(term->terminal, "resize-window", G_CALLBACK(olec_terminal_resize), term);
+	g_signal_connect(term->terminal, "child-exited", G_CALLBACK(olec_terminal_child_exited), term);
 
 	// Setup layout
 	GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -91,11 +106,6 @@ bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 		gdk_rgba_parse(term_palette + i, config->palette[i] ? config->palette[i] : "#ffffff");
 
 	vte_terminal_set_colors(term->terminal, NULL, NULL, term_palette, 16);
-
-	// vte_terminal_set_color_background(term->terminal, &term_bg_color);
-	// vte_terminal_set_color_highlight(term->terminal, &term_bg_color);
-	// vte_terminal_set_color_foreground(term->terminal, &term_fg_color);
-	// vte_terminal_set_color_highlight_foreground(term->terminal, &term_fg_color);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(term->terminal, true);
