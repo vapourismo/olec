@@ -4,15 +4,17 @@
 #include "event.h"
 #include "child.h"
 #include "keymap.h"
+#include "widget.h"
 
 #include <fcntl.h>
 #include <event2/event.h>
-#include <ncurses.h>
 
 /**
- * NCurses Window
+ *
  */
-typedef WINDOW OlecWindow;
+typedef struct {
+	OlecWidget base;
+} OlecMainFrame;
 
 /**
  * Olec Application
@@ -23,7 +25,7 @@ typedef struct {
 
 	int exit_status;
 
-	OlecWindow* stage;
+	OlecMainFrame main_frame;
 	OlecKeyMap global_keymap;
 } Olec;
 

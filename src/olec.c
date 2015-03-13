@@ -28,9 +28,9 @@ void olec_read_fd(int event_fd, short what, Olec* olec) {
 		return;
 	}
 
-	if (event.type == OLEC_KEY_PRESS) {
-		olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod, event.info.key_press.key);
-	}
+	if (event.type == OLEC_KEY_PRESS &&
+	    olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod, event.info.key_press.key))
+			olec_widget_render((OlecWidget*) &olec->main_frame);
 }
 
 bool olec_init(Olec* olec, const char* ipc_path) {
@@ -54,6 +54,22 @@ bool olec_init(Olec* olec, const char* ipc_path) {
 	return true;
 }
 
+static
+void mf_render(OlecMainFrame* frame) {
+	wrefresh(frame->base.window);
+}
+
+static
+void mf_update(OlecMainFrame* frame, const OlecWidget* parent) {
+
+}
+
+void olec_main_frame_init(OlecMainFrame* frame) {
+	frame->base.render = (OlecRenderWidgetFun) mf_render;
+	frame->base.update = (OlecUpdateWidgetFun) mf_update;
+	frame->base.window = stdscr;
+}
+
 int olec_main(Olec* olec) {
 	// Initialize screen
 	initscr();
@@ -62,7 +78,8 @@ int olec_main(Olec* olec) {
 	start_color();
 
 	// Setup default widget
-	olec->stage = stdscr;
+	olec_main_frame_init(&olec->main_frame);
+	olec_widget_render((OlecWidget*) &olec->main_frame);
 
 	// Create input event
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
