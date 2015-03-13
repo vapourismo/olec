@@ -4,17 +4,10 @@
 #include "event.h"
 #include "child.h"
 #include "keymap.h"
-#include "widget.h"
+#include "curses.h"
 
 #include <fcntl.h>
 #include <event2/event.h>
-
-/**
- *
- */
-typedef struct {
-	OlecWidget base;
-} OlecMainFrame;
 
 /**
  * Olec Application
@@ -22,10 +15,8 @@ typedef struct {
 typedef struct {
 	int event_fd;
 	struct event_base* event_base;
-
 	int exit_status;
 
-	OlecMainFrame main_frame;
 	OlecKeyMap global_keymap;
 } Olec;
 

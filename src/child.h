@@ -5,7 +5,6 @@
 #define OLEC_CHILD_EXIT_RELOAD 1
 #define OLEC_CHILD_EXIT_ERROR  2
 
-
 /**
  * Launch the main program as a child.
  */
