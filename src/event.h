@@ -11,7 +11,6 @@
  */
 typedef enum {
 	OLEC_KEY_PRESS = 0,
-	OLEC_RESIZE = 1
 } OlecEventType;
 
 /**
@@ -34,9 +33,6 @@ typedef struct {
 			OlecKeyModifier mod;
 			OlecKeySymbol key;
 		} key_press;
-		struct {
-			size_t width, height;
-		} resize;
 	} info;
 } OlecEvent;
 

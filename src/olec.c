@@ -1,5 +1,6 @@
 #include "olec.h"
 
+#include <signal.h>
 #include <unistd.h>
 
 static
@@ -28,16 +29,21 @@ void olec_read_fd(int event_fd, short what, Olec* olec) {
 		return;
 	}
 
-	switch (event.type) {
-		case OLEC_KEY_PRESS:
-			olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod,
-			                    event.info.key_press.key);
-			break;
-
-		case OLEC_RESIZE:
-			// Update windows
-			break;
+	if (event.type == OLEC_KEY_PRESS) {
+		olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod,
+		                    event.info.key_press.key);
 	}
+}
+
+static
+void olec_handle_resize(int event_fd, short what, Olec* olec) {
+	// Resize event
+}
+
+static
+void olec_handle_reload(int event_fd, short what, Olec* olec) {
+	olec->exit_status = OLEC_CHILD_EXIT_RELOAD;
+	event_base_loopbreak(olec->event_base);
 }
 
 bool olec_init(Olec* olec, const char* ipc_path) {
@@ -68,16 +74,30 @@ int olec_main(Olec* olec) {
 	raw();
 	start_color();
 
-	// Create input event
+	// Create events
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
 	                                      (event_callback_fn) olec_read_fd, olec);
+	struct event* winch_event = event_new(olec->event_base, SIGWINCH, EV_PERSIST | EV_SIGNAL,
+	                                      (event_callback_fn) olec_handle_resize, olec);
+	struct event* reload_event = event_new(olec->event_base, SIGUSR1, EV_PERSIST | EV_SIGNAL,
+	                                       (event_callback_fn) olec_handle_reload, olec);
+
 
 	// Main loop
 	if (input_event) {
 		event_add(input_event, NULL);
+		event_add(winch_event, NULL);
+		event_add(reload_event, NULL);
+
 		event_base_dispatch(olec->event_base);
+
 		event_del(input_event);
+		event_del(winch_event);
+		event_del(reload_event);
+
 		event_free(input_event);
+		event_free(winch_event);
+		event_free(reload_event);
 	}
 
 	// Clean resources

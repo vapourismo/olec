@@ -49,18 +49,6 @@ void olec_terminal_child_exited(VteTerminal* terminal, gint status, OlecTerminal
 }
 
 static
-void olec_terminal_resize(VteTerminal* terminal, guint width, guint height, OlecTerminal* term) {
-	OlecEvent ev = {
-		.type = OLEC_RESIZE,
-		.info = {
-			.resize = {width, height}
-		}
-	};
-
-	olec_event_write(term->ipc_fifo, &ev);
-}
-
-static
 const OlecTerminalConfig olec_default_config = {
 	{"#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5",
 	 "#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5"}
@@ -88,7 +76,6 @@ bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 	// Connect signals
 	g_signal_connect(term->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(term->window, "key-press-event", G_CALLBACK(olec_terminal_key_press), term);
-	g_signal_connect(term->terminal, "resize-window", G_CALLBACK(olec_terminal_resize), term);
 	g_signal_connect(term->terminal, "child-exited", G_CALLBACK(olec_terminal_child_exited), term);
 
 	// Setup layout
