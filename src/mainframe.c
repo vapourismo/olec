@@ -9,16 +9,13 @@ void olec_main_frame_init(OlecMainFrame* frame) {
 }
 
 void olec_main_frame_update(OlecMainFrame* frame) {
-	OlecCursesFrame* del_main = frame->main;
-	OlecCursesFrame* del_status = frame->status;
+	if (frame->main)
+		delwin(frame->main);
+
+	if (frame->status)
+		delwin(frame->status);
 
 	olec_main_frame_init(frame);
-
-	if (del_main)
-		delwin(del_main);
-
-	if (del_status)
-		delwin(del_status);
 }
 
 void olec_main_frame_render(const OlecMainFrame* frame) {
