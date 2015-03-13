@@ -1,7 +1,10 @@
 #include "olec.h"
+#include "curses.h"
 
 #include <signal.h>
 #include <unistd.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 static
 bool olec_kb_quit(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
@@ -29,15 +32,25 @@ void olec_read_fd(int event_fd, short what, Olec* olec) {
 		return;
 	}
 
-	if (event.type == OLEC_KEY_PRESS) {
+	// On key press event
+	if (event.type == OLEC_KEY_PRESS)
 		olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod,
 		                    event.info.key_press.key);
-	}
+
+	// Render main frame
+	olec_main_frame_render(&olec->main_frame);
 }
 
 static
 void olec_handle_resize(int event_fd, short what, Olec* olec) {
-	// Resize event
+	// Resize terminal
+	struct winsize ws;
+	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0)
+		resizeterm(ws.ws_row, ws.ws_col);
+
+	// Call hooks
+	olec_main_frame_update(&olec->main_frame);
+	olec_main_frame_render(&olec->main_frame);
 }
 
 static
@@ -64,15 +77,23 @@ bool olec_init(Olec* olec, const char* ipc_path) {
 	olec_key_map_bind(&olec->global_keymap, GDK_CONTROL_MASK, GDK_KEY_r,
 	                  (OlecKeyHook) olec_kb_reload, olec);
 
-	return true;
-}
-
-int olec_main(Olec* olec) {
 	// Initialize screen
 	initscr();
 	noecho();
 	raw();
+
+	// Colors
 	start_color();
+	init_pair(1, COLOR_BLUE, COLOR_WHITE);
+
+	// Init main frame
+	olec_main_frame_init(&olec->main_frame);
+
+	return true;
+}
+
+int olec_main(Olec* olec) {
+	olec_main_frame_render(&olec->main_frame);
 
 	// Create events
 	struct event* input_event = event_new(olec->event_base, olec->event_fd, EV_PERSIST | EV_READ,
@@ -81,7 +102,6 @@ int olec_main(Olec* olec) {
 	                                      (event_callback_fn) olec_handle_resize, olec);
 	struct event* reload_event = event_new(olec->event_base, SIGUSR1, EV_PERSIST | EV_SIGNAL,
 	                                       (event_callback_fn) olec_handle_reload, olec);
-
 
 	// Main loop
 	if (input_event) {

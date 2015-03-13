@@ -4,7 +4,7 @@
 #include "event.h"
 #include "child.h"
 #include "keymap.h"
-#include "curses.h"
+#include "mainframe.h"
 
 #include <fcntl.h>
 #include <event2/event.h>
@@ -18,6 +18,7 @@ typedef struct {
 	int exit_status;
 
 	OlecKeyMap global_keymap;
+	OlecMainFrame main_frame;
 } Olec;
 
 /**
