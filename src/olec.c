@@ -30,6 +30,8 @@ bool olec_kb_test(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
 		olec->main_frame.editor_view.active_line++;
 	}
 
+	olec_editor_fix_viewport(&olec->main_frame.editor_view);
+
 	return true;
 }
 

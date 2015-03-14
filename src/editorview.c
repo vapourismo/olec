@@ -14,16 +14,20 @@ void olec_editor_view_update(OlecEditorView* edview, OlecCursesFrame* frame) {
 	edview->frame = frame;
 }
 
+void olec_editor_fix_viewport(OlecEditorView* edview) {
+	size_t viewport_height = getmaxy(edview->frame);
+
+	if (edview->active_line < edview->scroll_line)
+		edview->scroll_line = edview->active_line;
+	else if (edview->active_line >= edview->scroll_line + viewport_height)
+		edview->scroll_line = edview->active_line - viewport_height + 1;
+}
+
 void olec_editor_view_render_lines(const OlecEditorView* edview) {
 	size_t digits = floorf(log10f(edview->num_lines)) + 1;
 
 	size_t scroll_line = edview->scroll_line;
 	size_t viewport_height = getmaxy(edview->frame);
-
-	if (edview->active_line < scroll_line)
-		scroll_line = edview->active_line;
-	else if (edview->active_line >= scroll_line + viewport_height)
-		scroll_line = edview->active_line - viewport_height + 1;
 
 	for (size_t line = scroll_line;
 	     line < edview->num_lines && line - scroll_line < viewport_height;

@@ -29,6 +29,11 @@ void olec_editor_view_update(OlecEditorView* edview, OlecCursesFrame* frame);
 /**
  *
  */
+void olec_editor_fix_viewport(OlecEditorView* edview);
+
+/**
+ *
+ */
 void olec_editor_view_render_lines(const OlecEditorView* edview);
 
 /**
