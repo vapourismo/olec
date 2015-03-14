@@ -21,7 +21,7 @@ void olec_editor_view_render_lines(const OlecEditorView* edview) {
 	     line < edview->num_lines && line - edview->scroll_line < ((size_t) getmaxy(edview->frame));
 	     line++) {
 
-		mvwprintw(edview->frame, line - edview->scroll_line, 0, " %*zu ", digits, line + 1);
+		mvwprintw(edview->frame, line - edview->scroll_line, 0, " %0*zu ", digits, line + 1);
 
 		if (line == edview->active_line)
 			mvwchgat(edview->frame, line - edview->scroll_line, 0, digits + 2, 0, 3, NULL);
