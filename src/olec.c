@@ -23,6 +23,17 @@ bool olec_kb_reload(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
 }
 
 static
+bool olec_kb_test(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
+	if (key == GDK_KEY_Up && olec->main_frame.editor_view.active_line > 0) {
+		olec->main_frame.editor_view.active_line--;
+	} else if (key == GDK_KEY_Down && olec->main_frame.editor_view.active_line < olec->main_frame.editor_view.num_lines - 1) {
+		olec->main_frame.editor_view.active_line++;
+	}
+
+	return true;
+}
+
+static
 void olec_read_fd(int event_fd, short what, Olec* olec) {
 	OlecEvent event;
 
@@ -76,6 +87,10 @@ bool olec_init(Olec* olec, const char* ipc_path) {
 	                  (OlecKeyHook) olec_kb_quit, olec);
 	olec_key_map_bind(&olec->global_keymap, GDK_CONTROL_MASK, GDK_KEY_r,
 	                  (OlecKeyHook) olec_kb_reload, olec);
+	olec_key_map_bind(&olec->global_keymap, 0, GDK_KEY_Up,
+	                  (OlecKeyHook) olec_kb_test, olec);
+	olec_key_map_bind(&olec->global_keymap, 0, GDK_KEY_Down,
+	                  (OlecKeyHook) olec_kb_test, olec);
 
 	// Initialize screen
 	initscr();
@@ -85,6 +100,8 @@ bool olec_init(Olec* olec, const char* ipc_path) {
 	// Colors
 	start_color();
 	init_pair(1, COLOR_BLUE, COLOR_WHITE);
+	init_pair(2, COLOR_BLUE, COLOR_BLACK);
+	init_pair(3, COLOR_BLACK, COLOR_WHITE);
 
 	// Init main frame
 	olec_main_frame_init(&olec->main_frame);

@@ -2,13 +2,16 @@
 #define OLEC_MAINFRAME_H
 
 #include "curses.h"
+#include "editorview.h"
 
 /**
  *
  */
 typedef struct {
-	OlecCursesFrame* main;
-	OlecCursesFrame* status;
+	OlecCursesFrame* main_window;
+	OlecCursesFrame* status_window;
+
+	OlecEditorView editor_view;
 } OlecMainFrame;
 
 /**
