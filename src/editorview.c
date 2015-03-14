@@ -23,7 +23,8 @@ void olec_editor_fix_viewport(OlecEditorView* edview) {
 		edview->scroll_line = edview->active_line - viewport_height + 1;
 }
 
-void olec_editor_view_render_lines(const OlecEditorView* edview) {
+static
+void ev_render_linenums(const OlecEditorView* edview) {
 	size_t digits = floorf(log10f(edview->num_lines)) + 1;
 
 	size_t scroll_line = edview->scroll_line;
@@ -42,6 +43,24 @@ void olec_editor_view_render_lines(const OlecEditorView* edview) {
 	}
 }
 
+static
+void ev_render_scrollbar(const OlecEditorView* edview) {
+	float coverage = edview->num_lines;
+	float vp_coverage = getmaxy(edview->frame);
+	float s_coverage = edview->scroll_line;
+
+	size_t s_height = roundf((s_coverage / coverage) * vp_coverage);
+	size_t vp_height = ceilf((vp_coverage / coverage) * vp_coverage);
+
+	size_t x = getmaxx(edview->frame) - 1;
+
+	wattrset(edview->frame, COLOR_PAIR(1));
+
+	for (size_t y = s_height; y < s_height + vp_height; y++)
+		mvwaddch(edview->frame, y, x, ' ');
+}
+
 void olec_editor_view_render(const OlecEditorView* edview) {
-	olec_editor_view_render_lines(edview);
+	ev_render_linenums(edview);
+	ev_render_scrollbar(edview);
 }

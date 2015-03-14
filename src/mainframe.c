@@ -7,9 +7,9 @@ void olec_main_frame_init(OlecMainFrame* frame) {
 	olec_editor_view_init(&frame->editor_view);
 	olec_main_frame_update(frame);
 
-	frame->editor_view.num_lines = 50;
+	frame->editor_view.num_lines = 500;
 	frame->editor_view.scroll_line = 10;
-	frame->editor_view.active_line = 9;
+	frame->editor_view.active_line = 11;
 }
 
 void olec_main_frame_update(OlecMainFrame* frame) {
