@@ -24,7 +24,7 @@ void olec_editor_fix_viewport(OlecEditorView* edview) {
 }
 
 static
-void ev_render_linenums(const OlecEditorView* edview) {
+size_t ev_render_linenums(const OlecEditorView* edview) {
 	size_t digits = floorf(log10f(edview->num_lines)) + 1;
 
 	size_t scroll_line = edview->scroll_line;
@@ -41,6 +41,8 @@ void ev_render_linenums(const OlecEditorView* edview) {
 		else
 			mvwchgat(edview->frame, line - scroll_line, 0, digits + 2, 0, 2, NULL);
 	}
+
+	return digits + 2;
 }
 
 static
@@ -58,9 +60,13 @@ void ev_render_scrollbar(const OlecEditorView* edview) {
 
 	for (size_t y = s_height; y < s_height + vp_height; y++)
 		mvwaddch(edview->frame, y, x, ' ');
+
+	wattrset(edview->frame, 0);
 }
 
 void olec_editor_view_render(const OlecEditorView* edview) {
-	ev_render_linenums(edview);
+	size_t linenum_width = ev_render_linenums(edview);
 	ev_render_scrollbar(edview);
+
+	mvwprintw(edview->frame, 0, linenum_width + 1, "Text start here");
 }
