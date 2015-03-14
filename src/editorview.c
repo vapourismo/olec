@@ -15,7 +15,7 @@ void olec_editor_view_update(OlecEditorView* edview, OlecCursesFrame* frame) {
 }
 
 void olec_editor_view_render_lines(const OlecEditorView* edview) {
-	size_t digits = ceilf(log10f(edview->num_lines)) + 1;
+	size_t digits = floorf(log10f(edview->num_lines)) + 1;
 
 	for (size_t line = edview->scroll_line;
 	     line < edview->num_lines && line - edview->scroll_line < ((size_t) getmaxy(edview->frame));
