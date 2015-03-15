@@ -4,11 +4,6 @@
 #include <string.h>
 #include <ctype.h>
 
-typedef struct _OlecLineEditor {
-	char* contents;
-	size_t length, max_length;
-} OlecLineEditor;
-
 #define LE_CHUNK_SIZE 80
 
 static
@@ -180,7 +175,7 @@ bool olec_editor_insert_lines(OlecEditor* ed, size_t num) {
 
 	// Save old line handles
 	OlecLineEditor* storage[ed->num_lines];
-	memcpy(storage, ed->lines, ed->num_lines);
+	memcpy(storage, ed->lines, (ed->num_lines) * sizeof(OlecLineEditor*));
 
 	// Reallocate memory
 	OlecLineEditor** new_lines = calloc(sizeof(OlecLineEditor*), ed->num_lines + num);
@@ -192,14 +187,15 @@ bool olec_editor_insert_lines(OlecEditor* ed, size_t num) {
 	ed->lines = new_lines;
 
 	// Restore before cursor
-	memcpy(new_lines, storage, ed->cursor_line);
+	memcpy(new_lines, storage, (ed->cursor_line) * sizeof(OlecLineEditor*));
 
 	// Create new lines
 	for (size_t i = 0; i < num; i++)
 		new_lines[i + ed->cursor_line] = le_new();
 
 	// Restore after cursor
-	memcpy(new_lines + ed->cursor_line + num, storage + ed->cursor_line, ed->num_lines - ed->cursor_line);
+	memcpy(new_lines + ed->cursor_line + num, storage + ed->cursor_line,
+	       (ed->num_lines - ed->cursor_line) * sizeof(OlecLineEditor*));
 
 	ed->cursor_line += num;
 	ed->num_lines += num;
