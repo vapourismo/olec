@@ -3,6 +3,7 @@
 
 #include "curses.h"
 #include "editorview.h"
+#include "event.h"
 
 /**
  *
@@ -28,5 +29,10 @@ void olec_main_frame_update(OlecMainFrame* frame);
  *
  */
 void olec_main_frame_render(const OlecMainFrame* frame);
+
+/**
+ *
+ */
+bool olec_main_frame_handle_event(OlecMainFrame* frame, const OlecEvent* event);
 
 #endif

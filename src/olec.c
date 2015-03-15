@@ -23,6 +23,17 @@ bool olec_kb_reload(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
 }
 
 static
+bool olec_handle_event(Olec* olec, const OlecEvent* event) {
+	if (event->type == OLEC_KEY_PRESS) {
+		return olec_key_map_invoke(&olec->global_keymap,
+		                           event->info.key_press.mod,
+		                           event->info.key_press.key);
+	}
+
+	return false;
+}
+
+static
 void olec_read_fd(int event_fd, short what, Olec* olec) {
 	OlecEvent event;
 
@@ -32,15 +43,8 @@ void olec_read_fd(int event_fd, short what, Olec* olec) {
 		return;
 	}
 
-	// On key press event
-	if (event.type == OLEC_KEY_PRESS) {
-		olec_key_map_invoke(&olec->global_keymap,
-		                    event.info.key_press.mod,
-		                    event.info.key_press.key) ||
-		olec_key_map_invoke(&olec->main_frame.editor_view.keymap,
-		                    event.info.key_press.mod,
-		                    event.info.key_press.key);
-	}
+	olec_handle_event(olec, &event) ||
+	olec_main_frame_handle_event(&olec->main_frame, &event);
 
 	// Render main frame
 	olec_main_frame_render(&olec->main_frame);

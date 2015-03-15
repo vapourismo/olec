@@ -1,6 +1,7 @@
 #include "editorview.h"
 
 #include <math.h>
+#include <ctype.h>
 
 static
 void ev_fix_viewport(OlecEditorView* edview) {
@@ -13,23 +14,28 @@ void ev_fix_viewport(OlecEditorView* edview) {
 }
 
 static
-bool ev_kb_up(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
-	olec_editor_move_cursor_relative(&edview->editor, -1, 0);
-	ev_fix_viewport(edview);
+bool ev_kb_movement(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
+	switch (key) {
+		case GDK_KEY_Up:
+			olec_editor_move_cursor_relative(&edview->editor, -1, 0);
+			break;
 
-	return true;
-}
+		case GDK_KEY_Down:
+			olec_editor_move_cursor_relative(&edview->editor, 1, 0);
+			break;
 
-static
-bool ev_kb_o(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
-	olec_editor_insert_char(&edview->editor, 'O');
+		case GDK_KEY_Left:
+			olec_editor_move_cursor_relative(&edview->editor, 0, -1);
+			break;
 
-	return true;
-}
+		case GDK_KEY_Right:
+			olec_editor_move_cursor_relative(&edview->editor, 0, 1);
+			break;
 
-static
-bool ev_kb_down(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
-	olec_editor_move_cursor_relative(&edview->editor, 1, 0);
+		default:
+			return false;
+	}
+
 	ev_fix_viewport(edview);
 
 	return true;
@@ -42,12 +48,11 @@ void olec_editor_view_init(OlecEditorView* edview) {
 	edview->scroll_line = edview->scroll_col = 0;
 	edview->frame = NULL;
 
-	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Up,
-	                  (OlecKeyHook) ev_kb_up, edview);
-	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Down,
-	                  (OlecKeyHook) ev_kb_down, edview);
-	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_o,
-	                  (OlecKeyHook) ev_kb_o, edview);
+	// Movement
+	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Up, (OlecKeyHook) ev_kb_movement, edview);
+	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Down, (OlecKeyHook) ev_kb_movement, edview);
+	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Left, (OlecKeyHook) ev_kb_movement, edview);
+	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Right, (OlecKeyHook) ev_kb_movement, edview);
 
 	olec_editor_insert_lines(&edview->editor, 9);
 }
@@ -87,11 +92,23 @@ void ev_render_lines(const OlecEditorView* edview) {
 		if (line == edview->editor.cursor_line) {
 			mvwchgat(edview->frame, line - scroll_line, 0, digits + 2, 0, 3, NULL);
 
-			wmove(edview->frame, line - scroll_line, digits + 3);
+			wmove(edview->frame, line - scroll_line, digits + 3 + edview->editor.cursor_col);
 			wcursyncup(edview->frame);
 		} else {
 			mvwchgat(edview->frame, line - scroll_line, 0, digits + 2, 0, 2, NULL);
 		}
+	}
+}
+
+static
+bool ev_handle_key(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
+	if (mod != 0 && mod != GDK_SHIFT_MASK)
+		return false;
+
+	if (key < 256 && isprint(key)) {
+		return olec_editor_insert_char(&edview->editor, key & 0xFF);
+	} else {
+		return false;
 	}
 }
 
@@ -117,4 +134,11 @@ void ev_render_lines(const OlecEditorView* edview) {
 void olec_editor_view_render(const OlecEditorView* edview) {
 	ev_render_lines(edview);
 	// ev_render_scrollbar(edview);
+}
+
+bool olec_editor_view_handle_event(OlecEditorView* edview, const OlecEvent* event) {
+	return
+		event->type == OLEC_KEY_PRESS &&
+	    (olec_key_map_invoke(&edview->keymap, event->info.key_press.mod, event->info.key_press.key) ||
+	     ev_handle_key(edview, event->info.key_press.mod, event->info.key_press.key));
 }

@@ -35,3 +35,7 @@ void olec_main_frame_render(const OlecMainFrame* frame) {
 
 	refresh();
 }
+
+bool olec_main_frame_handle_event(OlecMainFrame* frame, const OlecEvent* event) {
+	return olec_editor_view_handle_event(&frame->editor_view, event);
+}

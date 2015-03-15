@@ -138,13 +138,15 @@ void olec_editor_move_cursor_relative(OlecEditor* ed, ssize_t line, ssize_t col)
 
 	OlecLineEditor* le = ed->lines[ed->cursor_line];
 
-	if (col < 0 && ed->cursor_col < (size_t) -col) {
+	if (ed->cursor_col > le->length)
+		ed->cursor_col = le->length;
+
+	if (col < 0 && ed->cursor_col < (size_t) -col)
 		ed->cursor_col = 0;
-	} else if (col > 0 && ed->cursor_col + col > le->max_length) {
+	else if (col > 0 && ed->cursor_col + col > le->max_length)
 		ed->cursor_col = le->max_length;
-	} else {
+	else
 		ed->cursor_col += col;
-	}
 }
 
 bool olec_editor_insert_string(OlecEditor* ed, const char* str, size_t len) {

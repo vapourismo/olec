@@ -3,6 +3,7 @@
 
 #include "curses.h"
 #include "editor.h"
+#include "event.h"
 #include "keymap.h"
 
 #include <stddef.h>
@@ -33,5 +34,10 @@ void olec_editor_view_update(OlecEditorView* edview, OlecCursesFrame* frame);
  *
  */
 void olec_editor_view_render(const OlecEditorView* edview);
+
+/**
+ *
+ */
+bool olec_editor_view_handle_event(OlecEditorView* edview, const OlecEvent* event);
 
 #endif
