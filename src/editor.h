@@ -53,4 +53,14 @@ void olec_editor_move_cursor_relative(OlecEditor* ed, ssize_t line, ssize_t col)
  */
 bool olec_editor_insert_lines(OlecEditor* ed, size_t num);
 
+/**
+ *
+ */
+void olec_editor_remove_char(OlecEditor* ed);
+
+/**
+ *
+ */
+void olec_editor_remove_line(OlecEditor* ed);
+
 #endif

@@ -32,12 +32,29 @@ bool ev_kb_movement(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol k
 			olec_editor_move_cursor_relative(&edview->editor, 0, 1);
 			break;
 
+		case GDK_KEY_BackSpace:
+			if (edview->editor.cursor_col > 0) {
+				olec_editor_move_cursor_relative(&edview->editor, 0, -1);
+				olec_editor_remove_char(&edview->editor);
+			} else if (edview->editor.cursor_line > 0 && edview->editor.num_lines > 1) {
+
+			}
+
+			break;
+
 		default:
 			return false;
 	}
 
 	ev_fix_viewport(edview);
 
+	return true;
+}
+
+static
+bool ev_kb_delete_line(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
+	// olec_editor_remove_line(&edview->editor);
+	// olec_editor_insert_string(&edview->editor, "delete me", 9);
 	return true;
 }
 
@@ -53,6 +70,10 @@ void olec_editor_view_init(OlecEditorView* edview) {
 	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Down, (OlecKeyHook) ev_kb_movement, edview);
 	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Left, (OlecKeyHook) ev_kb_movement, edview);
 	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Right, (OlecKeyHook) ev_kb_movement, edview);
+	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_BackSpace, (OlecKeyHook) ev_kb_movement, edview);
+
+	olec_key_map_bind(&edview->keymap, GDK_SHIFT_MASK | GDK_CONTROL_MASK, GDK_KEY_D,
+	                  (OlecKeyHook) ev_kb_delete_line, edview);
 
 	olec_editor_insert_lines(&edview->editor, 9);
 }

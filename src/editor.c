@@ -20,6 +20,12 @@ OlecLineEditor* le_new() {
 }
 
 static
+void le_free(OlecLineEditor* le) {
+	free(le->contents);
+	free(le);
+}
+
+static
 bool le_ensure_space(OlecLineEditor* le, size_t add_length) {
 	if (le->length + add_length <= le->max_length)
 		return true;
@@ -97,7 +103,7 @@ bool le_insert_string(OlecLineEditor* le, size_t col, const char* str, size_t le
 		memmove(le->contents + col + len, le->contents + col, le->length - col);
 
 	memcpy(le->contents + col, str, len);
-	le->length++;
+	le->length += len;
 
 	le_check_area(le, col, len);
 
@@ -203,4 +209,26 @@ bool olec_editor_insert_lines(OlecEditor* ed, size_t num) {
 	ed->num_lines += num;
 
 	return true;
+}
+
+void olec_editor_remove_char(OlecEditor* ed) {
+	OlecLineEditor* le = ed->lines[ed->cursor_line];
+	le_remove_char(le, ed->cursor_col);
+}
+
+void olec_editor_remove_line(OlecEditor* ed) {
+	if (ed->num_lines == 1) {
+		// Maybe deallocate memory here
+		ed->lines[ed->cursor_line]->length = 0;
+		return;
+	}
+
+	le_free(ed->lines[ed->cursor_line]);
+
+	if (ed->cursor_line < ed->num_lines - 1)
+		memmove(ed->lines + ed->cursor_line,
+		        ed->lines + ed->cursor_line + 1,
+		        ed->num_lines - ed->cursor_line - 1);
+
+	ed->num_lines--;
 }
