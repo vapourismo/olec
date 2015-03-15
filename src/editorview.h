@@ -2,6 +2,8 @@
 #define OLEC_EDITORVIEW_H
 
 #include "curses.h"
+#include "editor.h"
+#include "keymap.h"
 
 #include <stddef.h>
 
@@ -9,11 +11,12 @@
  *
  */
 typedef struct {
-	size_t num_lines;
+	OlecEditor editor;
 	size_t scroll_line, scroll_col;
-	size_t active_line;
 
 	OlecCursesFrame* frame;
+
+	OlecKeyMap keymap;
 } OlecEditorView;
 
 /**
@@ -25,11 +28,6 @@ void olec_editor_view_init(OlecEditorView* edview);
  *
  */
 void olec_editor_view_update(OlecEditorView* edview, OlecCursesFrame* frame);
-
-/**
- *
- */
-void olec_editor_fix_viewport(OlecEditorView* edview);
 
 /**
  *

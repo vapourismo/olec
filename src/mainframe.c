@@ -6,10 +6,6 @@ void olec_main_frame_init(OlecMainFrame* frame) {
 
 	olec_editor_view_init(&frame->editor_view);
 	olec_main_frame_update(frame);
-
-	frame->editor_view.num_lines = 500;
-	frame->editor_view.scroll_line = 10;
-	frame->editor_view.active_line = 11;
 }
 
 void olec_main_frame_update(OlecMainFrame* frame) {
@@ -33,9 +29,8 @@ void olec_main_frame_render(const OlecMainFrame* frame) {
 
 	olec_editor_view_render(&frame->editor_view);
 
-	mvwprintw(frame->status_window, 0, 1, "[%ix%i] Put contents here (active_line = %zu)",
-	          getmaxx(frame->status_window), getmaxy(frame->status_window),
-	          frame->editor_view.active_line);
+	mvwprintw(frame->status_window, 0, 1, "[%ix%i] Status bar here",
+	          getmaxx(frame->status_window), getmaxy(frame->status_window));
 	mvwchgat(frame->status_window, 0, 0, getmaxx(frame->status_window), 0, 1, NULL);
 
 	refresh();

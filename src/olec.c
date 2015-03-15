@@ -23,19 +23,6 @@ bool olec_kb_reload(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
 }
 
 static
-bool olec_kb_test(Olec* olec, OlecKeyModifier mod, OlecKeySymbol key) {
-	if (key == GDK_KEY_Up && olec->main_frame.editor_view.active_line > 0) {
-		olec->main_frame.editor_view.active_line--;
-	} else if (key == GDK_KEY_Down && olec->main_frame.editor_view.active_line < olec->main_frame.editor_view.num_lines - 1) {
-		olec->main_frame.editor_view.active_line++;
-	}
-
-	olec_editor_fix_viewport(&olec->main_frame.editor_view);
-
-	return true;
-}
-
-static
 void olec_read_fd(int event_fd, short what, Olec* olec) {
 	OlecEvent event;
 
@@ -46,9 +33,14 @@ void olec_read_fd(int event_fd, short what, Olec* olec) {
 	}
 
 	// On key press event
-	if (event.type == OLEC_KEY_PRESS)
-		olec_key_map_invoke(&olec->global_keymap, event.info.key_press.mod,
+	if (event.type == OLEC_KEY_PRESS) {
+		olec_key_map_invoke(&olec->global_keymap,
+		                    event.info.key_press.mod,
+		                    event.info.key_press.key) ||
+		olec_key_map_invoke(&olec->main_frame.editor_view.keymap,
+		                    event.info.key_press.mod,
 		                    event.info.key_press.key);
+	}
 
 	// Render main frame
 	olec_main_frame_render(&olec->main_frame);
@@ -89,10 +81,10 @@ bool olec_init(Olec* olec, const char* ipc_path) {
 	                  (OlecKeyHook) olec_kb_quit, olec);
 	olec_key_map_bind(&olec->global_keymap, GDK_CONTROL_MASK, GDK_KEY_r,
 	                  (OlecKeyHook) olec_kb_reload, olec);
-	olec_key_map_bind(&olec->global_keymap, 0, GDK_KEY_Up,
-	                  (OlecKeyHook) olec_kb_test, olec);
-	olec_key_map_bind(&olec->global_keymap, 0, GDK_KEY_Down,
-	                  (OlecKeyHook) olec_kb_test, olec);
+	// olec_key_map_bind(&olec->global_keymap, 0, GDK_KEY_Up,
+	//                   (OlecKeyHook) olec_kb_test, olec);
+	// olec_key_map_bind(&olec->global_keymap, 0, GDK_KEY_Down,
+	//                   (OlecKeyHook) olec_kb_test, olec);
 
 	// Initialize screen
 	initscr();
