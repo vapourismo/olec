@@ -98,6 +98,7 @@ bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config) {
 	vte_terminal_set_allow_bold(term->terminal, true);
 	vte_terminal_set_encoding(term->terminal, "UTF-8", NULL);
 	vte_terminal_set_cursor_shape(term->terminal, VTE_CURSOR_SHAPE_IBEAM);
+	vte_terminal_set_cursor_blink_mode(term->terminal, VTE_CURSOR_BLINK_OFF);
 	vte_terminal_set_scrollback_lines(term->terminal, 0);
 
 	// Setup IPC path
