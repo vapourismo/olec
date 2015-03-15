@@ -54,7 +54,7 @@ bool ev_kb_movement(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol k
 static
 bool ev_kb_delete_line(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
 	// olec_editor_remove_line(&edview->editor);
-	// olec_editor_insert_string(&edview->editor, "delete me", 9);
+	olec_editor_insert_string(&edview->editor, "delete me", 9);
 	return true;
 }
 
@@ -72,7 +72,7 @@ void olec_editor_view_init(OlecEditorView* edview) {
 	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_Right, (OlecKeyHook) ev_kb_movement, edview);
 	olec_key_map_bind(&edview->keymap, 0, GDK_KEY_BackSpace, (OlecKeyHook) ev_kb_movement, edview);
 
-	olec_key_map_bind(&edview->keymap, GDK_SHIFT_MASK | GDK_CONTROL_MASK, GDK_KEY_D,
+	olec_key_map_bind(&edview->keymap, GDK_CONTROL_MASK, GDK_KEY_D,
 	                  (OlecKeyHook) ev_kb_delete_line, edview);
 
 	olec_editor_insert_lines(&edview->editor, 9);
