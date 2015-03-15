@@ -149,8 +149,8 @@ void olec_editor_move_cursor_relative(OlecEditor* ed, ssize_t line, ssize_t col)
 
 	if (col < 0 && ed->cursor_col < (size_t) -col)
 		ed->cursor_col = 0;
-	else if (col > 0 && ed->cursor_col + col > le->max_length)
-		ed->cursor_col = le->max_length;
+	else if (col > 0 && ed->cursor_col + col > le->length)
+		ed->cursor_col = le->length;
 	else
 		ed->cursor_col += col;
 }
