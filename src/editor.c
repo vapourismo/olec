@@ -136,7 +136,7 @@ void olec_editor_move_cursor(OlecEditor* ed, size_t line, size_t col) {
 void olec_editor_move_cursor_relative(OlecEditor* ed, ssize_t line, ssize_t col) {
 	if (line < 0 && ed->cursor_line < (size_t) -line) {
 		ed->cursor_line = 0;
-	} else if (line > 0 && ed->cursor_line + line >= ed->num_lines) {
+	} else if (ed->cursor_line + line >= ed->num_lines) {
 		ed->cursor_line = ed->num_lines - 1;
 	} else {
 		ed->cursor_line += line;
@@ -228,7 +228,9 @@ void olec_editor_remove_line(OlecEditor* ed) {
 	if (ed->cursor_line < ed->num_lines - 1)
 		memmove(ed->lines + ed->cursor_line,
 		        ed->lines + ed->cursor_line + 1,
-		        ed->num_lines - ed->cursor_line - 1);
+		        (ed->num_lines - ed->cursor_line - 1) * sizeof(OlecLineEditor*));
 
+	ed->lines[ed->num_lines - 1] = NULL;
 	ed->num_lines--;
+	olec_editor_move_cursor_relative(ed, 0, 0);
 }
