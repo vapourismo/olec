@@ -128,7 +128,7 @@ void ev_render_lines(const OlecEditorView* edview) {
 
 static
 bool ev_handle_key(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol key) {
-	if (mod != 0 && mod != GDK_SHIFT_MASK)
+	if (mod != 0 && mod != GDK_SHIFT_MASK && mod != GDK_LOCK_MASK)
 		return false;
 
 	if (key < 256 && isprint(key)) {
