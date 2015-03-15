@@ -9,7 +9,15 @@
  *
  */
 typedef struct {
-	struct _OlecLineEditor** lines;
+	char* contents;
+	size_t length, max_length;
+} OlecLineEditor;
+
+/**
+ *
+ */
+typedef struct {
+	OlecLineEditor** lines;
 	size_t num_lines;
 
 	size_t cursor_line, cursor_col;
