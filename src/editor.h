@@ -63,4 +63,9 @@ void olec_editor_remove_char(OlecEditor* ed);
  */
 void olec_editor_remove_line(OlecEditor* ed);
 
+/**
+ *
+ */
+void olec_editor_join_lines(OlecEditor* ed, size_t add_lines);
+
 #endif

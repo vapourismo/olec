@@ -37,7 +37,13 @@ bool ev_kb_movement(OlecEditorView* edview, OlecKeyModifier mod, OlecKeySymbol k
 				olec_editor_move_cursor_relative(&edview->editor, 0, -1);
 				olec_editor_remove_char(&edview->editor);
 			} else if (edview->editor.cursor_line > 0 && edview->editor.num_lines > 1) {
+				olec_editor_move_cursor_relative(&edview->editor, -1, 0);
 
+				size_t f_ln = edview->editor.cursor_line;
+				size_t f_col = edview->editor.lines[f_ln]->length;
+
+				olec_editor_join_lines(&edview->editor, 1);
+				olec_editor_move_cursor(&edview->editor, f_ln, f_col);
 			}
 
 			break;

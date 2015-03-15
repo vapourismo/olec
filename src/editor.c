@@ -216,21 +216,40 @@ void olec_editor_remove_char(OlecEditor* ed) {
 	le_remove_char(le, ed->cursor_col);
 }
 
-void olec_editor_remove_line(OlecEditor* ed) {
+static
+void ed_remove_line(OlecEditor* ed, size_t line) {
 	if (ed->num_lines == 1) {
 		// Maybe deallocate memory here
-		ed->lines[ed->cursor_line]->length = 0;
+		ed->lines[line]->length = 0;
 		return;
 	}
 
-	le_free(ed->lines[ed->cursor_line]);
+	le_free(ed->lines[line]);
 
-	if (ed->cursor_line < ed->num_lines - 1)
-		memmove(ed->lines + ed->cursor_line,
-		        ed->lines + ed->cursor_line + 1,
-		        (ed->num_lines - ed->cursor_line - 1) * sizeof(OlecLineEditor*));
+	if (line < ed->num_lines - 1)
+		memmove(ed->lines + line,
+		        ed->lines + line + 1,
+		        (ed->num_lines - line - 1) * sizeof(OlecLineEditor*));
 
 	ed->lines[ed->num_lines - 1] = NULL;
 	ed->num_lines--;
+}
+
+void olec_editor_remove_line(OlecEditor* ed) {
+	ed_remove_line(ed, ed->cursor_line);
 	olec_editor_move_cursor_relative(ed, 0, 0);
+}
+
+void olec_editor_join_lines(OlecEditor* ed, size_t add_lines) {
+	if (add_lines == 0)
+		return;
+
+	OlecLineEditor* le = ed->lines[ed->cursor_line];
+
+	while (ed->cursor_line + 1 < ed->num_lines && add_lines != 0) {
+		OlecLineEditor* le_next = ed->lines[ed->cursor_line + 1];
+		le_insert_string(le, le->length, le_next->contents, le_next->length);
+		ed_remove_line(ed, ed->cursor_line + 1);
+		add_lines--;
+	}
 }
