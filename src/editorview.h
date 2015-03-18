@@ -9,7 +9,7 @@
 #include <stddef.h>
 
 /**
- *
+ * Editor view
  */
 typedef struct {
 	OlecEditor editor;
@@ -21,22 +21,22 @@ typedef struct {
 } OlecEditorView;
 
 /**
- *
+ * Initialize the editor view.
  */
 void olec_editor_view_init(OlecEditorView* edview);
 
 /**
- *
+ * Update the editor view.
  */
 void olec_editor_view_update(OlecEditorView* edview, OlecCursesFrame* frame);
 
 /**
- *
+ * Render the editor view.
  */
 void olec_editor_view_render(const OlecEditorView* edview);
 
 /**
- *
+ * Delegate an event to the editor view.
  */
 bool olec_editor_view_handle_event(OlecEditorView* edview, const OlecEvent* event);
 
