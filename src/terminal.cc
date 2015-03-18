@@ -1,14 +1,18 @@
 #include "terminal.h"
+
 #include <iostream>
+#include <string>
+#include <unistd.h>
 
 using namespace std;
 
 namespace Olec {
 
 static
-gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, const Terminal* term) {
+gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* term) {
 	if (!event->is_modifier) {
-		// TODO: Construct event and send via IPC
+		Event ev((KeyModifier) (event->state & GDK_MODIFIER_MASK), event->keyval);
+		term->channel.send(ev);
 	}
 
 	return true;
@@ -20,7 +24,6 @@ void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
 		// Child wants to be reloaded
 		// RESOLVE: case OLEC_CHILD_EXIT_RELOAD:
 		case 1:
-			// TODO: Close IPC
 			// TODO: Respawn child
 
 			break;
@@ -29,14 +32,32 @@ void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
 		default:
 			cout << "Child exited with status " << WEXITSTATUS(status) << endl;
 			gtk_main_quit();
+
 			break;
 	}
 }
 
-Terminal::Terminal(TerminalConfig& config) {
-	window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
-	terminal = VTE_TERMINAL(vte_terminal_new());
+static string mk_new_ipc() {
+	string path = "/tmp/olec-" + to_string(getpid());
 
+	if (!CommChannel::create(path))
+		throw;
+
+	return path;
+}
+
+extern
+const TerminalConfig default_config = {
+	"Inconsolata 10.5",
+	{"#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5",
+	 "#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5"}
+};
+
+Terminal::Terminal(const TerminalConfig& config):
+	window(GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL))),
+	terminal(VTE_TERMINAL(vte_terminal_new())),
+	channel(mk_new_ipc())
+{
 	if (!window || !terminal)
 		throw;
 
@@ -55,12 +76,12 @@ Terminal::Terminal(TerminalConfig& config) {
 	gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(terminal), true, true, 0);
 
 	// Configure font
-	PangoFontDescription* font = pango_font_description_from_string("Inconsolata 10.5");
+	PangoFontDescription* font = pango_font_description_from_string(config.font_description);
 	vte_terminal_set_font(terminal, font);
 
 	// Configure colors
 	GdkRGBA term_palette[16];
-	for (size_t i = 0; i < 15; i++)
+	for (size_t i = 0; i < 16; i++)
 		gdk_rgba_parse(term_palette + i, config.palette[i] ? config.palette[i] : "#ffffff");
 
 	vte_terminal_set_colors(terminal, NULL, NULL, term_palette, 16);
@@ -71,8 +92,6 @@ Terminal::Terminal(TerminalConfig& config) {
 	vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_IBEAM);
 	vte_terminal_set_cursor_blink_mode(terminal, VTE_CURSOR_BLINK_OFF);
 	vte_terminal_set_scrollback_lines(terminal, 0);
-
-	// TODO: Instantiate IPC
 }
 
 }
