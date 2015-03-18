@@ -1,50 +1,22 @@
-#ifndef OLEC_TERMINAL_H
-#define OLEC_TERMINAL_H
+#ifndef OLEC_TERMINAL_H_
+#define OLEC_TERMINAL_H_
 
 #include <gtk/gtk.h>
 #include <vte/vte.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+namespace Olec {
 
-/**
- * Terminal configuration
- */
-typedef struct {
+struct TerminalConfig {
 	const char* palette[16];
-} OlecTerminalConfig;
+};
 
-/**
- * Terminal
- */
-typedef struct {
+struct Terminal {
 	GtkWindow* window;
 	VteTerminal* terminal;
 
-	char* ipc_path;
-	int ipc_fifo;
+	Terminal(TerminalConfig& config);
+};
 
-	char** child_args;
-} OlecTerminal;
-
-/**
- * Initialize the terminal
- */
-bool olec_terminal_init(OlecTerminal* term, const OlecTerminalConfig* config);
-
-/**
- * Display the terminal
- */
-void olec_terminal_show(const OlecTerminal* term);
-
-/**
- * Spawn a child to run within the terminal
- */
-bool olec_terminal_spawn(OlecTerminal* term, char** args);
-
-/**
- * Clean resources after usage
- */
-void olec_terminal_clean(const OlecTerminal* term);
+}
 
 #endif
