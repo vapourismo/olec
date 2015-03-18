@@ -16,22 +16,22 @@ typedef struct {
 } OlecMainFrame;
 
 /**
- *
+ * Initialize the main frame.
  */
 void olec_main_frame_init(OlecMainFrame* frame);
 
 /**
- *
+ * Update the main frame.
  */
 void olec_main_frame_update(OlecMainFrame* frame);
 
 /**
- *
+ * Render the main frame.
  */
 void olec_main_frame_render(const OlecMainFrame* frame);
 
 /**
- *
+ * Delegate an event to the main frame.
  */
 bool olec_main_frame_handle_event(OlecMainFrame* frame, const OlecEvent* event);
 
