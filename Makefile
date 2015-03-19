@@ -14,7 +14,7 @@ BASENAME        = olec
 SRCDIR          = src
 
 # Artifacts
-FILES           = main.cc terminal.cc ipc.cc app.cc
+FILES           = main.cc terminal.cc ipc.cc app.cc keymap.cc
 OBJS            = $(FILES:%.cc=$(SRCDIR)/%.o)
 DEPS            = $(FILES:%.cc=$(SRCDIR)/%.d)
 EXEOUTPUT       = $(BASENAME)
