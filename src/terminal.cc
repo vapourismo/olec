@@ -4,6 +4,8 @@
 #include <string>
 #include <algorithm>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -13,7 +15,7 @@ static
 gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* term) {
 	if (!event->is_modifier) {
 		Event ev((KeyModifier) (event->state & GDK_MODIFIER_MASK), event->keyval);
-		term->channel->send(ev);
+		ipc_send(term->ipc_fd, ev);
 	}
 
 	return true;
@@ -21,13 +23,16 @@ gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* term) {
 
 static
 void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
-	delete term->channel;
-	term->channel = nullptr;
+	if (term->ipc_fd >= 0) {
+		close(term->ipc_fd);
+		term->ipc_fd = -1;
+	}
 
 	switch (WEXITSTATUS(status)) {
 		// Child wants to be reloaded
 		// TODO: Resolve `case OLEC_CHILD_EXIT_RELOAD:`
 		case 1:
+			cout << "Reload child ... " << endl;
 			term->spawn(term->child_cmdline);
 
 			break;
@@ -51,7 +56,7 @@ const TerminalConfig default_config = {
 Terminal::Terminal(const TerminalConfig& config) throw (Terminal::Error):
 	window(GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL))),
 	terminal(VTE_TERMINAL(vte_terminal_new())),
-	channel(nullptr)
+	ipc_path("/tmp/olec-" + to_string(getpid()))
 {
 	if (!window || !terminal)
 		throw WidgetInitFailed;
@@ -87,11 +92,14 @@ Terminal::Terminal(const TerminalConfig& config) throw (Terminal::Error):
 	vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_IBEAM);
 	vte_terminal_set_cursor_blink_mode(terminal, VTE_CURSOR_BLINK_OFF);
 	vte_terminal_set_scrollback_lines(terminal, 0);
+
+	// Create FIFO for IPC
+	if (mkfifo(ipc_path.c_str(), S_IFIFO | S_IWUSR | S_IRUSR) != 0)
+		throw CommCreateFailed;
 }
 
 Terminal::~Terminal() {
-	if (channel)
-		delete channel;
+	unlink(ipc_path.c_str());
 }
 
 void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::Error) {
@@ -102,11 +110,8 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 	});
 	cstr_cmdline[cmdline.size()] = NULL;
 
-	// Create FIFO for IPC
-	string fifo_path = "/tmp/olec-" + to_string(getpid());
-
 	// Setup environment
-	string env_tag = "OLEC_IPC=" + fifo_path;
+	string env_tag = "OLEC_IPC=" + ipc_path;
 	char* environment[] = {
 		const_cast<char*>(env_tag.c_str()),
 		NULL
@@ -131,11 +136,11 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 	// Watch child so we get to handle a 'child-exited' event
 	vte_terminal_watch_child(terminal, child_pid);
 
-	// Launch communication channel
-	channel = new CommChannel(fifo_path, true);
+	// Open IPC channel
+	ipc_fd = open(ipc_path.c_str(), O_WRONLY);
 
-	if (!channel)
-		throw CommInitFailed;
+	if (ipc_fd < 0)
+		throw CommOpenFailed;
 }
 
 }

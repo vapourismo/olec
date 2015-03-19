@@ -4,6 +4,8 @@
 #include "ipc.h"
 #include "keymap.h"
 
+#include <sys/ioctl.h>
+#include <termios.h>
 #include <string>
 #include <event2/event.h>
 
@@ -13,11 +15,12 @@ struct Application {
 	enum Error {
 		EventBaseAllocFailed,
 		EventAllocFailed,
-		EventDispatchFailed
+		EventDispatchFailed,
+		CommOpenFailed
 	};
 
 	event_base* ev_base;
-	CommChannel comm;
+	int ipc_fd;
 	int exit_status = 0;
 
 	KeyMap key_map;
@@ -27,7 +30,15 @@ struct Application {
 
 	int main() throw (Error);
 
+	inline
+	void exit(int status = 0) {
+		exit_status = status;
+		event_base_loopbreak(ev_base);
+	}
+
 	void handle_event(const Event& ev);
+
+	void handle_resize(const winsize& ws);
 };
 
 }

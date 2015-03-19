@@ -50,52 +50,14 @@ struct Event {
 };
 
 /**
- * Inter-process communication channel
+ * Send an event through the communication channel.
  */
-struct CommChannel {
-	/**
-	 * FIFO File Descriptor
-	 */
-	int fd;
+bool ipc_send(int fd, const Event& event);
 
-	/**
-	 * This is set if the FIFO shall be cleaned upon deconstruction
-	 */
-	std::string clean_me;
-
-	/**
-	 * Copy constructor
-	 */
-	CommChannel(const CommChannel& me) = delete;
-
-	/**
-	 * Move constructor
-	 */
-	inline CommChannel(CommChannel&& other) {
-		fd = other.fd;
-		other.fd = -1;
-	}
-
-	/**
-	 * Open an existing communication channel.
-	 */
-	CommChannel(const std::string& path, bool make = false);
-
-	/**
-	 * Automatically close the communication channel.
-	 */
-	~CommChannel();
-
-	/**
-	 * Send an event.
-	 */
-	bool send(const Event& event);
-
-	/**
-	 * Receive an event.
-	 */
-	bool receive(Event& event);
-};
+/**
+ * Receive an event from the communication channel.
+ */
+bool ipc_receive(int fd, Event& event);
 
 }
 

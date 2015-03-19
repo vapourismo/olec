@@ -13,6 +13,17 @@ int main(int argc, char** argv) {
 
 	if (ipc_path) {
 		Application app(ipc_path);
+
+		app.key_map.bind(GDK_CONTROL_MASK, GDK_KEY_q, [&app](KeyModifier mod, KeySymbol key) {
+			app.exit();
+			return true;
+		});
+
+		app.key_map.bind(GDK_CONTROL_MASK, GDK_KEY_r, [&app](KeyModifier mod, KeySymbol key) {
+			app.exit(1);
+			return true;
+		});
+
 		return app.main();
 	} else {
 		gtk_init(&argc, &argv);
@@ -20,9 +31,7 @@ int main(int argc, char** argv) {
 		Terminal term;
 
 		term.show();
-		term.spawn({
-			argv[0]
-		});
+		term.spawn({argv[0]});
 
 		gtk_main();
 	}

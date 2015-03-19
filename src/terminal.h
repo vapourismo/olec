@@ -30,9 +30,14 @@ const TerminalConfig default_config;
 struct Terminal {
 	enum Error {
 		/**
-		 * Failed to create a communication channel
+		 * Failed to create a FIFO as communication channel
 		 */
-		CommInitFailed,
+		CommCreateFailed,
+
+		/**
+		 * Failed to open the FIFO communication channel
+		 */
+		CommOpenFailed,
 
 		/**
 		 * Failed to instantiate a widget
@@ -48,8 +53,10 @@ struct Terminal {
 	GtkWindow* window;
 	VteTerminal* terminal;
 
-	CommChannel* channel;
 	std::vector<std::string> child_cmdline;
+
+	std::string ipc_path;
+	int ipc_fd = -1;
 
 	/**
 	 * Create a terminal window and configure the virtual terminal emulator

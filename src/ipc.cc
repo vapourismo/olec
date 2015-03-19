@@ -9,25 +9,11 @@ using namespace std;
 
 namespace olec {
 
-CommChannel::CommChannel(const std::string& path, bool make) {
-	if (make && mkfifo(path.c_str(), S_IFIFO | S_IWUSR | S_IRUSR) != 0)
-		throw;
+// bool CommChannel::create(const std::string& path) {
+// 	return mkfifo(path.c_str(), S_IFIFO | S_IWUSR | S_IRUSR) == 0;
+// }
 
-	if ((fd = open(path.c_str(), O_WRONLY)) < 0)
-		throw;
-
-	if (make)
-		clean_me = path;
-}
-
-CommChannel::~CommChannel() {
-	if (fd >= 0) close(fd);
-
-	if (!clean_me.empty())
-		unlink(clean_me.c_str());
-}
-
-bool CommChannel::send(const Event& event) {
+bool ipc_send(int fd, const Event& event) {
 	const uint8_t* pos = (const uint8_t*) &event;
 	const uint8_t* end = pos + sizeof(Event);
 	size_t rem = sizeof(Event);
@@ -45,7 +31,7 @@ bool CommChannel::send(const Event& event) {
 	return true;
 }
 
-bool CommChannel::receive(Event& event) {
+bool ipc_receive(int fd, Event& event) {
 	uint8_t* pos = (uint8_t*) &event;
 	uint8_t* end = pos + sizeof(Event);
 	size_t rem = sizeof(Event);
@@ -62,4 +48,5 @@ bool CommChannel::receive(Event& event) {
 
 	return true;
 }
+
 }
