@@ -22,6 +22,8 @@ EXEOUTPUT       = $(BASENAME)
 # On Debug
 ifeq ($(DEBUG), 1)
 	DEBUGCFLAGS = -DDEBUG -g
+else
+	DEBUGCFLAGS = -DNDEBUG
 endif
 
 # Compiler
