@@ -3,10 +3,11 @@
 
 #include "ipc.h"
 
+#include <functional>
+
 namespace olec {
 
-template <typename T>
-using KeyCallback = bool (*)(KeyModifier, KeySymbol, T*);
+using KeyCallback = std::function<bool(KeyModifier, KeySymbol)>;
 
 struct KeyBinding {
 	KeyModifier mod;
@@ -15,25 +16,23 @@ struct KeyBinding {
 	KeyBinding* higher;
 	KeyBinding* lower;
 
-	KeyCallback<void> hook;
-	void* data;
+	KeyCallback hook;
 
 	inline
 	bool invoke() {
-		return hook && hook(mod, key, data);
+		return hook && hook(mod, key);
 	}
 
 	inline
 	void unbind() {
 		hook = nullptr;
-		data = nullptr;
 	}
 
 	int compare(KeyModifier rhs_mod, KeySymbol rhs_key);
 
 	KeyBinding* find(KeyModifier mod, KeySymbol key);
 
-	KeyBinding* insert(KeyModifier mod, KeySymbol key, KeyCallback<void> hook, void* data);
+	KeyBinding* insert(KeyModifier mod, KeySymbol key, KeyCallback hook);
 
 	void merge(KeyBinding* other);
 
@@ -50,12 +49,7 @@ struct KeyMap {
 		clear();
 	}
 
-	void bind(KeyModifier mod, KeySymbol key, KeyCallback<void> hook, void* data);
-
-	template <typename T> inline
-	void bind(KeyModifier mod, KeySymbol key, KeyCallback<T> hook, T* data) {
-		bind(mod, key, KeyCallback<void>(hook), (void*) data);
-	}
+	void bind(KeyModifier mod, KeySymbol key, KeyCallback hook);
 
 	void unbind(KeyModifier mod, KeySymbol key);
 

@@ -40,41 +40,40 @@ KeyBinding* KeyBinding::find(KeyModifier mod, KeySymbol key) {
 	}
 }
 
-KeyBinding* KeyBinding::insert(KeyModifier m, KeySymbol k, KeyCallback<void> h, void* d) {
+KeyBinding* KeyBinding::insert(KeyModifier m, KeySymbol k, KeyCallback h) {
 	switch (compare(m, k)) {
 		// Higher than this
 		case 1:
 			if (higher)
-				return higher->insert(m, k, h, d);
+				return higher->insert(m, k, h);
 			else
 				return (higher = new KeyBinding {
 					m, k,
 					nullptr, nullptr,
-					h, d
+					h
 				});
 
 		// Lower than this
 		case -1:
 			if (lower)
-				return lower->insert(m, k, h, d);
+				return lower->insert(m, k, h);
 			else
 				return (lower = new KeyBinding {
 					m, k,
 					nullptr, nullptr,
-					h, d
+					h
 				});
 
 		// Equal to this
 		default:
 			hook = h;
-			data = d;
 
 			return this;
 	}
 }
 
 void KeyBinding::merge(KeyBinding* other) {
-	KeyBinding* inserted = insert(other->mod, other->key, other->hook, other->data);
+	KeyBinding* inserted = insert(other->mod, other->key, other->hook);
 	inserted->higher = other->higher;
 	inserted->lower = other->lower;
 
@@ -100,15 +99,15 @@ void KeyBinding::clear() {
 	}
 }
 
-void KeyMap::bind(KeyModifier mod, KeySymbol key, KeyCallback<void> hook, void* data) {
+void KeyMap::bind(KeyModifier mod, KeySymbol key, KeyCallback hook) {
 	if (!root)
 		root = new KeyBinding {
 			mod, key,
 			nullptr, nullptr,
-			hook, data
+			hook
 		};
 	else
-		root->insert(mod, key, hook, data);
+		root->insert(mod, key, hook);
 }
 
 void KeyMap::unbind(KeyModifier mod, KeySymbol key) {
@@ -129,7 +128,6 @@ void KeyMap::unbind(KeyModifier mod, KeySymbol key) {
 		kb->overwrite(kb->higher);
 	} else {
 		kb->hook = nullptr;
-		kb->data = nullptr;
 	}
 }
 
