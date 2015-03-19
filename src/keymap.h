@@ -20,7 +20,7 @@ struct KeyBinding {
 
 	inline
 	bool invoke() {
-		return hook(mod, key, data);
+		return hook && hook(mod, key, data);
 	}
 
 	inline
@@ -61,7 +61,7 @@ struct KeyMap {
 
 	void clear();
 
-	void invoke(KeyModifier mod, KeySymbol key);
+	bool invoke(KeyModifier mod, KeySymbol key);
 };
 
 }

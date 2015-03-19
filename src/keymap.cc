@@ -141,4 +141,17 @@ void KeyMap::clear() {
 	}
 }
 
+bool KeyMap::invoke(KeyModifier mod, KeySymbol key) {
+	if (!root)
+		return false;
+
+	KeyBinding* kb = root->find(mod, key);
+
+	if (!kb)
+		return false;
+
+	return kb->invoke();
+}
+
+
 }
