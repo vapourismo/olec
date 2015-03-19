@@ -38,7 +38,7 @@ void cb_event_dispatch(int data, short what, Application* app) throw (Applicatio
 		if (!app->comm.receive(ev))
 			throw Application::EventDispatchFailed;
 
-		// TODO: Handle event
+		app->handle_event(ev);
 	}
 }
 
@@ -76,6 +76,12 @@ int Application::main() throw (Application::Error) {
 	event_free(ev_reload);
 
 	return exit_status;
+}
+
+void Application::handle_event(const Event& ev) {
+	if (ev.type == Event::KeyPress) {
+		key_map.invoke(ev.info.key_press.mod, ev.info.key_press.key);
+	}
 }
 
 }
