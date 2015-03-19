@@ -26,7 +26,7 @@ void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
 
 	switch (WEXITSTATUS(status)) {
 		// Child wants to be reloaded
-		// RESOLVE: case OLEC_CHILD_EXIT_RELOAD:
+		// TODO: Resolve `case OLEC_CHILD_EXIT_RELOAD:`
 		case 1:
 			term->spawn(term->child_cmdline);
 
