@@ -4,9 +4,9 @@
 #include "ipc.h"
 #include "keymap.h"
 
+#include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
-#include <string>
 #include <event2/event.h>
 
 namespace olec {

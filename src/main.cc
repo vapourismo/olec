@@ -19,11 +19,6 @@ int main(int argc, char** argv) {
 			return true;
 		});
 
-		app.key_map.bind(GDK_CONTROL_MASK, GDK_KEY_r, [&app](KeyModifier mod, KeySymbol key) {
-			app.exit(1);
-			return true;
-		});
-
 		return app.main();
 	} else {
 		gtk_init(&argc, &argv);
