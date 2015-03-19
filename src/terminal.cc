@@ -21,11 +21,14 @@ gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* term) {
 
 static
 void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
+	delete term->channel;
+	term->channel = nullptr;
+
 	switch (WEXITSTATUS(status)) {
 		// Child wants to be reloaded
 		// RESOLVE: case OLEC_CHILD_EXIT_RELOAD:
 		case 1:
-			// TODO: Respawn child
+			term->spawn(term->child_cmdline);
 
 			break;
 
@@ -108,6 +111,9 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 		const_cast<char*>(env_tag.c_str()),
 		NULL
 	};
+
+	// Save command line for respawning
+	child_cmdline = cmdline;
 
 	// Spawn child process
 	GPid child_pid;

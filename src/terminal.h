@@ -6,6 +6,7 @@
 #include <gtk/gtk.h>
 #include <vte/vte.h>
 #include <vector>
+#include <string>
 
 namespace Olec {
 
@@ -48,6 +49,7 @@ struct Terminal {
 	VteTerminal* terminal;
 
 	CommChannel* channel;
+	std::vector<std::string> child_cmdline;
 
 	/**
 	 * Create a terminal window and configure the virtual terminal emulator
