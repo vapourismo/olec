@@ -1,4 +1,5 @@
 #include "terminal.h"
+#include "app.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -11,11 +12,8 @@ int main(int argc, char** argv) {
 	char* ipc_path = getenv("OLEC_IPC");
 
 	if (ipc_path) {
-		int fd = open(ipc_path, O_RDONLY | O_NONBLOCK);
-
-		// TODO: Do something
-
-		close(fd);
+		Application app(ipc_path);
+		return app.main();
 	} else {
 		gtk_init(&argc, &argv);
 

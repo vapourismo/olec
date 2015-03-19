@@ -40,6 +40,8 @@ struct Event {
 		} key_press;
 	} info;
 
+	inline Event() {}
+
 	Event(KeyModifier mod, KeySymbol key) {
 		type = KeyPress;
 		info.key_press.mod = mod;
