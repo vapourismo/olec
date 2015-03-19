@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Olec {
+namespace olec {
 
 /**
  * Event type

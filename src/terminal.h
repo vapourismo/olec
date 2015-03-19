@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 
-namespace Olec {
+namespace olec {
 
 /**
  * Terminal configuration

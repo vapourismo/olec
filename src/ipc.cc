@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace Olec {
+namespace olec {
 
 CommChannel::CommChannel(const std::string& path, bool make) {
 	if (make && mkfifo(path.c_str(), S_IFIFO | S_IWUSR | S_IRUSR) != 0)

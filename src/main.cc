@@ -5,7 +5,7 @@
 #include <fcntl.h>
 
 using namespace std;
-using namespace Olec;
+using namespace olec;
 
 int main(int argc, char** argv) {
 	char* ipc_path = getenv("OLEC_IPC");

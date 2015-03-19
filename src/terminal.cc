@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace Olec {
+namespace olec {
 
 static
 gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* term) {
