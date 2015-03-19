@@ -51,7 +51,7 @@ valgrind: $(EXEOUTPUT)
 	$(MEMCHECKER) $(realpath $(EXEOUTPUT))
 
 reload: all
-	kill -s USR1 $$(pidof $(BASENAME) | cut -d " " -f 1)
+	kill -s USR1 $$(pidof $(BASENAME) | cut -d " " -f 1) 2> /dev/null
 
 # Targets
 -include $(DEPS)
