@@ -9,16 +9,22 @@ using namespace std;
 
 namespace Olec {
 
-bool CommChannel::create(const std::string& path) {
-	return mkfifo(path.c_str(), S_IFIFO | S_IWUSR | S_IRUSR) == 0;
-}
+CommChannel::CommChannel(const std::string& path, bool make) {
+	if (make && mkfifo(path.c_str(), S_IFIFO | S_IWUSR | S_IRUSR) != 0)
+		throw;
 
-CommChannel::CommChannel(const std::string& path) {
-	if ((fd = open(path.c_str(), O_WRONLY)) < 0) throw;
+	if ((fd = open(path.c_str(), O_WRONLY)) < 0)
+		throw;
+
+	if (make)
+		clean_me = path;
 }
 
 CommChannel::~CommChannel() {
 	if (fd >= 0) close(fd);
+
+	if (!clean_me.empty())
+		unlink(clean_me.c_str());
 }
 
 bool CommChannel::send(const Event& event) {

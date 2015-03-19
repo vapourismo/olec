@@ -52,15 +52,14 @@ struct Event {
  */
 struct CommChannel {
 	/**
-	 * Create a new communication channel.
-	 */
-	static
-	bool create(const std::string& path);
-
-	/**
 	 * FIFO File Descriptor
 	 */
 	int fd;
+
+	/**
+	 * This is set if the FIFO shall be cleaned upon deconstruction
+	 */
+	std::string clean_me;
 
 	/**
 	 * Copy constructor
@@ -78,7 +77,7 @@ struct CommChannel {
 	/**
 	 * Open an existing communication channel.
 	 */
-	CommChannel(const std::string& path);
+	CommChannel(const std::string& path, bool make = false);
 
 	/**
 	 * Automatically close the communication channel.

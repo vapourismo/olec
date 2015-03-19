@@ -5,24 +5,73 @@
 
 #include <gtk/gtk.h>
 #include <vte/vte.h>
+#include <vector>
 
 namespace Olec {
 
+/**
+ * Terminal configuration
+ */
 struct TerminalConfig {
 	const char* font_description;
 	const char* palette[16];
 };
 
+/**
+ * Default terminal configuration
+ */
 extern
 const TerminalConfig default_config;
 
+/**
+ * Virtual terminal window
+ */
 struct Terminal {
+	enum Error {
+		/**
+		 * Failed to create a communication channel
+		 */
+		CommInitFailed,
+
+		/**
+		 * Failed to instantiate a widget
+		 */
+		WidgetInitFailed,
+
+		/**
+		 * Failed to spawn a child process
+		 */
+		SpawnChildFailed
+	};
+
 	GtkWindow* window;
 	VteTerminal* terminal;
 
-	CommChannel channel;
+	CommChannel* channel;
 
-	Terminal(const TerminalConfig& config = default_config);
+	/**
+	 * Create a terminal window and configure the virtual terminal emulator
+	 * using the given configuration.
+	 */
+	Terminal(const TerminalConfig& config = default_config) throw (Error);
+
+	/**
+	 * Free resources
+	 */
+	~Terminal();
+
+	/**
+	 * Show the window and its children.
+	 */
+	inline
+	void show() {
+		gtk_widget_show_all(GTK_WIDGET(window));
+	}
+
+	/**
+	 * Spawn a process to be display by the terminal.
+	 */
+	void spawn(const std::vector<std::string>& cmdline) throw (Error);
 };
 
 }
