@@ -104,7 +104,7 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 
 	// Setup environment
 	string env_tag = "OLEC_IPC=" + fifo_path;
-	std::vector<char*> environment {
+	char* environment[] = {
 		const_cast<char*>(env_tag.c_str()),
 		NULL
 	};
@@ -115,7 +115,7 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 	                             VTE_PTY_DEFAULT,
 	                             NULL,
 	                             cstr_cmdline.data(),
-	                             environment.data(),
+	                             environment,
 	                             G_SPAWN_DEFAULT,
 	                             NULL, NULL,
 	                             &child_pid,
