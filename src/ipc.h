@@ -42,7 +42,7 @@ struct Event {
 
 	inline Event() {}
 
-	Event(KeyModifier mod, KeySymbol key) {
+	inline Event(KeyModifier mod, KeySymbol key) {
 		type = KeyPress;
 		info.key_press.mod = mod;
 		info.key_press.key = key;
