@@ -66,7 +66,6 @@ void f(int a) {
 
 int main() {
 	js::EngineInstance vm;
-	HandleScope handle_scope(vm);
 
 	js::ObjectTemplate globals(vm);
 
@@ -77,7 +76,7 @@ int main() {
 
 	globals.set("f", f);
 
-	js::Context context(vm);
+	js::Context context(vm, globals);
 	js::ScriptFile(vm, "ext/js/entry.js")->Run();
 
 	return 0;
