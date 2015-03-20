@@ -191,13 +191,6 @@ namespace internal {
 		}
 	};
 
-	/**
-	 * Type constructor function
-	 */
-	template <typename T, typename... A>
-	T* construct_type(A... args) {
-		return new T(args...);
-	}
 }
 
 /**
@@ -230,17 +223,6 @@ template <typename R, typename... A>
 static inline
 R direct(std::function<R(A...)> f, const v8::FunctionCallbackInfo<v8::Value>& args) {
 	return internal::ArgumentCheckN<0, A...>::template direct<R, std::function<R(A...)>>(f, args);
-}
-
-/**
- * JavaScript function for a type constructor
- */
-template <typename T, typename... Params>
-void ctor(const v8::FunctionCallbackInfo<v8::Value>& args) {
-	if (check<Params...>(args)) {
-		T* instance = direct(std::function<T*(Params...)>(internal::construct_type<T, Params...>), args);
-		args.GetReturnValue().Set(v8::External::New(args.GetIsolate(), instance));
-	}
 }
 
 }
