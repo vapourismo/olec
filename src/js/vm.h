@@ -7,23 +7,21 @@ namespace olec {
 namespace js {
 
 /**
- * JavaScript Virtual Machine
+ * V8 Engine Instance
  */
-struct JavaScriptVM {
+struct EngineInstance {
 	v8::Isolate* isolate;
 
 	inline
-	JavaScriptVM() {
-		v8::V8::InitializeICU();
-		v8::V8::Initialize();
-
+	EngineInstance() {
 		isolate = v8::Isolate::New();
+		isolate->Enter();
 	}
 
 	inline
-	~JavaScriptVM() {
+	~EngineInstance() {
+		isolate->Exit();
 		isolate->Dispose();
-		v8::V8::Dispose();
 	}
 
 	inline

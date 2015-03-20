@@ -44,9 +44,6 @@ using namespace std;
 using namespace v8;
 using namespace olec;
 
-static
-js::JavaScriptVM jsvm;
-
 struct MyObject {
 	js::Boolean a;
 	js::Integer b;
@@ -68,23 +65,22 @@ void f(int a) {
 }
 
 int main() {
-	Isolate::Scope isolate_scope(jsvm);
-	HandleScope handle_scope(jsvm);
+	js::EngineInstance vm;
+	HandleScope handle_scope(vm);
 
-	js::ObjectTemplate globals(jsvm);
+	js::ObjectTemplate globals(vm);
 
-	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(jsvm);
+	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(vm);
 	class_tpl.method("method", &MyObject::method);
 	class_tpl.property("b", &MyObject::b);
 	globals.set("Test", class_tpl);
 
-	js::FunctionTemplate<void, int> func_tpl(jsvm, f);
-	globals.set("f", func_tpl);
+	globals.set("f", f);
 
-	Local<Context> context = Context::New(jsvm, nullptr, globals);
+	Local<Context> context = Context::New(vm, nullptr, globals);
 	Context::Scope context_scope(context);
 
-	js::ScriptFile(jsvm, "ext/js/entry.js")->Run();
+	js::ScriptFile(vm, "ext/js/entry.js")->Run();
 
 	return 0;
 }
