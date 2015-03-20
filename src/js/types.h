@@ -366,7 +366,7 @@ struct MethodTemplate<T, void, A...> {
 				v8::Handle<v8::External>::Cast(args.Data());
 			void (T::* method)(A...) = static_cast<_method_wrapper*>(js_method->Value())->method;
 
-			// Invoke method and generate return value
+			// Invoke method
 			_invoke_method im {instance, method};
 			direct(std::function<void(A...)>(im), args);
 		}
@@ -510,6 +510,115 @@ struct ClassTemplate {
 	template <typename S> inline
 	operator v8::Handle<S>() {
 		return constructor;
+	}
+};
+
+/**
+ * JavaScript Function Template
+ */
+template <typename R, typename... A>
+struct FunctionTemplate {
+	static
+	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check if request arguments are present
+		if (check<A...>(args)) {
+			// Retrieve function
+			v8::Handle<v8::External> js_method =
+				v8::Handle<v8::External>::Cast(args.Data());
+			std::function<R(A...)>* func =
+				static_cast<std::function<R(A...)>*>(js_method->Value());
+
+			// Invoke function and generate return value
+			v8::Local<v8::Value> ret =
+				Foreign<R>::generate(args.GetIsolate(),
+				                     direct(*func, args));
+			args.GetReturnValue().Set(ret);
+		}
+	}
+
+	v8::Local<v8::FunctionTemplate> value;
+
+	/**
+	 * Construct a Function Template
+	 */
+	FunctionTemplate(v8::Isolate* isolate, std::function<R(A...)> func):
+		value(v8::FunctionTemplate::New(isolate, _function,
+		                                v8::External::New(isolate, new std::function<R(A...)> {func})))
+	{}
+
+	/* Auxiliary accessors and converters */
+
+	inline
+	v8::FunctionTemplate* operator *() {
+		return *value;
+	}
+
+	inline
+	v8::FunctionTemplate* operator ->() {
+		return *value;
+	}
+
+	template <typename S> inline
+	operator v8::Local<S>() {
+		return value;
+	}
+
+	template <typename S> inline
+	operator v8::Handle<S>() {
+		return value;
+	}
+};
+
+/**
+ * JavaScript Function Template for functions without a return value
+ */
+template <typename... A>
+struct FunctionTemplate<void, A...> {
+	static
+	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check if request arguments are present
+		if (check<A...>(args)) {
+			// Retrieve function
+			v8::Handle<v8::External> js_method =
+				v8::Handle<v8::External>::Cast(args.Data());
+			std::function<void(A...)>* func =
+				static_cast<std::function<void(A...)>*>(js_method->Value());
+
+			// Invoke function
+			direct(*func, args);
+		}
+	}
+
+	v8::Local<v8::FunctionTemplate> value;
+
+	/**
+	 * Construct a Function Template
+	 */
+	FunctionTemplate(v8::Isolate* isolate, std::function<void(A...)> func):
+		value(v8::FunctionTemplate::New(isolate, _function,
+		                                v8::External::New(isolate, new std::function<void(A...)> {func})))
+	{}
+
+	/* Auxiliary accessors and converters */
+
+	inline
+	v8::FunctionTemplate* operator *() {
+		return *value;
+	}
+
+	inline
+	v8::FunctionTemplate* operator ->() {
+		return *value;
+	}
+
+	template <typename S> inline
+	operator v8::Local<S>() {
+		return value;
+	}
+
+	template <typename S> inline
+	operator v8::Handle<S>() {
+		return value;
 	}
 };
 

@@ -81,11 +81,16 @@ struct MyObject {
 		a(a), b(b), c(c)
 	{}
 
-	js::Number method(js::String d) {
+	void method(js::String d) {
 		cout << a << ", " << b << ", " << c << ", " << d << endl;
-		return 13.37;
+		// return 13.37;
 	}
 };
+
+static
+void f(int a) {
+	cout << a << endl;
+}
 
 int main() {
 	Isolate::Scope isolate_scope(jsvm);
@@ -99,11 +104,15 @@ int main() {
 
 	global->Set(String::NewFromUtf8(jsvm, "Test"), class_tpl);
 
+	js::FunctionTemplate<void, int> func_tpl(jsvm, f);
+
+	global->Set(String::NewFromUtf8(jsvm, "f"), func_tpl);
+
 	Local<Context> context = Context::New(jsvm, nullptr, global);
 	Context::Scope context_scope(context);
 
 	Local<Script> script =
-		Script::Compile(String::NewFromUtf8(jsvm, "var t = new Test(false, 1337, 1091.23); t.b += 63; t.method('Hello');"));
+		Script::Compile(String::NewFromUtf8(jsvm, "f(2)"));
 	Local<Value> result = script->Run();
 
 	String::Utf8Value utf8(result);
