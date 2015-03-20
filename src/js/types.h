@@ -35,6 +35,17 @@ using UnsignedInteger = uint32_t;
 using String = std::string;
 
 /**
+ * JavaScript Object Type
+ */
+using Object = v8::Local<v8::Object>;
+
+/**
+ * JavaScript External Type
+ */
+template <typename T>
+using External = T*;
+
+/**
  * Prototype used to check the type of a single argument
  */
 template <typename T>
@@ -170,6 +181,45 @@ struct Foreign<String> {
 	String extract(const v8::Local<v8::Value>& value) {
 		v8::String::Utf8Value strval(value);
 		return *strval;
+	}
+};
+
+/**
+ * For object values
+ */
+template <>
+struct Foreign<Object> {
+	static
+	constexpr const char* name = "Object";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsObject();
+	}
+
+	static inline
+	Object extract(const v8::Local<v8::Value>& value) {
+		return value->ToObject();
+	}
+};
+
+/**
+ * For external values
+ */
+template <typename T>
+struct Foreign<External<T>> {
+	static
+	constexpr const char* name = "External";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsExternal();
+	}
+
+	static inline
+	External<T> extract(const v8::Local<v8::Value>& value) {
+		v8::Handle<v8::External> js_value = v8::Handle<v8::External>::Cast(value);
+		return static_cast<External<T>>(js_value->Value());;
 	}
 };
 
