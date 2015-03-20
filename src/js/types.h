@@ -50,7 +50,7 @@ struct Foreign {
 	}
 
 	static
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, const T& value) {
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, T value) {
 		throw;
 	}
 
@@ -206,6 +206,7 @@ namespace internal {
 		bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
 			v8::Isolate* isolate = args.GetIsolate();
 
+			// Check type of argument N
 			if (!Foreign<T>::check(args[N])) {
 				std::string exc_message =
 					std::string("IllegalArgument: Expected ") + Foreign<T>::name + " as argument #" +
@@ -253,6 +254,7 @@ namespace internal {
 template <typename... T>
 static inline
 bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
+	// Check is the number of present arguments matches the requested amount
 	if (sizeof...(T) > (unsigned) args.Length()) {
 		std::string exc_message =
 			"InsufficientArguments: Expected at least " +
@@ -267,6 +269,7 @@ bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
 		return false;
 	}
 
+	// Check types
 	return internal::ArgumentCheckN<0, T...>::check(args);
 }
 
@@ -299,15 +302,19 @@ struct MethodTemplate {
 
 	static
 	void _method(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check if request arguments are present
 		if (check<A...>(args)) {
+			// Retrieve instance pointer
 			v8::Handle<v8::External> js_instance =
 				v8::Handle<v8::External>::Cast(args.This()->GetInternalField(0));
+			T* instance = static_cast<T*>(js_instance->Value());
+
+			// Retrieve method offset
 			v8::Handle<v8::External> js_method =
 				v8::Handle<v8::External>::Cast(args.Data());
-
-			T* instance = static_cast<T*>(js_instance->Value());
 			R (T::* method)(A...) = static_cast<_method_wrapper*>(js_method->Value())->method;
 
+			// Invoke method and generate return value
 			_invoke_method im {instance, method};
 			v8::Local<v8::Value> ret =
 				Foreign<R>::generate(args.GetIsolate(),
@@ -325,28 +332,6 @@ struct MethodTemplate {
 		value(v8::FunctionTemplate::New(isolate, _method,
 		                                v8::External::New(isolate, new _method_wrapper {method})))
 	{}
-
-	/* Auxiliary accessors and converters */
-
-	inline
-	v8::FunctionTemplate* operator *() {
-		return *value;
-	}
-
-	inline
-	v8::FunctionTemplate* operator ->() {
-		return *value;
-	}
-
-	template <typename S> inline
-	operator v8::Local<S>() {
-		return value;
-	}
-
-	template <typename S> inline
-	operator v8::Handle<S>() {
-		return value;
-	}
 };
 
 /**
@@ -361,7 +346,9 @@ struct ClassTemplate {
 
 	static
 	void _constructor(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check argument types
 		if (args.IsConstructCall() && check<A...>(args)) {
+			// Redirect arguments to constructor
 			T* instance = direct(std::function<T*(A...)>(_invoke_constructor), args);
 			args.This()->SetInternalField(0, v8::External::New(args.GetIsolate(), instance));
 		}
@@ -374,14 +361,17 @@ struct ClassTemplate {
 
 	template <typename R> static
 	void _getter(v8::Local<v8::String>, const v8::PropertyCallbackInfo<v8::Value>& info) {
+		// Get instance pointer
 		v8::Handle<v8::External> js_instance =
 			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
 		v8::Handle<v8::External> js_property =
 			v8::Handle<v8::External>::Cast(info.Data());
-
-		T* instance = static_cast<T*>(js_instance->Value());
 		R T::* property = static_cast<_property_wrapper<R>*>(js_property->Value())->property;
 
+		// Return the current property value
 		info.GetReturnValue().Set(Foreign<R>::generate(info.GetIsolate(), instance->*property));
 	}
 
@@ -390,14 +380,17 @@ struct ClassTemplate {
 	             const v8::PropertyCallbackInfo<void>& info) {
 		v8::Isolate* isolate = info.GetIsolate();
 
+		// Get instance pointer
 		v8::Handle<v8::External> js_instance =
 			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
 		v8::Handle<v8::External> js_property =
 			v8::Handle<v8::External>::Cast(info.Data());
-
-		T* instance = static_cast<T*>(js_instance->Value());
 		R T::* property = static_cast<_property_wrapper<R>*>(js_property->Value())->property;
 
+		// Check if the new value matches the old type
 		if (Foreign<R>::check(value)) {
 			instance->*property = Foreign<R>::extract(value);
 		} else {
@@ -435,7 +428,7 @@ struct ClassTemplate {
 	template <typename MR, typename... MA>
 	void method(const char* name, MR (T::* method)(MA...)) {
 		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
-		set(name, method_tpl);
+		set(name, method_tpl.value);
 	}
 
 	/**
