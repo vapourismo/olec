@@ -221,12 +221,25 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 	}
 
 	static
+	void _destruct(const v8::WeakCallbackData<v8::External, T>& data) {
+		delete data.GetParameter();
+	}
+
+	static
 	void _constructor(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		v8::Isolate* isolate = args.GetIsolate();
+
 		// Check argument types
 		if (args.IsConstructCall() && check<A...>(args)) {
 			// Redirect arguments to constructor
 			T* instance = direct(std::function<T*(A...)>(_invoke_constructor), args);
-			args.This()->SetInternalField(0, v8::External::New(args.GetIsolate(), instance));
+			v8::Local<v8::External> self = v8::External::New(isolate, instance);
+
+			// Construct reference and destructor
+			v8::UniquePersistent<v8::External> self_p(isolate, self);
+			self_p.SetWeak(instance, _destruct);
+
+			args.This()->SetInternalField(0, self);
 		}
 	}
 
