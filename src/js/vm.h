@@ -30,6 +30,16 @@ struct EngineInstance {
 	}
 };
 
+/**
+ * Context
+ */
+struct Context: v8::Context::Scope {
+	inline
+	Context(v8::Isolate* isolate, v8::Handle<v8::ObjectTemplate> globals = v8::Handle<v8::ObjectTemplate>()):
+		v8::Context::Scope(v8::Context::New(isolate, nullptr, globals))
+	{}
+};
+
 }
 }
 

@@ -77,9 +77,7 @@ int main() {
 
 	globals.set("f", f);
 
-	Local<Context> context = Context::New(vm, nullptr, globals);
-	Context::Scope context_scope(context);
-
+	js::Context context(vm);
 	js::ScriptFile(vm, "ext/js/entry.js")->Run();
 
 	return 0;
