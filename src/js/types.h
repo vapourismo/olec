@@ -32,7 +32,7 @@ using UnsignedInteger = uint32_t;
 /**
  * JavaScript String Type
  */
-using String = const char*;
+using String = std::string;
 
 namespace internal {
 	/**
