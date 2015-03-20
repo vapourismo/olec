@@ -60,7 +60,7 @@ struct MyObject {
 };
 
 static
-void f(int a) {
+void js_print(js::String a) {
 	cout << a << endl;
 }
 
@@ -72,9 +72,13 @@ int main() {
 	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(vm);
 	class_tpl.method("method", &MyObject::method);
 	class_tpl.property("b", &MyObject::b);
-	globals.set("Test", class_tpl);
 
-	globals.set("f", f);
+	js::ObjectTemplate obj(vm);
+	obj.set("value", js::Foreign<js::Integer>::generate(vm, 1337));
+
+	globals.set("data", obj);
+	globals.set("Test", class_tpl);
+	globals.set("print", js_print);
 
 	js::Context context(vm, globals);
 	js::ScriptFile(vm, "ext/js/entry.js")->Run();

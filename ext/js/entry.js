@@ -1,5 +1,1 @@
-function g(x) {
-	return f(x);
-}
-
-g(12);
+print("Hello World: " + data.value);
