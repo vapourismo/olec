@@ -78,17 +78,47 @@ struct MyObject {
 	}
 };
 
+template <typename T, typename... A>
+struct ClassTemplate {
+	Local<ObjectTemplate> value;
+
+	ClassTemplate(Isolate* isolate):
+		value(ObjectTemplate::New(isolate))
+	{
+		value->SetCallAsFunctionHandler(js::ctor<T, A...>);
+		// TODO: Set prototype
+	}
+
+	inline
+	ObjectTemplate* operator *() {
+		return *value;
+	}
+
+	inline
+	ObjectTemplate* operator ->() {
+		return *value;
+	}
+
+	template <typename S> inline
+	operator Local<S>() {
+		return value;
+	}
+
+	template <typename S> inline
+	operator Handle<S>() {
+		return value;
+	}
+};
+
 int main() {
 	Isolate::Scope isolate_scope(jsvm);
 	HandleScope handle_scope(jsvm);
 
 	Local<ObjectTemplate> global = ObjectTemplate::New();
 
-	Local<ObjectTemplate> class_tpl = ObjectTemplate::New(jsvm);
-	class_tpl->SetCallAsFunctionHandler(js::ctor<MyObject, bool, int32_t, double>);
+	ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(jsvm);
 
-	global->Set(String::NewFromUtf8(jsvm, "Test"),
-	            class_tpl);
+	global->Set(String::NewFromUtf8(jsvm, "Test"), class_tpl);
 
 	Local<Context> context = Context::New(jsvm, nullptr, global);
 	Context::Scope context_scope(context);
