@@ -60,8 +60,9 @@ struct MyObject {
 };
 
 static
-void js_print(js::String a) {
-	cout << a << endl;
+void js_print(js::Value a) {
+	v8::String::Utf8Value utf8(a);
+	cout << *utf8 << endl;
 }
 
 int main() {
@@ -81,7 +82,8 @@ int main() {
 	globals.set("print", js_print);
 
 	js::Context context(vm, globals);
-	js::ScriptFile(vm, "ext/js/entry.js")->Run();
+	js::ScriptFile script(vm, "ext/js/entry.js");
+	script.run();
 
 	return 0;
 }

@@ -1,1 +1,1 @@
-print("Hello World: " + data.value);
+print(new Test());
