@@ -49,6 +49,11 @@ struct Foreign {
 		throw;
 	}
 
+	static
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, const T& value) {
+		throw;
+	}
+
 	static_assert(sizeof(T) == -1, "Argument type is not supported");
 };
 
@@ -69,6 +74,11 @@ struct Foreign<Boolean> {
 	Boolean extract(const v8::Local<v8::Value>& value) {
 		return value->ToBoolean()->Value();
 	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, Boolean value) {
+		return v8::Boolean::New(isolate, value);
+	}
 };
 
 /**
@@ -87,6 +97,11 @@ struct Foreign<Integer> {
 	static inline
 	Integer extract(const v8::Local<v8::Value>& value) {
 		return value->ToInt32()->Value();
+	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, Integer value) {
+		return v8::Int32::New(isolate, value);
 	}
 };
 
@@ -107,6 +122,11 @@ struct Foreign<UnsignedInteger> {
 	UnsignedInteger extract(const v8::Local<v8::Value>& value) {
 		return value->ToInt32()->Value();
 	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, UnsignedInteger value) {
+		return v8::Uint32::New(isolate, value);
+	}
 };
 
 /**
@@ -125,6 +145,11 @@ struct Foreign<Number> {
 	static inline
 	Number extract(const v8::Local<v8::Value>& value) {
 		return value->ToNumber()->Value();
+	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, Number value) {
+		return v8::Number::New(isolate, value);
 	}
 };
 
@@ -283,7 +308,10 @@ struct MethodTemplate {
 			R (T::* method)(A...) = static_cast<_method_wrapper*>(js_method->Value())->method;
 
 			_invoke_method im {instance, method};
-			js::direct(std::function<R(A...)>(im), args);
+			v8::Local<v8::Value> ret =
+				Foreign<R>::generate(args.GetIsolate(),
+				                     js::direct(std::function<R(A...)>(im), args));
+			args.GetReturnValue().Set(ret);
 		}
 	}
 
@@ -357,7 +385,7 @@ struct ClassTemplate {
 	/**
 	 * Set a field of the underlying prototype object.
 	 */
-	void bind(const char* field, v8::Handle<v8::Data> value) {
+	void set(const char* field, v8::Handle<v8::Data> value) {
 		prototype->Set(v8::String::NewFromUtf8(isolate, field), value);
 	}
 
@@ -367,7 +395,7 @@ struct ClassTemplate {
 	template <typename MR, typename... MA>
 	void method(const char* name, MR (T::* method)(MA...)) {
 		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
-		bind(name, method_tpl);
+		set(name, method_tpl);
 	}
 
 	/* Auxiliary accessors and converters */
