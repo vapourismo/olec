@@ -34,7 +34,7 @@
 // 	return 0;
 // }
 
-#include "js/args.h"
+#include "js/types.h"
 
 #include <iostream>
 #include <string>
@@ -76,54 +76,26 @@ struct MyObject {
 	MyObject(js::Boolean b, js::Integer i, js::Number d) {
 		cout << b << endl << i << endl << d << endl;
 	}
-};
 
-template <typename T, typename... A>
-struct ClassTemplate {
-	Local<ObjectTemplate> value;
-
-	ClassTemplate(Isolate* isolate):
-		value(ObjectTemplate::New(isolate))
-	{
-		value->SetCallAsFunctionHandler(js::ctor<T, A...>);
-		// TODO: Set prototype
-	}
-
-	inline
-	ObjectTemplate* operator *() {
-		return *value;
-	}
-
-	inline
-	ObjectTemplate* operator ->() {
-		return *value;
-	}
-
-	template <typename S> inline
-	operator Local<S>() {
-		return value;
-	}
-
-	template <typename S> inline
-	operator Handle<S>() {
-		return value;
+	void method(js::String s) {
+		cout << "Hello " << s << endl;
 	}
 };
-
 int main() {
 	Isolate::Scope isolate_scope(jsvm);
 	HandleScope handle_scope(jsvm);
 
 	Local<ObjectTemplate> global = ObjectTemplate::New();
 
-	ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(jsvm);
+	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(jsvm);
+	class_tpl.method("method", &MyObject::method);
 
 	global->Set(String::NewFromUtf8(jsvm, "Test"), class_tpl);
 
 	Local<Context> context = Context::New(jsvm, nullptr, global);
 	Context::Scope context_scope(context);
 
-	Local<Script> script = Script::Compile(String::NewFromUtf8(jsvm, "new Test(true, 1337, 11273091.23)"));
+	Local<Script> script = Script::Compile(String::NewFromUtf8(jsvm, "var t = new Test(true, 1337, 11273091.23); t.method(13); t;"));
 	Local<Value> result = script->Run();
 
 	String::Utf8Value utf8(result);

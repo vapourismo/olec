@@ -1,5 +1,5 @@
-#ifndef OLEC_JS_ARGS_H_
-#define OLEC_JS_ARGS_H_
+#ifndef OLEC_JS_TYPES_H_
+#define OLEC_JS_TYPES_H_
 
 #include <cstdint>
 #include <string>
@@ -273,6 +273,146 @@ static inline
 R direct(std::function<R(A...)> f, const v8::FunctionCallbackInfo<v8::Value>& args) {
 	return internal::ArgumentCheckN<0, A...>::template direct<R, std::function<R(A...)>>(f, args);
 }
+
+/**
+ * JavaScript Method Template
+ */
+template <typename T, typename R, typename... A>
+struct MethodTemplate {
+	struct _method_wrapper {
+		R (T::* method)(A...);
+	};
+
+	struct _invoke_method {
+		T* instance;
+		R (T::* method)(A...);
+
+		R operator ()(A... args) {
+			return (instance->*method)(args...);
+		}
+	};
+
+	static
+	void _method(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		if (js::check<A...>(args)) {
+			v8::Handle<v8::External> js_instance =
+				v8::Handle<v8::External>::Cast(args.This()->GetInternalField(0));
+			v8::Handle<v8::External> js_method =
+				v8::Handle<v8::External>::Cast(args.Data());
+
+			T* instance = static_cast<T*>(js_instance->Value());
+			R (T::* method)(A...) = static_cast<_method_wrapper*>(js_method->Value())->method;
+
+			_invoke_method im {instance, method};
+			js::direct(std::function<R(A...)>(im), args);
+		}
+	}
+
+	v8::Local<v8::FunctionTemplate> value;
+
+	/**
+	 * Construct a Method Template for a method.
+	 */
+	MethodTemplate(v8::Isolate* isolate, R (T::* method)(A...)):
+		value(v8::FunctionTemplate::New(isolate, _method,
+		                            v8::External::New(isolate, new _method_wrapper {method})))
+	{}
+
+	/* Auxiliary accessors and converters */
+
+	inline
+	v8::FunctionTemplate* operator *() {
+		return *value;
+	}
+
+	inline
+	v8::FunctionTemplate* operator ->() {
+		return *value;
+	}
+
+	template <typename S> inline
+	operator v8::Local<S>() {
+		return value;
+	}
+
+	template <typename S> inline
+	operator v8::Handle<S>() {
+		return value;
+	}
+};
+
+/**
+ * JavaScript Class Template with a specific constructor
+ */
+template <typename T, typename... A>
+struct ClassTemplate {
+	static
+	T* _invoke_constructor(A... args) {
+		return new T(args...);
+	}
+
+	static
+	void _constructor(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		if (args.IsConstructCall() && js::check<A...>(args)) {
+			T* instance = js::direct(std::function<T*(A...)>(_invoke_constructor), args);
+			args.This()->SetInternalField(0, v8::External::New(args.GetIsolate(), instance));
+		}
+	}
+
+	v8::Isolate* isolate;
+	v8::Local<v8::FunctionTemplate> constructor;
+	v8::Local<v8::ObjectTemplate> instance, prototype;
+
+	/**
+	 * Construct a Class Template for a class.
+	 */
+	ClassTemplate(v8::Isolate* isolate):
+		isolate(isolate),
+		constructor(v8::FunctionTemplate::New(isolate, _constructor)),
+		instance(constructor->InstanceTemplate()),
+		prototype(constructor->PrototypeTemplate())
+	{
+		instance->SetInternalFieldCount(1);
+	}
+
+	/**
+	 * Set a field of the underlying prototype object.
+	 */
+	void bind(const char* field, v8::Handle<v8::Data> value) {
+		prototype->Set(v8::String::NewFromUtf8(isolate, field), value);
+	}
+
+	/**
+	 * Bind a method to this class.
+	 */
+	template <typename MR, typename... MA>
+	void method(const char* name, MR (T::* method)(MA...)) {
+		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
+		bind(name, method_tpl);
+	}
+
+	/* Auxiliary accessors and converters */
+
+	inline
+	v8::FunctionTemplate* operator *() {
+		return *constructor;
+	}
+
+	inline
+	v8::FunctionTemplate* operator ->() {
+		return *constructor;
+	}
+
+	template <typename S> inline
+	operator v8::Local<S>() {
+		return constructor;
+	}
+
+	template <typename S> inline
+	operator v8::Handle<S>() {
+		return constructor;
+	}
+};
 
 }
 }
