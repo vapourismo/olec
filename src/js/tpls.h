@@ -370,6 +370,18 @@ struct ObjectTemplate {
 		value->Set(v8::String::NewFromUtf8(isolate, name), data);
 	}
 
+	template <typename R, typename... A> inline
+	void set(const char* name, std::function<R(A...)> func) {
+		FunctionTemplate<R, A...> func_tpl(isolate, func);
+		set(name, func_tpl);
+	}
+
+	template <typename R, typename... A> inline
+	void set(const char* name, R (* func)(A...)) {
+		FunctionTemplate<R, A...> func_tpl(isolate, func);
+		set(name, func_tpl);
+	}
+
 	/* Auxiliary accessors and converters */
 
 	inline
