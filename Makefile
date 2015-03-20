@@ -35,7 +35,7 @@ CXXFLAGS        += -std=c++11 -O2 -fmessage-length=0 \
                    $(shell pkg-config --cflags gtk+-3.0 vte-2.91)
 LDFLAGS         += -flto
 LDLIBS          := $(shell pkg-config --libs gtk+-3.0 vte-2.91) \
-                   -lncurses -levent
+                   -lncurses -levent -lv8
 
 # Default Targets
 all: $(EXEOUTPUT)
