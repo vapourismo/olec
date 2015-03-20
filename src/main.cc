@@ -34,9 +34,7 @@
 // 	return 0;
 // }
 
-#include "js/types.h"
-#include "js/tpls.h"
-#include "js/script.h"
+#include "js/js.h"
 
 #include <iostream>
 #include <string>
@@ -46,33 +44,8 @@ using namespace std;
 using namespace v8;
 using namespace olec;
 
-struct JavaScriptVM {
-	Isolate* isolate;
-
-	JavaScriptVM();
-
-	~JavaScriptVM();
-
-	inline
-	operator Isolate*() {
-		return isolate;
-	}
-};
-
-JavaScriptVM::JavaScriptVM() {
-	V8::InitializeICU();
-	V8::Initialize();
-
-	isolate = Isolate::New();
-}
-
-JavaScriptVM::~JavaScriptVM() {
-	isolate->Dispose();
-	V8::Dispose();
-}
-
 static
-JavaScriptVM jsvm;
+js::JavaScriptVM jsvm;
 
 struct MyObject {
 	js::Boolean a;
