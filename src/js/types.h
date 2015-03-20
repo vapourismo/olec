@@ -58,7 +58,7 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<Boolean> {
-		static
+		static inline
 		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
 			if (!value->IsBoolean() && !value->IsBooleanObject()) {
 				std::string exc_message =
@@ -72,7 +72,7 @@ namespace internal {
 			return true;
 		}
 
-		static
+		static inline
 		Boolean extract(const v8::Local<v8::Value>& value) {
 			return value->ToBoolean()->Value();
 		}
@@ -83,7 +83,7 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<Integer> {
-		static
+		static inline
 		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
 			if (!value->IsInt32()) {
 				std::string exc_message =
@@ -97,19 +97,18 @@ namespace internal {
 			return true;
 		}
 
-		static
+		static inline
 		Integer extract(const v8::Local<v8::Value>& value) {
 			return value->ToInt32()->Value();
 		}
 	};
-
 
 	/**
 	 * For unsigned integer arguments
 	 */
 	template <>
 	struct ArgumentCheckSingle<UnsignedInteger> {
-		static
+		static inline
 		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
 			if (!value->IsUint32()) {
 				std::string exc_message =
@@ -123,7 +122,7 @@ namespace internal {
 			return true;
 		}
 
-		static
+		static inline
 		UnsignedInteger extract(const v8::Local<v8::Value>& value) {
 			return value->ToInt32()->Value();
 		}
@@ -134,7 +133,7 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<Number> {
-		static
+		static inline
 		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
 			if (!value->IsNumber() && !value->IsNumberObject()) {
 				std::string exc_message =
@@ -148,7 +147,7 @@ namespace internal {
 			return true;
 		}
 
-		static
+		static inline
 		Number extract(const v8::Local<v8::Value>& value) {
 			return value->ToNumber()->Value();
 		}
@@ -159,7 +158,7 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<String> {
-		static
+		static inline
 		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
 			if (!value->IsString() && !value->IsStringObject()) {
 				std::string exc_message =
@@ -173,7 +172,7 @@ namespace internal {
 			return true;
 		}
 
-		static
+		static inline
 		String extract(const v8::Local<v8::Value>& value) {
 			v8::String::Utf8Value strval(value);
 			return *strval;
@@ -315,7 +314,7 @@ struct MethodTemplate {
 	 */
 	MethodTemplate(v8::Isolate* isolate, R (T::* method)(A...)):
 		value(v8::FunctionTemplate::New(isolate, _method,
-		                            v8::External::New(isolate, new _method_wrapper {method})))
+		                                v8::External::New(isolate, new _method_wrapper {method})))
 	{}
 
 	/* Auxiliary accessors and converters */
