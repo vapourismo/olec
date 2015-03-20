@@ -97,23 +97,21 @@ int main() {
 	Isolate::Scope isolate_scope(jsvm);
 	HandleScope handle_scope(jsvm);
 
-	Local<ObjectTemplate> global = ObjectTemplate::New();
+	js::ObjectTemplate globals(jsvm);
 
 	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(jsvm);
 	class_tpl.method("method", &MyObject::method);
 	class_tpl.property("b", &MyObject::b);
-
-	global->Set(String::NewFromUtf8(jsvm, "Test"), class_tpl);
+	globals.set("Test", class_tpl);
 
 	js::FunctionTemplate<void, int> func_tpl(jsvm, f);
+	globals.set("f", func_tpl);
 
-	global->Set(String::NewFromUtf8(jsvm, "f"), func_tpl);
-
-	Local<Context> context = Context::New(jsvm, nullptr, global);
+	Local<Context> context = Context::New(jsvm, nullptr, globals);
 	Context::Scope context_scope(context);
 
 	Local<Script> script =
-		Script::Compile(String::NewFromUtf8(jsvm, "f(2)"));
+		Script::Compile(String::NewFromUtf8(jsvm, "f(new Test(true, 2, 3))"));
 	Local<Value> result = script->Run();
 
 	String::Utf8Value utf8(result);

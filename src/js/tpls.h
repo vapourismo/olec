@@ -346,6 +346,47 @@ struct FunctionTemplate<void, A...> {
 	}
 };
 
+/**
+ * JavaScript Object Template
+ */
+struct ObjectTemplate {
+	v8::Isolate* isolate;
+	v8::Local<v8::ObjectTemplate> value;
+
+	inline
+	ObjectTemplate(v8::Isolate* isolate):
+		isolate(isolate),
+		value(v8::ObjectTemplate::New())
+	{}
+
+	inline
+	void set(const char* name, v8::Handle<v8::Data> data) {
+		value->Set(v8::String::NewFromUtf8(isolate, name), data);
+	}
+
+	/* Auxiliary accessors and converters */
+
+	inline
+	v8::ObjectTemplate* operator *() {
+		return *value;
+	}
+
+	inline
+	v8::ObjectTemplate* operator ->() {
+		return *value;
+	}
+
+	template <typename S> inline
+	operator v8::Local<S>() {
+		return value;
+	}
+
+	template <typename S> inline
+	operator v8::Handle<S>() {
+		return value;
+	}
+};
+
 }
 }
 
