@@ -25,9 +25,14 @@ using Number = double;
 using Integer = int32_t;
 
 /**
+ * JavaScript Unsigned Integer Type
+ */
+using UnsignedInteger = uint32_t;
+
+/**
  * JavaScript String Type
  */
-using String = std::string;
+using String = const char*;
 
 namespace internal {
 	/**
@@ -98,6 +103,32 @@ namespace internal {
 		}
 	};
 
+
+	/**
+	 * For unsigned integer arguments
+	 */
+	template <>
+	struct ArgumentCheckSingle<UnsignedInteger> {
+		static
+		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
+			if (!value->IsUint32()) {
+				std::string exc_message =
+					"IllegalArgument: Expected UnsignedInteger as argument #" +
+					std::to_string(n + 1);
+				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+
+				return false;
+			}
+
+			return true;
+		}
+
+		static
+		UnsignedInteger extract(const v8::Local<v8::Value>& value) {
+			return value->ToInt32()->Value();
+		}
+	};
+
 	/**
 	 * For number arguments
 	 */
@@ -130,7 +161,7 @@ namespace internal {
 	struct ArgumentCheckSingle<String> {
 		static
 		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
-			if (!value->IsNumber() && !value->IsNumberObject()) {
+			if (!value->IsString() && !value->IsStringObject()) {
 				std::string exc_message =
 					"IllegalArgument: Expected String as argument #" +
 					std::to_string(n + 1);
