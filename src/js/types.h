@@ -34,121 +34,121 @@ using UnsignedInteger = uint32_t;
  */
 using String = std::string;
 
+/**
+ * Prototype used to check the type of a single argument
+ */
+template <typename T>
+struct Foreign {
+	static
+	bool check(const v8::Local<v8::Value>& value) {
+		throw;
+	}
+
+	static
+	T extract(const v8::Local<v8::Value>& value) {
+		throw;
+	}
+
+	static_assert(sizeof(T) == -1, "Argument type is not supported");
+};
+
+/**
+ * For boolean values
+ */
+template <>
+struct Foreign<Boolean> {
+	static
+	constexpr const char* name = "Boolean";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsBoolean() || value->IsBooleanObject();
+	}
+
+	static inline
+	Boolean extract(const v8::Local<v8::Value>& value) {
+		return value->ToBoolean()->Value();
+	}
+};
+
+/**
+ * For integer values
+ */
+template <>
+struct Foreign<Integer> {
+	static
+	constexpr const char* name = "Integer";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsInt32();
+	}
+
+	static inline
+	Integer extract(const v8::Local<v8::Value>& value) {
+		return value->ToInt32()->Value();
+	}
+};
+
+/**
+ * For unsigned integer values
+ */
+template <>
+struct Foreign<UnsignedInteger> {
+	static
+	constexpr const char* name = "UnsignedInteger";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsUint32();
+	}
+
+	static inline
+	UnsignedInteger extract(const v8::Local<v8::Value>& value) {
+		return value->ToInt32()->Value();
+	}
+};
+
+/**
+ * For number values
+ */
+template <>
+struct Foreign<Number> {
+	static
+	constexpr const char* name = "Number";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsNumber() || value->IsNumberObject();
+	}
+
+	static inline
+	Number extract(const v8::Local<v8::Value>& value) {
+		return value->ToNumber()->Value();
+	}
+};
+
+/**
+ * For string values
+ */
+template <>
+struct Foreign<String> {
+	static
+	constexpr const char* name = "String";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsString() || value->IsStringObject();
+	}
+
+	static inline
+	String extract(const v8::Local<v8::Value>& value) {
+		v8::String::Utf8Value strval(value);
+		return *strval;
+	}
+};
+
 namespace internal {
-	/**
-	 * Prototype used to check the type of a single argument
-	 */
-	template <typename T>
-	struct ArgumentCheckSingle {
-		static
-		bool check(const v8::Local<v8::Value>& value) {
-			throw;
-		}
-
-		static
-		T extract(const v8::Local<v8::Value>& value) {
-			throw;
-		}
-
-		static_assert(sizeof(T) == -1, "Argument type is not supported");
-	};
-
-	/**
-	 * For boolean arguments
-	 */
-	template <>
-	struct ArgumentCheckSingle<Boolean> {
-		static
-		constexpr const char* name = "Boolean";
-
-		static inline
-		bool check(const v8::Local<v8::Value>& value) {
-			return value->IsBoolean() || value->IsBooleanObject();
-		}
-
-		static inline
-		Boolean extract(const v8::Local<v8::Value>& value) {
-			return value->ToBoolean()->Value();
-		}
-	};
-
-	/**
-	 * For integer arguments
-	 */
-	template <>
-	struct ArgumentCheckSingle<Integer> {
-		static
-		constexpr const char* name = "Integer";
-
-		static inline
-		bool check(const v8::Local<v8::Value>& value) {
-			return value->IsInt32();
-		}
-
-		static inline
-		Integer extract(const v8::Local<v8::Value>& value) {
-			return value->ToInt32()->Value();
-		}
-	};
-
-	/**
-	 * For unsigned integer arguments
-	 */
-	template <>
-	struct ArgumentCheckSingle<UnsignedInteger> {
-		static
-		constexpr const char* name = "UnsignedInteger";
-
-		static inline
-		bool check(const v8::Local<v8::Value>& value) {
-			return value->IsUint32();
-		}
-
-		static inline
-		UnsignedInteger extract(const v8::Local<v8::Value>& value) {
-			return value->ToInt32()->Value();
-		}
-	};
-
-	/**
-	 * For number arguments
-	 */
-	template <>
-	struct ArgumentCheckSingle<Number> {
-		static
-		constexpr const char* name = "Number";
-
-		static inline
-		bool check(const v8::Local<v8::Value>& value) {
-			return value->IsNumber() || value->IsNumberObject();
-		}
-
-		static inline
-		Number extract(const v8::Local<v8::Value>& value) {
-			return value->ToNumber()->Value();
-		}
-	};
-
-	/**
-	 * For string arguments
-	 */
-	template <>
-	struct ArgumentCheckSingle<String> {
-		static
-		constexpr const char* name = "String";
-
-		static inline
-		bool check(const v8::Local<v8::Value>& value) {
-			return value->IsString() || value->IsStringObject();
-		}
-
-		static inline
-		String extract(const v8::Local<v8::Value>& value) {
-			v8::String::Utf8Value strval(value);
-			return *strval;
-		}
-	};
-
 	/**
 	 * Prototype used to check for a number for arguments and their type
 	 */
@@ -180,9 +180,9 @@ namespace internal {
 		static inline
 		bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
 			v8::Isolate* isolate = args.GetIsolate();
-			if (!ArgumentCheckSingle<T>::check(args[N])) {
+			if (!Foreign<T>::check(args[N])) {
 				std::string exc_message =
-					std::string("IllegalArgument: Expected ") + ArgumentCheckSingle<T>::name + " as argument #" +
+					std::string("IllegalArgument: Expected ") + Foreign<T>::name + " as argument #" +
 					std::to_string(N + 1);
 				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
 
@@ -195,7 +195,7 @@ namespace internal {
 		template <typename R, typename F, typename... A>
 		static inline
 		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A... rest) {
-			return f(rest..., ArgumentCheckSingle<T>::extract(args[N]));
+			return f(rest..., Foreign<T>::extract(args[N]));
 		}
 	};
 
@@ -215,7 +215,7 @@ namespace internal {
 		static inline
 		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A... rest) {
 			return ArgumentCheckN<N + 1, Ts...>::template direct<R, F>(f, args, rest...,
-			                                                           ArgumentCheckSingle<T>::extract(args[N]));
+			                                                           Foreign<T>::extract(args[N]));
 		}
 	};
 
