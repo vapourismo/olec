@@ -187,6 +187,11 @@ struct Foreign<String> {
 		v8::String::Utf8Value strval(value);
 		return *strval;
 	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, String value) {
+		return v8::String::NewFromUtf8(isolate, value.c_str());
+	}
 };
 
 /**
@@ -206,6 +211,11 @@ struct Foreign<Object> {
 	Object extract(const v8::Local<v8::Value>& value) {
 		return value->ToObject();
 	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, Object value) {
+		return value;
+	}
 };
 
 /**
@@ -223,6 +233,11 @@ struct Foreign<Value> {
 
 	static inline
 	Value extract(const v8::Local<v8::Value>& value) {
+		return value;
+	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, Value value) {
 		return value;
 	}
 };
@@ -244,6 +259,11 @@ struct Foreign<External<T>> {
 	External<T> extract(const v8::Local<v8::Value>& value) {
 		v8::Handle<v8::External> js_value = v8::Handle<v8::External>::Cast(value);
 		return static_cast<External<T>>(js_value->Value());;
+	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, External<T> value) {
+		return v8::External::New(isolate, value);
 	}
 };
 
@@ -353,7 +373,7 @@ bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
 template <typename R, typename... A>
 static inline
 R direct(std::function<R(A...)> f, const v8::FunctionCallbackInfo<v8::Value>& args) {
-	return internal::ArgumentCheckN<0, A...>::template direct<R, std::function<R(A...)>>(f, args);
+	return internal::ArgumentCheckN<0, A...>::template direct<R>(f, args);
 }
 
 }
