@@ -33,8 +33,20 @@ namespace internal {
 	/**
 	 * Prototype used to check the type of a single argument
 	 */
-	template <typename>
-	struct ArgumentCheckSingle;
+	template <typename T>
+	struct ArgumentCheckSingle {
+		static
+		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
+			throw;
+		}
+
+		static
+		T extract(const v8::Local<v8::Value>& value) {
+			throw;
+		}
+
+		static_assert(sizeof(T) == -1, "Argument type is not supported");
+	};
 
 	/**
 	 * For boolean arguments
@@ -151,6 +163,12 @@ namespace internal {
 		static inline
 		bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
 			return true;
+		}
+
+		template <typename R, typename F, typename... A>
+		static inline
+		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A... rest) {
+			return f(rest...);
 		}
 	};
 
