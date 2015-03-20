@@ -35,6 +35,7 @@
 // }
 
 #include "js/types.h"
+#include "js/tpls.h"
 
 #include <iostream>
 #include <string>
