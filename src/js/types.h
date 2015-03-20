@@ -205,6 +205,7 @@ namespace internal {
 		static inline
 		bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
 			v8::Isolate* isolate = args.GetIsolate();
+
 			if (!Foreign<T>::check(args[N])) {
 				std::string exc_message =
 					std::string("IllegalArgument: Expected ") + Foreign<T>::name + " as argument #" +
@@ -298,7 +299,7 @@ struct MethodTemplate {
 
 	static
 	void _method(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		if (js::check<A...>(args)) {
+		if (check<A...>(args)) {
 			v8::Handle<v8::External> js_instance =
 				v8::Handle<v8::External>::Cast(args.This()->GetInternalField(0));
 			v8::Handle<v8::External> js_method =
@@ -310,7 +311,7 @@ struct MethodTemplate {
 			_invoke_method im {instance, method};
 			v8::Local<v8::Value> ret =
 				Foreign<R>::generate(args.GetIsolate(),
-				                     js::direct(std::function<R(A...)>(im), args));
+				                     direct(std::function<R(A...)>(im), args));
 			args.GetReturnValue().Set(ret);
 		}
 	}
@@ -360,9 +361,48 @@ struct ClassTemplate {
 
 	static
 	void _constructor(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		if (args.IsConstructCall() && js::check<A...>(args)) {
-			T* instance = js::direct(std::function<T*(A...)>(_invoke_constructor), args);
+		if (args.IsConstructCall() && check<A...>(args)) {
+			T* instance = direct(std::function<T*(A...)>(_invoke_constructor), args);
 			args.This()->SetInternalField(0, v8::External::New(args.GetIsolate(), instance));
+		}
+	}
+
+	template <typename R>
+	struct _property_wrapper {
+		R T::* property;
+	};
+
+	template <typename R> static
+	void _getter(v8::Local<v8::String>, const v8::PropertyCallbackInfo<v8::Value>& info) {
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+
+		T* instance = static_cast<T*>(js_instance->Value());
+		R T::* property = static_cast<_property_wrapper<R>*>(js_property->Value())->property;
+
+		info.GetReturnValue().Set(Foreign<R>::generate(info.GetIsolate(), instance->*property));
+	}
+
+	template <typename R> static
+	void _setter(v8::Local<v8::String>, v8::Local<v8::Value> value,
+	             const v8::PropertyCallbackInfo<void>& info) {
+		v8::Isolate* isolate = info.GetIsolate();
+
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+
+		T* instance = static_cast<T*>(js_instance->Value());
+		R T::* property = static_cast<_property_wrapper<R>*>(js_property->Value())->property;
+
+		if (Foreign<R>::check(value)) {
+			instance->*property = Foreign<R>::extract(value);
+		} else {
+			std::string exc_message = std::string("IllegalArgument: Expected ") + Foreign<R>::name;
+			isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
 		}
 	}
 
@@ -396,6 +436,16 @@ struct ClassTemplate {
 	void method(const char* name, MR (T::* method)(MA...)) {
 		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
 		set(name, method_tpl);
+	}
+
+	/**
+	 * Bind a property accessor to this class.
+	 */
+	template <typename AR>
+	void property(const char* name, AR T::* property) {
+		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
+		                      _getter<AR>, _setter<AR>,
+		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
 	}
 
 	/* Auxiliary accessors and converters */

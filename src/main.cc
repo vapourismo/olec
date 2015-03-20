@@ -45,14 +45,14 @@ using namespace v8;
 using namespace olec;
 
 struct JavaScriptVM {
-	v8::Isolate* isolate;
+	Isolate* isolate;
 
 	JavaScriptVM();
 
 	~JavaScriptVM();
 
 	inline
-	operator v8::Isolate*() {
+	operator Isolate*() {
 		return isolate;
 	}
 };
@@ -81,8 +81,9 @@ struct MyObject {
 		a(a), b(b), c(c)
 	{}
 
-	void method(js::String d) {
+	js::Number method(js::String d) {
 		cout << a << ", " << b << ", " << c << ", " << d << endl;
+		return 13.37;
 	}
 };
 
@@ -94,13 +95,15 @@ int main() {
 
 	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(jsvm);
 	class_tpl.method("method", &MyObject::method);
+	class_tpl.property("b", &MyObject::b);
 
 	global->Set(String::NewFromUtf8(jsvm, "Test"), class_tpl);
 
 	Local<Context> context = Context::New(jsvm, nullptr, global);
 	Context::Scope context_scope(context);
 
-	Local<Script> script = Script::Compile(String::NewFromUtf8(jsvm, "var t = new Test(true, 1337, 1091.23); t.method('Hello'); t;"));
+	Local<Script> script =
+		Script::Compile(String::NewFromUtf8(jsvm, "var t = new Test(false, 1337, 1091.23); t.b += 63; t.method('Hello');"));
 	Local<Value> result = script->Run();
 
 	String::Utf8Value utf8(result);
