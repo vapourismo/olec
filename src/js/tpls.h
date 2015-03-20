@@ -355,8 +355,12 @@ struct ObjectTemplate {
 
 	inline
 	ObjectTemplate(v8::Isolate* isolate):
-		isolate(isolate),
-		value(v8::ObjectTemplate::New())
+		isolate(isolate), value(v8::ObjectTemplate::New())
+	{}
+
+	inline
+	ObjectTemplate(v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> value):
+		isolate(isolate), value(value)
 	{}
 
 	inline
