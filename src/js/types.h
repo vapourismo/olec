@@ -40,6 +40,11 @@ using String = std::string;
 using Object = v8::Local<v8::Object>;
 
 /**
+ * JavaScript Generic Type
+ */
+using Value = v8::Local<v8::Value>;
+
+/**
  * JavaScript External Type
  */
 template <typename T>
@@ -200,6 +205,25 @@ struct Foreign<Object> {
 	static inline
 	Object extract(const v8::Local<v8::Value>& value) {
 		return value->ToObject();
+	}
+};
+
+/**
+ * For generic values
+ */
+template <>
+struct Foreign<Value> {
+	static
+	constexpr const char* name = "Value";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return true;
+	}
+
+	static inline
+	Value extract(const v8::Local<v8::Value>& value) {
+		return value;
 	}
 };
 
