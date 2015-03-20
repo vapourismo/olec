@@ -9,6 +9,107 @@ namespace olec {
 namespace js {
 
 /**
+ * JavaScript Function Template
+ */
+template <typename R, typename... A>
+struct FunctionTemplate: v8::Local<v8::FunctionTemplate> {
+	static
+	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check if request arguments are present
+		if (check<A...>(args)) {
+			// Retrieve function
+			v8::Handle<v8::External> js_method =
+				v8::Handle<v8::External>::Cast(args.Data());
+			std::function<R(A...)>* func =
+				static_cast<std::function<R(A...)>*>(js_method->Value());
+
+			// Invoke function and generate return value
+			v8::Local<v8::Value> ret =
+				Foreign<R>::generate(args.GetIsolate(),
+				                     direct(*func, args));
+			args.GetReturnValue().Set(ret);
+		}
+	}
+
+	/**
+	 * Construct a Function Template
+	 */
+	FunctionTemplate(v8::Isolate* isolate, std::function<R(A...)> func):
+		v8::Local<v8::FunctionTemplate>(
+			v8::FunctionTemplate::New(
+				isolate, _function,
+				v8::External::New(isolate, new std::function<R(A...)> {func})
+			)
+		)
+	{}
+};
+
+/**
+ * JavaScript Function Template for functions without a return value
+ */
+template <typename... A>
+struct FunctionTemplate<void, A...>: v8::Local<v8::FunctionTemplate> {
+	static
+	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check if request arguments are present
+		if (check<A...>(args)) {
+			// Retrieve function
+			v8::Handle<v8::External> js_method =
+				v8::Handle<v8::External>::Cast(args.Data());
+			std::function<void(A...)>* func =
+				static_cast<std::function<void(A...)>*>(js_method->Value());
+
+			// Invoke function
+			direct(*func, args);
+		}
+	}
+
+	/**
+	 * Construct a Function Template
+	 */
+	FunctionTemplate(v8::Isolate* isolate, std::function<void(A...)> func):
+		v8::Local<v8::FunctionTemplate>(v8::FunctionTemplate::New(isolate, _function,
+		                                v8::External::New(isolate, new std::function<void(A...)> {func})))
+	{}
+};
+
+/**
+ * JavaScript Object Template
+ */
+struct ObjectTemplate: v8::Local<v8::ObjectTemplate> {
+	v8::Isolate* isolate;
+
+	inline
+	ObjectTemplate(v8::Isolate* isolate):
+		v8::Local<v8::ObjectTemplate>(v8::ObjectTemplate::New()),
+		isolate(isolate)
+	{}
+
+	inline
+	ObjectTemplate(v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> value):
+		v8::Local<v8::ObjectTemplate>(value),
+		isolate(isolate)
+	{}
+
+	inline
+	void set(const char* name, v8::Handle<v8::Data> data) {
+		(*this)->Set(v8::String::NewFromUtf8(isolate, name), data);
+	}
+
+	template <typename R, typename... A> inline
+	void set(const char* name, std::function<R(A...)> func) {
+		FunctionTemplate<R, A...> func_tpl(isolate, func);
+		set(name, func_tpl);
+	}
+
+	template <typename R, typename... A> inline
+	void set(const char* name, R (* func)(A...)) {
+		FunctionTemplate<R, A...> func_tpl(isolate, func);
+		set(name, func_tpl);
+	}
+};
+
+/**
  * JavaScript Method Template
  */
 template <typename T, typename R, typename... A>
@@ -113,7 +214,7 @@ struct MethodTemplate<T, void, A...> {
  * JavaScript Class Template with a specific constructor
  */
 template <typename T, typename... A>
-struct ClassTemplate {
+struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 	static
 	T* _invoke_constructor(A... args) {
 		return new T(args...);
@@ -175,17 +276,16 @@ struct ClassTemplate {
 	}
 
 	v8::Isolate* isolate;
-	v8::Local<v8::FunctionTemplate> constructor;
-	v8::Local<v8::ObjectTemplate> instance, prototype;
+	ObjectTemplate instance, prototype;
 
 	/**
 	 * Construct a Class Template for a class.
 	 */
 	ClassTemplate(v8::Isolate* isolate):
+		v8::Local<v8::FunctionTemplate>(v8::FunctionTemplate::New(isolate, _constructor)),
 		isolate(isolate),
-		constructor(v8::FunctionTemplate::New(isolate, _constructor)),
-		instance(constructor->InstanceTemplate()),
-		prototype(constructor->PrototypeTemplate())
+		instance(isolate, (*this)->InstanceTemplate()),
+		prototype(isolate, (*this)->PrototypeTemplate())
 	{
 		instance->SetInternalFieldCount(1);
 	}
@@ -214,194 +314,6 @@ struct ClassTemplate {
 		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
 		                      _getter<AR>, _setter<AR>,
 		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
-	}
-
-	/* Auxiliary accessors and converters */
-
-	inline
-	v8::FunctionTemplate* operator *() {
-		return *constructor;
-	}
-
-	inline
-	v8::FunctionTemplate* operator ->() {
-		return *constructor;
-	}
-
-	template <typename S> inline
-	operator v8::Local<S>() {
-		return constructor;
-	}
-
-	template <typename S> inline
-	operator v8::Handle<S>() {
-		return constructor;
-	}
-};
-
-/**
- * JavaScript Function Template
- */
-template <typename R, typename... A>
-struct FunctionTemplate {
-	static
-	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		// Check if request arguments are present
-		if (check<A...>(args)) {
-			// Retrieve function
-			v8::Handle<v8::External> js_method =
-				v8::Handle<v8::External>::Cast(args.Data());
-			std::function<R(A...)>* func =
-				static_cast<std::function<R(A...)>*>(js_method->Value());
-
-			// Invoke function and generate return value
-			v8::Local<v8::Value> ret =
-				Foreign<R>::generate(args.GetIsolate(),
-				                     direct(*func, args));
-			args.GetReturnValue().Set(ret);
-		}
-	}
-
-	v8::Local<v8::FunctionTemplate> value;
-
-	/**
-	 * Construct a Function Template
-	 */
-	FunctionTemplate(v8::Isolate* isolate, std::function<R(A...)> func):
-		value(v8::FunctionTemplate::New(isolate, _function,
-		                                v8::External::New(isolate, new std::function<R(A...)> {func})))
-	{}
-
-	/* Auxiliary accessors and converters */
-
-	inline
-	v8::FunctionTemplate* operator *() {
-		return *value;
-	}
-
-	inline
-	v8::FunctionTemplate* operator ->() {
-		return *value;
-	}
-
-	template <typename S> inline
-	operator v8::Local<S>() {
-		return value;
-	}
-
-	template <typename S> inline
-	operator v8::Handle<S>() {
-		return value;
-	}
-};
-
-/**
- * JavaScript Function Template for functions without a return value
- */
-template <typename... A>
-struct FunctionTemplate<void, A...> {
-	static
-	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		// Check if request arguments are present
-		if (check<A...>(args)) {
-			// Retrieve function
-			v8::Handle<v8::External> js_method =
-				v8::Handle<v8::External>::Cast(args.Data());
-			std::function<void(A...)>* func =
-				static_cast<std::function<void(A...)>*>(js_method->Value());
-
-			// Invoke function
-			direct(*func, args);
-		}
-	}
-
-	v8::Local<v8::FunctionTemplate> value;
-
-	/**
-	 * Construct a Function Template
-	 */
-	FunctionTemplate(v8::Isolate* isolate, std::function<void(A...)> func):
-		value(v8::FunctionTemplate::New(isolate, _function,
-		                                v8::External::New(isolate, new std::function<void(A...)> {func})))
-	{}
-
-	/* Auxiliary accessors and converters */
-
-	inline
-	v8::FunctionTemplate* operator *() {
-		return *value;
-	}
-
-	inline
-	v8::FunctionTemplate* operator ->() {
-		return *value;
-	}
-
-	template <typename S> inline
-	operator v8::Local<S>() {
-		return value;
-	}
-
-	template <typename S> inline
-	operator v8::Handle<S>() {
-		return value;
-	}
-};
-
-/**
- * JavaScript Object Template
- */
-struct ObjectTemplate {
-	v8::Isolate* isolate;
-	v8::Local<v8::ObjectTemplate> value;
-
-	inline
-	ObjectTemplate(v8::Isolate* isolate):
-		isolate(isolate), value(v8::ObjectTemplate::New())
-	{}
-
-	inline
-	ObjectTemplate(v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> value):
-		isolate(isolate), value(value)
-	{}
-
-	inline
-	void set(const char* name, v8::Handle<v8::Data> data) {
-		value->Set(v8::String::NewFromUtf8(isolate, name), data);
-	}
-
-	template <typename R, typename... A> inline
-	void set(const char* name, std::function<R(A...)> func) {
-		FunctionTemplate<R, A...> func_tpl(isolate, func);
-		set(name, func_tpl);
-	}
-
-	template <typename R, typename... A> inline
-	void set(const char* name, R (* func)(A...)) {
-		FunctionTemplate<R, A...> func_tpl(isolate, func);
-		set(name, func_tpl);
-	}
-
-	/* Auxiliary accessors and converters */
-
-	inline
-	v8::ObjectTemplate* operator *() {
-		return *value;
-	}
-
-	inline
-	v8::ObjectTemplate* operator ->() {
-		return *value;
-	}
-
-	template <typename S> inline
-	operator v8::Local<S>() {
-		return value;
-	}
-
-	template <typename S> inline
-	operator v8::Handle<S>() {
-		return value;
 	}
 };
 
