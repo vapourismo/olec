@@ -291,19 +291,12 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 	}
 
 	/**
-	 * Set a field of the underlying prototype object.
-	 */
-	void set(const char* field, v8::Handle<v8::Data> value) {
-		prototype->Set(v8::String::NewFromUtf8(isolate, field), value);
-	}
-
-	/**
 	 * Bind a method to this class.
 	 */
 	template <typename MR, typename... MA>
 	void method(const char* name, MR (T::* method)(MA...)) {
 		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
-		set(name, method_tpl.value);
+		prototype.set(name, method_tpl.value);
 	}
 
 	/**
