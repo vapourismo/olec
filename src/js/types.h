@@ -335,6 +335,55 @@ struct MethodTemplate {
 };
 
 /**
+ * JavaScript Method Template for Methods without a return value
+ */
+template <typename T, typename... A>
+struct MethodTemplate<T, void, A...> {
+	struct _method_wrapper {
+		void (T::* method)(A...);
+	};
+
+	struct _invoke_method {
+		T* instance;
+		void (T::* method)(A...);
+
+		void operator ()(A... args) {
+			(instance->*method)(args...);
+		}
+	};
+
+	static
+	void _method(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Check if request arguments are present
+		if (check<A...>(args)) {
+			// Retrieve instance pointer
+			v8::Handle<v8::External> js_instance =
+				v8::Handle<v8::External>::Cast(args.This()->GetInternalField(0));
+			T* instance = static_cast<T*>(js_instance->Value());
+
+			// Retrieve method offset
+			v8::Handle<v8::External> js_method =
+				v8::Handle<v8::External>::Cast(args.Data());
+			void (T::* method)(A...) = static_cast<_method_wrapper*>(js_method->Value())->method;
+
+			// Invoke method and generate return value
+			_invoke_method im {instance, method};
+			direct(std::function<void(A...)>(im), args);
+		}
+	}
+
+	v8::Local<v8::FunctionTemplate> value;
+
+	/**
+	 * Construct a Method Template for a method.
+	 */
+	MethodTemplate(v8::Isolate* isolate, void (T::* method)(A...)):
+		value(v8::FunctionTemplate::New(isolate, _method,
+		                                v8::External::New(isolate, new _method_wrapper {method})))
+	{}
+};
+
+/**
  * JavaScript Class Template with a specific constructor
  */
 template <typename T, typename... A>
