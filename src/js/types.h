@@ -41,7 +41,7 @@ namespace internal {
 	template <typename T>
 	struct ArgumentCheckSingle {
 		static
-		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
+		bool check(const v8::Local<v8::Value>& value) {
 			throw;
 		}
 
@@ -58,18 +58,12 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<Boolean> {
+		static
+		constexpr const char* name = "Boolean";
+
 		static inline
-		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
-			if (!value->IsBoolean() && !value->IsBooleanObject()) {
-				std::string exc_message =
-					"IllegalArgument: Expected Boolean as argument #" +
-					std::to_string(n + 1);
-				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
-
-				return false;
-			}
-
-			return true;
+		bool check(const v8::Local<v8::Value>& value) {
+			return value->IsBoolean() || value->IsBooleanObject();
 		}
 
 		static inline
@@ -83,18 +77,12 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<Integer> {
+		static
+		constexpr const char* name = "Integer";
+
 		static inline
-		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
-			if (!value->IsInt32()) {
-				std::string exc_message =
-					"IllegalArgument: Expected Integer as argument #" +
-					std::to_string(n + 1);
-				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
-
-				return false;
-			}
-
-			return true;
+		bool check(const v8::Local<v8::Value>& value) {
+			return value->IsInt32();
 		}
 
 		static inline
@@ -108,18 +96,12 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<UnsignedInteger> {
+		static
+		constexpr const char* name = "UnsignedInteger";
+
 		static inline
-		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
-			if (!value->IsUint32()) {
-				std::string exc_message =
-					"IllegalArgument: Expected UnsignedInteger as argument #" +
-					std::to_string(n + 1);
-				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
-
-				return false;
-			}
-
-			return true;
+		bool check(const v8::Local<v8::Value>& value) {
+			return value->IsUint32();
 		}
 
 		static inline
@@ -133,18 +115,12 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<Number> {
+		static
+		constexpr const char* name = "Number";
+
 		static inline
-		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
-			if (!value->IsNumber() && !value->IsNumberObject()) {
-				std::string exc_message =
-					"IllegalArgument: Expected Number as argument #" +
-					std::to_string(n + 1);
-				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
-
-				return false;
-			}
-
-			return true;
+		bool check(const v8::Local<v8::Value>& value) {
+			return value->IsNumber() || value->IsNumberObject();
 		}
 
 		static inline
@@ -158,18 +134,12 @@ namespace internal {
 	 */
 	template <>
 	struct ArgumentCheckSingle<String> {
+		static
+		constexpr const char* name = "String";
+
 		static inline
-		bool check(v8::Isolate* isolate, int n, const v8::Local<v8::Value>& value) {
-			if (!value->IsString() && !value->IsStringObject()) {
-				std::string exc_message =
-					"IllegalArgument: Expected String as argument #" +
-					std::to_string(n + 1);
-				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
-
-				return false;
-			}
-
-			return true;
+		bool check(const v8::Local<v8::Value>& value) {
+			return value->IsString() || value->IsStringObject();
 		}
 
 		static inline
@@ -209,7 +179,17 @@ namespace internal {
 	struct ArgumentCheckN<N, T> {
 		static inline
 		bool check(const v8::FunctionCallbackInfo<v8::Value>& args) {
-			return ArgumentCheckSingle<T>::check(args.GetIsolate(), N, args[N]);
+			v8::Isolate* isolate = args.GetIsolate();
+			if (!ArgumentCheckSingle<T>::check(args[N])) {
+				std::string exc_message =
+					std::string("IllegalArgument: Expected ") + ArgumentCheckSingle<T>::name + " as argument #" +
+					std::to_string(N + 1);
+				isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+
+				return false;
+			} else {
+				return true;
+			}
 		}
 
 		template <typename R, typename F, typename... A>
