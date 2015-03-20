@@ -36,6 +36,7 @@
 
 #include "js/types.h"
 #include "js/tpls.h"
+#include "js/script.h"
 
 #include <iostream>
 #include <string>
@@ -82,9 +83,9 @@ struct MyObject {
 		a(a), b(b), c(c)
 	{}
 
-	void method(js::String d) {
+	js::Number method(js::String d) {
 		cout << a << ", " << b << ", " << c << ", " << d << endl;
-		// return 13.37;
+		return 13.37;
 	}
 };
 
@@ -110,12 +111,7 @@ int main() {
 	Local<Context> context = Context::New(jsvm, nullptr, globals);
 	Context::Scope context_scope(context);
 
-	Local<Script> script =
-		Script::Compile(String::NewFromUtf8(jsvm, "f(new Test(true, 2, 3))"));
-	Local<Value> result = script->Run();
-
-	String::Utf8Value utf8(result);
-	cout << *utf8 << endl;
+	js::ScriptFile(jsvm, "ext/js/entry.js")->Run();
 
 	return 0;
 }

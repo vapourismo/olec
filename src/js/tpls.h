@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+#include <v8.h>
+
 namespace olec {
 namespace js {
 
