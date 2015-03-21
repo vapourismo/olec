@@ -1,46 +1,63 @@
 #ifndef OLEC_KEYMAP_H
 #define OLEC_KEYMAP_H
 
-#include "event.h"
+#include "ipc.h"
 
-#include <stdbool.h>
+#include <functional>
 
-/**
- * Key map
- */
-typedef struct {
-	struct _OlecKeyMapElement* root;
-} OlecKeyMap;
+namespace olec {
 
-/**
- * Key binding callback;
- */
-typedef bool (* OlecKeyHook)(void*, OlecKeyModifier, OlecKeySymbol);
+using KeyCallback = std::function<bool(KeyModifier, KeySymbol)>;
 
-/**
- * Initialize key map
- */
-void olec_key_map_init(OlecKeyMap* keymap);
+struct KeyBinding {
+	KeyModifier mod;
+	KeySymbol key;
 
-/**
- * Remove every key binding
- */
-void olec_key_map_clear(OlecKeyMap* keymap);
+	KeyBinding* higher;
+	KeyBinding* lower;
 
-/**
- * Bind a key to some data
- */
-void olec_key_map_bind(OlecKeyMap* keymap,
-                       OlecKeyModifier mod, OlecKeySymbol key,
-                       OlecKeyHook hook, void* data);
-/**
- * Unbind a key
- */
-void olec_key_map_unbind(OlecKeyMap* keymap, OlecKeyModifier mod, OlecKeySymbol key);
+	KeyCallback hook;
 
-/**
- * Get the data for a binding
- */
-bool olec_key_map_invoke(const OlecKeyMap* keymap, OlecKeyModifier mod, OlecKeySymbol key);
+	inline
+	bool invoke() {
+		return hook && hook(mod, key);
+	}
+
+	inline
+	void unbind() {
+		hook = nullptr;
+	}
+
+	int compare(KeyModifier rhs_mod, KeySymbol rhs_key);
+
+	KeyBinding* find(KeyModifier mod, KeySymbol key);
+
+	KeyBinding* insert(KeyModifier mod, KeySymbol key, KeyCallback hook);
+
+	void merge(KeyBinding* other);
+
+	void overwrite(KeyBinding* other);
+
+	void clear();
+};
+
+struct KeyMap {
+	KeyBinding* root = nullptr;
+
+	inline
+	~KeyMap() {
+		clear();
+	}
+
+	void bind(KeyModifier mod, KeySymbol key, KeyCallback hook);
+
+	void unbind(KeyModifier mod, KeySymbol key);
+
+	void clear();
+
+	bool invoke(KeyModifier mod, KeySymbol key);
+};
+
+}
 
 #endif
