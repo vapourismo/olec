@@ -11,6 +11,29 @@
 namespace olec {
 namespace js {
 
+// Forward declaration
+struct EngineInstance;
+
+/**
+ * Context
+ */
+struct Context {
+	v8::Local<v8::Context> context;
+	v8::Context::Scope context_scope;
+
+	inline
+	Context(v8::Isolate* isolate):
+		context(v8::Context::New(isolate, nullptr)),
+		context_scope(context)
+	{}
+
+	inline
+	Context(EngineInstance& vm);
+
+	inline
+	Context();
+};
+
 /**
  * V8 Engine Instance
  */
@@ -24,6 +47,7 @@ struct EngineInstance {
 	std::unique_ptr<v8::Isolate, IsolateDeleter> isolate;
 	v8::Isolate::Scope isolate_scope;
 	v8::HandleScope handle_scope;
+	Context global_context;
 
 	ObjectTemplate global_template;
 
@@ -33,26 +57,23 @@ struct EngineInstance {
 	operator v8::Isolate*() const {
 		return isolate.get();
 	}
+
+	static inline
+	EngineInstance& current() {
+		return * (EngineInstance*) v8::Isolate::GetCurrent()->GetData(0);
+	}
 };
 
-/**
- * Context
- */
-struct Context {
-	v8::Local<v8::Context> context;
-	v8::Context::Scope context_scope;
+inline
+Context::Context(EngineInstance& vm):
+	context(v8::Context::New(vm, nullptr, vm.global_template)),
+	context_scope(context)
+{}
 
-	inline
-	Context(EngineInstance& vm):
-		context(v8::Context::New(vm, nullptr, vm.global_template)),
-		context_scope(context)
-	{}
-
-	inline
-	Context():
-		Context(* (EngineInstance*) v8::Isolate::GetCurrent()->GetData(0))
-	{}
-};
+inline
+Context::Context():
+	Context(EngineInstance::current())
+{}
 
 /**
  * Load files as an executable script
