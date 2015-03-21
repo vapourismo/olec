@@ -92,7 +92,7 @@ struct Foreign<Boolean> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, Boolean value) {
+	v8::Local<v8::Boolean> generate(v8::Isolate* isolate, Boolean value) {
 		return v8::Boolean::New(isolate, value);
 	}
 };
@@ -116,7 +116,7 @@ struct Foreign<Integer> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, Integer value) {
+	v8::Local<v8::Integer> generate(v8::Isolate* isolate, Integer value) {
 		return v8::Int32::New(isolate, value);
 	}
 };
@@ -140,7 +140,7 @@ struct Foreign<UnsignedInteger> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, UnsignedInteger value) {
+	v8::Local<v8::Integer> generate(v8::Isolate* isolate, UnsignedInteger value) {
 		return v8::Uint32::New(isolate, value);
 	}
 };
@@ -164,7 +164,7 @@ struct Foreign<Number> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, Number value) {
+	v8::Local<v8::Number> generate(v8::Isolate* isolate, Number value) {
 		return v8::Number::New(isolate, value);
 	}
 };
@@ -189,7 +189,7 @@ struct Foreign<String> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, String value) {
+	v8::Local<v8::String> generate(v8::Isolate* isolate, String value) {
 		return v8::String::NewFromUtf8(isolate, value.c_str());
 	}
 };
@@ -213,7 +213,7 @@ struct Foreign<Object> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, Object value) {
+	v8::Local<v8::Object> generate(v8::Isolate* isolate, Object value) {
 		return value;
 	}
 };
@@ -262,7 +262,7 @@ struct Foreign<External<T>> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, External<T> value) {
+	v8::Local<v8::External> generate(v8::Isolate* isolate, External<T> value) {
 		return v8::External::New(isolate, value);
 	}
 };
