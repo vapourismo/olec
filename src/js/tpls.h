@@ -8,6 +8,10 @@
 namespace olec {
 namespace js {
 
+// Forward declarations
+template <typename, typename...>
+struct ClassTemplate;
+
 /**
  * JavaScript Function Template
  */
@@ -94,6 +98,14 @@ struct ObjectTemplate: v8::Local<v8::ObjectTemplate> {
 		v8::Local<v8::ObjectTemplate>(value),
 		isolate(isolate)
 	{}
+
+	template <typename T, typename... A>
+	inline
+	void set(const char* name, ClassTemplate<T, A...>& class_tpl) {
+		v8::Local<v8::String> name_val = v8::String::NewFromUtf8(isolate, name);
+		class_tpl->SetClassName(name_val);
+		(*this)->Set(name_val, class_tpl);
+	}
 
 	inline
 	void set(const char* name, v8::Handle<v8::Data> data) {
