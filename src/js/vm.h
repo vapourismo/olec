@@ -27,15 +27,7 @@ struct EngineInstance {
 
 	ObjectTemplate global_template;
 
-	inline
-	EngineInstance():
-		isolate(v8::Isolate::New()),
-		isolate_scope(isolate.get()),
-		handle_scope(isolate.get()),
-		global_template(isolate.get())
-	{
-		isolate->SetData(0, this);
-	}
+	EngineInstance();
 
 	inline
 	operator v8::Isolate*() const {

@@ -45,30 +45,16 @@ using namespace std;
 using namespace olec;
 using namespace olec::js;
 
-static
-void js_print(Value a) {
-	v8::String::Utf8Value utf8(a);
-	cout << *utf8 << endl;
-}
+struct Test {
 
-static
-Value js_require(String a) {
-	TryCatch tc;
-	ScriptFile script(a.c_str());
-	script.run();
-
-	if (tc.HasCaught())
-		tc.ReThrow();
-
-	return script.exports();
-}
+};
 
 int main() {
 	EngineInstance vm;
 
-	// Debug printing
-	vm.global_template.set("print", js_print);
-	vm.global_template.set("require", js_require);
+	// Test class
+	ClassTemplate<Test> class_tpl(vm);
+	vm.global_template.set("Test", class_tpl);
 
 	// Enter script context
 	try {

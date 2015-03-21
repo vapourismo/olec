@@ -1,2 +1,1 @@
-var test = require("ext/js/test.js");
-test.test();
+debug.log(new Test);
