@@ -129,7 +129,7 @@ struct ObjectTemplate: v8::Local<v8::ObjectTemplate> {
  * JavaScript Method Template
  */
 template <typename T, typename R, typename... A>
-struct MethodTemplate {
+struct MethodTemplate: v8::Local<v8::FunctionTemplate> {
 	struct _method_wrapper {
 		R (T::* method)(A...);
 	};
@@ -166,13 +166,11 @@ struct MethodTemplate {
 		}
 	}
 
-	v8::Local<v8::FunctionTemplate> value;
-
 	/**
 	 * Construct a Method Template for a method.
 	 */
 	MethodTemplate(v8::Isolate* isolate, R (T::* method)(A...)):
-		value(v8::FunctionTemplate::New(isolate, _method,
+		v8::Local<v8::FunctionTemplate>(v8::FunctionTemplate::New(isolate, _method,
 		                                v8::External::New(isolate, new _method_wrapper {method})))
 	{}
 };
@@ -181,7 +179,7 @@ struct MethodTemplate {
  * JavaScript Method Template for Methods without a return value
  */
 template <typename T, typename... A>
-struct MethodTemplate<T, void, A...> {
+struct MethodTemplate<T, void, A...>: v8::Local<v8::FunctionTemplate> {
 	struct _method_wrapper {
 		void (T::* method)(A...);
 	};
@@ -215,13 +213,11 @@ struct MethodTemplate<T, void, A...> {
 		}
 	}
 
-	v8::Local<v8::FunctionTemplate> value;
-
 	/**
 	 * Construct a Method Template for a method.
 	 */
 	MethodTemplate(v8::Isolate* isolate, void (T::* method)(A...)):
-		value(v8::FunctionTemplate::New(isolate, _method,
+		v8::Local<v8::FunctionTemplate>(v8::FunctionTemplate::New(isolate, _method,
 		                                v8::External::New(isolate, new _method_wrapper {method})))
 	{}
 };
@@ -325,7 +321,7 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 	template <typename MR, typename... MA>
 	void method(const char* name, MR (T::* method)(MA...)) {
 		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
-		prototype.set(name, method_tpl.value);
+		prototype.set(name, method_tpl);
 	}
 
 	/**
