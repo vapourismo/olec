@@ -2,7 +2,6 @@
 #define OLEC_JS_VM_H_
 
 #include "tpls.h"
-#include "exc.h"
 
 #include <v8.h>
 #include <memory>
@@ -87,19 +86,9 @@ struct ScriptFile: Context {
 	}
 
 	static inline
-	v8::Local<v8::Script> compile(v8::Isolate* isolate, const char* file_path)
-		throw (Exception)
-	{
+	v8::Local<v8::Script> compile(v8::Isolate* isolate, const char* file_path) {
 		v8::Local<v8::String> contents = read(isolate, file_path);
-
-		v8::TryCatch me;
-		v8::Local<v8::Script> script =
-			v8::Script::Compile(contents, v8::String::NewFromUtf8(isolate, file_path));
-
-		if (me.HasCaught())
-			throw Exception(me.Message());
-
-		return script;
+		return v8::Script::Compile(contents, v8::String::NewFromUtf8(isolate, file_path));
 	}
 
 	v8::Local<v8::Script> script;
@@ -108,7 +97,7 @@ struct ScriptFile: Context {
 	 * Load script from `file_path`
 	 */
 	inline
-	ScriptFile(const char* file_path) throw (Exception):
+	ScriptFile(const char* file_path):
 		script(compile(context->GetIsolate(), file_path))
 	{
 		v8::Isolate* isolate = context->GetIsolate();
@@ -122,14 +111,8 @@ struct ScriptFile: Context {
 	 * Run the script and catch errors.
 	 */
 	inline
-	v8::Local<v8::Value> run() throw (Exception) {
-		v8::TryCatch me;
-		v8::Local<v8::Value> val = script->Run();
-
-		if (me.HasCaught())
-			throw Exception(me.Message());
-
-		return val;
+	v8::Local<v8::Value> run() {
+		return script->Run();
 	}
 
 	inline

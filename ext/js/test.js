@@ -1,3 +1,3 @@
-var x = 333;
-
-export = 123;
+exports.test = function () {
+	print("Hello World");
+};

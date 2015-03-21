@@ -39,6 +39,18 @@ struct Exception: virtual std::exception {
 	}
 };
 
+/**
+ *
+ */
+struct TryCatch: v8::TryCatch {
+	inline
+	void check() throw (js::Exception) {
+		if (HasCaught()) {
+		    throw js::Exception(Message());
+		}
+	}
+};
+
 }
 }
 

@@ -53,15 +53,14 @@ void js_print(Value a) {
 
 static
 Value js_require(String a) {
+	TryCatch tc;
 	ScriptFile script(a.c_str());
-
 	script.run();
-	return script.exports();
-}
 
-static
-Object js_global() {
-	return v8::Isolate::GetCurrent()->GetCurrentContext()->Global();
+	if (tc.HasCaught())
+		tc.ReThrow();
+
+	return script.exports();
 }
 
 int main() {
@@ -70,21 +69,17 @@ int main() {
 	// Debug printing
 	vm.global_template.set("print", js_print);
 	vm.global_template.set("require", js_require);
-	vm.global_template.set("global", js_global);
 
 	// Enter script context
-	ScriptFile script("ext/js/entry.js");
-
-	// initscr();
-	// raw();
-	// start_color();
 
 	try {
+		TryCatch catcher;
+		ScriptFile script("ext/js/entry.js");
+		catcher.check();
+
 		script.run();
-		// getch();
-		// endwin();
+		catcher.check();
 	} catch (Exception e) {
-		// endwin();
 		cout << e.what() << endl;
 	}
 
