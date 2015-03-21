@@ -71,7 +71,6 @@ int main() {
 	vm.global_template.set("require", js_require);
 
 	// Enter script context
-
 	try {
 		TryCatch catcher;
 		ScriptFile script("ext/js/entry.js");
