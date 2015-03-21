@@ -28,7 +28,7 @@ struct Context {
 	{}
 
 	inline
-	Context(EngineInstance& vm);
+	Context(EngineInstance* vm);
 
 	inline
 	Context();
@@ -58,15 +58,20 @@ struct EngineInstance {
 		return isolate.get();
 	}
 
+	inline
+	v8::Isolate* get() const {
+		return isolate.get();
+	}
+
 	static inline
-	EngineInstance& current() {
-		return * (EngineInstance*) v8::Isolate::GetCurrent()->GetData(0);
+	EngineInstance* current() {
+		return (EngineInstance*) v8::Isolate::GetCurrent()->GetData(0);
 	}
 };
 
 inline
-Context::Context(EngineInstance& vm):
-	context(v8::Context::New(vm, nullptr, vm.global_template)),
+Context::Context(EngineInstance* vm):
+	context(v8::Context::New(vm->get(), nullptr, vm->global_template)),
 	context_scope(context)
 {}
 
@@ -106,7 +111,7 @@ struct ScriptFile: Context {
 		if (contents.IsEmpty()) {
 			return v8::Local<v8::Script>();
 		} else {
-			return v8::Script::Compile(contents, v8::String::NewFromUtf8(isolate, file_path));
+			return v8::Script::Compile(contents, Foreign<String>::generate(isolate, file_path));
 		}
 	}
 
@@ -132,19 +137,6 @@ struct ScriptFile: Context {
 	inline
 	v8::Local<v8::Value> run() {
 		return script->Run();
-	}
-
-	inline
-	v8::Local<v8::Value> exports() {
-		v8::Isolate* isolate = context->GetIsolate();
-		v8::Local<v8::Object> global = context->Global();
-		v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "exports");
-
-		if (global->Has(export_key)) {
-			return global->Get(export_key);
-		} else {
-			return v8::Null(isolate);
-		}
 	}
 };
 

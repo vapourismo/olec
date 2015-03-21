@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <v8.h>
+#include <cstdlib>
 
 using namespace std;
 
@@ -21,14 +22,6 @@ struct V8Initializer {
 	}
 } v8init;
 
-// static
-// Value js_require(String a) {
-// 	ScriptFile script(a.c_str());
-// 	script.run();
-
-// 	return script.exports();
-// }
-
 static
 void js_debug_log(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	for (int i = 0; i < args.Length(); i++) {
@@ -42,32 +35,53 @@ void js_debug_log(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	cout << endl;
 }
 
-template <typename T, typename... A> static
-v8::Local<v8::Object> new_object(ObjectTemplate& object_tpl, A... args) {
-	object_tpl->SetInternalFieldCount(1);
+static
+map<String, v8::Handle<v8::Value>> js_modules;
 
-	// Construct C++ type
-	T* instance = new T(args...);
-	v8::Local<v8::External> self = v8::External::New(object_tpl.isolate, instance);
+static
+Value js_require_absolute(v8::Isolate* isolate, String path) {
+	if (js_modules.count(path) > 0) {
+		return js_modules[path];
+	}
 
-	// Instantiate object
-	v8::Local<v8::Object> obj = object_tpl->NewInstance();
-	obj->SetInternalField(0, self);
+	ScriptFile script(path.c_str());
 
-	return obj;
+	v8::Local<v8::Object> global = script.context->Global();
+	global->Set(Foreign<String>::generate(isolate, "exports"), v8::Object::New(isolate));
+
+	script.run();
+
+	v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "exports");
+	Value val;
+
+	if (global->Has(export_key)) {
+		val = global->Get(export_key);
+	} else {
+		val = v8::Null(isolate);
+	}
+
+	js_modules[path] = val;
+
+	return val;
 }
 
-struct ModuleSystem {
-	map<string, v8::Local<v8::Value>> modules;
+static
+Value js_require(String path) {
+	v8::Isolate* isolate = v8::Isolate::GetCurrent();
 
-	ModuleSystem() {
+	if (path.empty())
+		return v8::Null(isolate);
 
+	if (path[0] == '/') {
+		return js_require_absolute(isolate, path);
 	}
 
-	Value require(String file) {
-		return Foreign<String>::generate(EngineInstance::current(), file);
-	}
-};
+	char* realpath_cstr = realpath(path.c_str(), nullptr);
+	path.assign(realpath_cstr);
+	free(realpath_cstr);
+
+	return js_require_absolute(isolate, path);
+}
 
 EngineInstance::EngineInstance():
 	isolate(v8::Isolate::New()),
@@ -82,20 +96,9 @@ EngineInstance::EngineInstance():
 	ObjectTemplate debug_tpl(isolate.get());
 	debug_tpl.set("log", v8::FunctionTemplate::New(isolate.get(), js_debug_log));
 
-	// Module Class
-	// ObjectTemplate module_tpl(isolate.get());
-
-	// MethodTemplate<ModuleSystem, Value, String> module_require_tpl(isolate.get(), &ModuleSystem::require);
-	// module_tpl.set("require", module_require_tpl);
-
-	ClassTemplate<ModuleSystem> module_tpl(isolate.get());
-	module_tpl.method("require", &ModuleSystem::require);
-
 	// Register fields
 	global_template.set("debug", debug_tpl);
-	global_template.set("module", module_tpl.instantiate());
-	// global_template.set("module", new_object<ModuleSystem>(module_tpl));
-	// global_template.set("require", js_require);
+	global_template.set("require", js_require);
 }
 
 }
