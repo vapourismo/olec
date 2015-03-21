@@ -41,11 +41,6 @@ struct EngineInstance {
 	operator v8::Isolate*() const {
 		return isolate.get();
 	}
-
-	inline
-	void require(const char* file_path) {
-
-	}
 };
 
 /**
