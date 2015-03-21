@@ -333,6 +333,21 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 		                      _getter<AR>, _setter<AR>,
 		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
 	}
+
+	/**
+	 * Instantiate this class
+	 */
+	v8::Local<v8::Object> instantiate(A... args) {
+		// Construct C++ type
+		v8::Local<v8::External> self = v8::External::New(isolate, new T(args...));
+
+		// Instantiate object
+		v8::Local<v8::Object> obj = instance->NewInstance();
+		obj->SetPrototype(prototype->NewInstance());
+		obj->SetInternalField(0, self);
+
+		return obj;
+	}
 };
 
 }
