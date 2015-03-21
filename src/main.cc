@@ -73,6 +73,7 @@ int main() {
 	// Enter script context
 	try {
 		TryCatch catcher;
+
 		ScriptFile script("ext/js/entry.js");
 		catcher.check();
 

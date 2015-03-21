@@ -71,19 +71,30 @@ struct ScriptFile: Context {
 		std::string contents;
 		std::ifstream source(file_path);
 
-		source.seekg(0, std::ios::end);
-		contents.reserve(source.tellg());
+		if (source) {
+			source.seekg(0, std::ios::end);
+			contents.reserve(source.tellg());
 
-		source.seekg(0, std::ios::beg);
-		contents.assign(std::istreambuf_iterator<char>(source), std::istreambuf_iterator<char>());
+			source.seekg(0, std::ios::beg);
+			contents.assign(std::istreambuf_iterator<char>(source), std::istreambuf_iterator<char>());
 
-		return v8::String::NewFromUtf8(isolate, contents.c_str());
+			return v8::String::NewFromUtf8(isolate, contents.c_str());
+		} else {
+			std::string exc_message = "ScriptError: Cannot open file '" + std::string(file_path) + "'";
+			isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+			return v8::Local<v8::String>();
+		}
 	}
 
 	static inline
 	v8::Local<v8::Script> compile(v8::Isolate* isolate, const char* file_path) {
 		v8::Local<v8::String> contents = read(isolate, file_path);
-		return v8::Script::Compile(contents, v8::String::NewFromUtf8(isolate, file_path));
+
+		if (contents.IsEmpty()) {
+			return v8::Local<v8::Script>();
+		} else {
+			return v8::Script::Compile(contents, v8::String::NewFromUtf8(isolate, file_path));
+		}
 	}
 
 	v8::Local<v8::Script> script;
