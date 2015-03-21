@@ -3,7 +3,6 @@
 
 #include "types.h"
 #include "tpls.h"
-#include "script.h"
 #include "vm.h"
 #include "exc.h"
 

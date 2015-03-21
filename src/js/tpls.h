@@ -68,8 +68,12 @@ struct FunctionTemplate<void, A...>: v8::Local<v8::FunctionTemplate> {
 	 * Construct a Function Template
 	 */
 	FunctionTemplate(v8::Isolate* isolate, std::function<void(A...)> func):
-		v8::Local<v8::FunctionTemplate>(v8::FunctionTemplate::New(isolate, _function,
-		                                v8::External::New(isolate, new std::function<void(A...)> {func})))
+		v8::Local<v8::FunctionTemplate>(
+			v8::FunctionTemplate::New(
+				isolate, _function,
+				v8::External::New(isolate, new std::function<void(A...)> {func})
+			)
+		)
 	{}
 };
 

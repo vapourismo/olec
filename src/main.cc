@@ -39,51 +39,54 @@
 #include <iostream>
 #include <string>
 #include <v8.h>
+#include <ncurses.h>
 
 using namespace std;
-using namespace v8;
 using namespace olec;
-
-struct MyObject {
-	js::Boolean a;
-	js::Integer b;
-	js::Number c;
-
-	MyObject(js::Boolean a, js::Integer b, js::Number c):
-		a(a), b(b), c(c)
-	{}
-
-	js::Number method(js::String d) {
-		cout << a << ", " << b << ", " << c << ", " << d << endl;
-		return 13.37;
-	}
-};
+using namespace olec::js;
 
 static
-void js_print(js::Value a) {
+void js_print(Value a) {
 	v8::String::Utf8Value utf8(a);
 	cout << *utf8 << endl;
 }
 
-int main() {
-	js::EngineInstance vm;
+static
+Value js_require(String a) {
+	ScriptFile script(a.c_str());
 
-	js::ObjectTemplate globals(vm);
-
-	js::ClassTemplate<MyObject, js::Boolean, js::Integer, js::Number> class_tpl(vm);
-	class_tpl.method("method", &MyObject::method);
-	class_tpl.property("b", &MyObject::b);
-
-	js::ObjectTemplate obj(vm);
-	obj.set("value", js::Foreign<js::Integer>::generate(vm, 1337));
-
-	globals.set("data", obj);
-	globals.set("Test", class_tpl);
-	globals.set("print", js_print);
-
-	js::Context context(vm, globals);
-	js::ScriptFile script(vm, "ext/js/entry.js");
 	script.run();
+	return script.exports();
+}
+
+static
+Object js_global() {
+	return v8::Isolate::GetCurrent()->GetCurrentContext()->Global();
+}
+
+int main() {
+	EngineInstance vm;
+
+	// Debug printing
+	vm.global_template.set("print", js_print);
+	vm.global_template.set("require", js_require);
+	vm.global_template.set("global", js_global);
+
+	// Enter script context
+	ScriptFile script("ext/js/entry.js");
+
+	// initscr();
+	// raw();
+	// start_color();
+
+	try {
+		script.run();
+		// getch();
+		// endwin();
+	} catch (Exception e) {
+		// endwin();
+		cout << e.what() << endl;
+	}
 
 	return 0;
 }
