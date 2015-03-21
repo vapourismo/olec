@@ -114,7 +114,7 @@ struct ScriptFile: Context {
 		v8::Isolate* isolate = context->GetIsolate();
 		v8::Local<v8::Object> global = context->Global();
 
-		global->Set(v8::String::NewFromUtf8(isolate, "export"),
+		global->Set(v8::String::NewFromUtf8(isolate, "exports"),
 		            v8::Object::New(isolate));
 	}
 
@@ -136,7 +136,7 @@ struct ScriptFile: Context {
 	v8::Local<v8::Value> exports() {
 		v8::Isolate* isolate = context->GetIsolate();
 		v8::Local<v8::Object> global = context->Global();
-		v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "export");
+		v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "exports");
 
 		if (global->Has(export_key)) {
 			return global->Get(export_key);
