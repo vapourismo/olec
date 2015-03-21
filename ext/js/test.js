@@ -1,1 +1,1 @@
-exports.value = 1337;
+debug.log("Hello World");

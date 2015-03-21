@@ -5,6 +5,8 @@
 #include <string>
 #include <v8.h>
 #include <cstdlib>
+#include <unistd.h>
+#include <libgen.h>
 
 using namespace std;
 
@@ -25,8 +27,7 @@ struct V8Initializer {
 static
 void js_debug_log(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	for (int i = 0; i < args.Length(); i++) {
-		if (i > 0)
-			cout << ' ';
+		if (i > 0) cout << ' ';
 
 		v8::String::Utf8Value str_value(args[i]->ToString());
 		cout << *str_value;
@@ -36,21 +37,56 @@ void js_debug_log(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }
 
 static
-map<String, v8::Handle<v8::Value>> js_modules;
+v8::Local<v8::StackFrame> js_get_caller(v8::Isolate* isolate) {
+	v8::Local<v8::StackTrace> trace =
+		v8::StackTrace::CurrentStackTrace(isolate, 1);
+
+	if (trace->GetFrameCount() == 0)
+		return v8::Local<v8::StackFrame>();
+	else
+		return trace->GetFrame(0);
+}
+
+static inline
+bool is_readable(const string& path) {
+	return access(path.c_str(), R_OK) == 0;
+}
 
 static
-Value js_require_absolute(v8::Isolate* isolate, String path) {
-	if (js_modules.count(path) > 0) {
-		return js_modules[path];
+Value js_require_file(v8::Isolate* isolate, String path) {
+	// Generate absolute path
+	char* realpath_cstr = realpath(path.c_str(), nullptr);
+
+	// Does the target path not exist?
+	if (!realpath_cstr) {
+		isolate->ThrowException(
+			Foreign<String>::generate(isolate, "ScriptError: Could not find '" + path + "'")
+		);
+
+		return Value();
 	}
 
+	path.assign(realpath_cstr);
+	free(realpath_cstr);
+
+	// Fetch loaded modules handle
+	map<String, v8::Handle<v8::Value>>& modules = EngineInstance::current()->modules;
+
+	// Is module already present?
+	if (modules.count(path) > 0)
+		return modules[path];
+
+	// Compile script
 	ScriptFile script(path.c_str());
 
+	// Setup gloal environment
 	v8::Local<v8::Object> global = script.context->Global();
 	global->Set(Foreign<String>::generate(isolate, "exports"), v8::Object::New(isolate));
 
+	// Launch script
 	script.run();
 
+	// Fetch exports
 	v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "exports");
 	Value val;
 
@@ -60,7 +96,8 @@ Value js_require_absolute(v8::Isolate* isolate, String path) {
 		val = v8::Null(isolate);
 	}
 
-	js_modules[path] = val;
+	// Submit exports
+	modules[path] = val;
 
 	return val;
 }
@@ -72,15 +109,32 @@ Value js_require(String path) {
 	if (path.empty())
 		return v8::Null(isolate);
 
-	if (path[0] == '/') {
-		return js_require_absolute(isolate, path);
+	// Absolute path
+	if (path[0] == '/')
+		return js_require_file(isolate, path);
+
+	// Get caller
+	v8::Local<v8::StackFrame> caller = js_get_caller(isolate);
+	v8::String::Utf8Value script_name(caller->GetScriptName());
+
+	// Get the script's directory
+	char* script_dir_cstr = dirname(*script_name);
+	String script_dir = script_dir_cstr ? script_dir_cstr : ".";
+
+	String local_path = script_dir + "/" + path;
+
+	if (path.substr(0, 2) == "./" || is_readable(local_path)) {
+		return js_require_file(isolate, local_path);
+	} else if (is_readable(path)) {
+		return js_require_file(isolate, path);
+	} else {
+		// In case the file could not be found
+		isolate->ThrowException(
+			Foreign<String>::generate(isolate, "ScriptError: Could not find '" + path + "' or '" + local_path + "'")
+		);
+
+		return Value();
 	}
-
-	char* realpath_cstr = realpath(path.c_str(), nullptr);
-	path.assign(realpath_cstr);
-	free(realpath_cstr);
-
-	return js_require_absolute(isolate, path);
 }
 
 EngineInstance::EngineInstance():
