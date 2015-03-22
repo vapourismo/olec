@@ -85,14 +85,4 @@ int Application::main() throw (Application::Error) {
 	return exit_status;
 }
 
-void Application::handle_event(const Event& ev) {
-	if (ev.type == Event::KeyPress) {
-		key_map.invoke(ev.info.key_press.mod, ev.info.key_press.key);
-	}
-}
-
-void Application::handle_resize(const winsize& ws) {
-	// TODO: Resize terminal memory
-}
-
 }

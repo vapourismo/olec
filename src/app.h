@@ -23,9 +23,9 @@ struct Application {
 	int ipc_fd;
 	int exit_status = 0;
 
-	KeyMap key_map;
-
 	Application(const std::string& ipc_path) throw (Error);
+
+	virtual
 	~Application();
 
 	int main() throw (Error);
@@ -36,9 +36,11 @@ struct Application {
 		event_base_loopbreak(ev_base);
 	}
 
-	void handle_event(const Event& ev);
+	virtual
+	void handle_event(const Event& ev) = 0;
 
-	void handle_resize(const winsize& ws);
+	virtual
+	void handle_resize(const winsize& ws) = 0;
 };
 
 }
