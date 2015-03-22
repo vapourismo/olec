@@ -68,17 +68,6 @@ int main(int argc, char** argv) {
 		// thing doesn't let me exit properly.
 		{
 			// Initialize V8
-			struct _V8 {
-				_V8() {
-					v8::V8::InitializeICU();
-					v8::V8::Initialize();
-				}
-
-				~_V8() {
-					v8::V8::Dispose();
-				}
-			} _v8_init;
-
 			EngineInstance vm;
 			vm.isolate->SetFatalErrorHandler([](const char* location, const char* message) {
 				cerr << "JavaScript: [" << location << "]: " << message << endl;

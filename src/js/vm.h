@@ -45,6 +45,20 @@ struct EngineInstance {
 		}
 	};
 
+	/**
+	 * Initialize and dispose global V8 state
+	 */
+	struct _V8 {
+		_V8() {
+			v8::V8::InitializeICU();
+			v8::V8::Initialize();
+		}
+
+		~_V8() {
+			v8::V8::Dispose();
+		}
+	} _v8;
+
 	std::unique_ptr<v8::Isolate, IsolateDeleter> isolate;
 	v8::Isolate::Scope isolate_scope;
 	v8::HandleScope handle_scope;
