@@ -228,7 +228,7 @@ struct Foreign<v8::UniquePersistent<v8::Object>> {
 	}
 
 	static inline
-	v8::Local<v8::Object> generate(v8::Isolate* isolate, v8::UniquePersistent<v8::Object> value) {
+	v8::Local<v8::Object> generate(v8::Isolate* isolate, v8::UniquePersistent<v8::Object>& value) {
 		return v8::Local<v8::Object>::New(isolate, value);
 	}
 };
@@ -252,8 +252,32 @@ struct Foreign<v8::UniquePersistent<v8::Value>> {
 	}
 
 	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, v8::UniquePersistent<v8::Value> value) {
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, v8::UniquePersistent<v8::Value>& value) {
 		return v8::Local<v8::Value>::New(isolate, value);
+	}
+};
+
+/**
+ * For raw values
+ */
+template <>
+struct Foreign<v8::Local<v8::Value>> {
+	static
+	constexpr const char* name = "Value";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return true;
+	}
+
+	static inline
+	v8::Local<v8::Value> extract(v8::Local<v8::Value> value) {
+		return value;
+	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, v8::Local<v8::Value> value) {
+		return value;
 	}
 };
 
