@@ -33,6 +33,7 @@ void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
 		// TODO: Resolve `case OLEC_CHILD_EXIT_RELOAD:`
 		case 1:
 			cout << "Reload child ... " << endl;
+			vte_terminal_reset(terminal, true, true);
 			term->spawn(term->child_cmdline);
 
 			break;
