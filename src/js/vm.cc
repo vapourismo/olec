@@ -42,7 +42,7 @@ bool is_readable(const string& path) {
 }
 
 static
-Value js_require_file(v8::Isolate* isolate, String path) {
+v8::Local<v8::Value> js_require_file(v8::Isolate* isolate, String path) {
 	// Generate absolute path
 	char* realpath_cstr = realpath(path.c_str(), nullptr);
 
@@ -52,18 +52,18 @@ Value js_require_file(v8::Isolate* isolate, String path) {
 			Foreign<String>::generate(isolate, "ScriptError: Could not find '" + path + "'")
 		);
 
-		return Value();
+		return v8::Null(isolate);
 	}
 
 	path.assign(realpath_cstr);
 	free(realpath_cstr);
 
 	// Fetch loaded modules handle
-	map<String, v8::Handle<v8::Value>>& modules = EngineInstance::current()->modules;
+	auto& modules = EngineInstance::current()->modules;
 
 	// Is module already present?
 	if (modules.count(path) > 0)
-		return modules[path];
+		return v8::Local<v8::Value>::New(isolate, modules[path]);
 
 	// Compile script
 	ScriptFile script(path.c_str());
@@ -77,7 +77,7 @@ Value js_require_file(v8::Isolate* isolate, String path) {
 
 	// Fetch exports
 	v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "exports");
-	Value val;
+	v8::Local<v8::Value> val;
 
 	if (global->Has(export_key)) {
 		val = global->Get(export_key);
@@ -86,13 +86,13 @@ Value js_require_file(v8::Isolate* isolate, String path) {
 	}
 
 	// Submit exports
-	modules[path] = val;
+	modules[path].Reset(isolate, val);
 
 	return val;
 }
 
 static
-Value js_require(String path) {
+v8::Local<v8::Value> js_require(String path) {
 	v8::Isolate* isolate = v8::Isolate::GetCurrent();
 
 	if (path.empty())
@@ -122,7 +122,7 @@ Value js_require(String path) {
 			Foreign<String>::generate(isolate, "ScriptError: Could not find '" + path + "' or '" + local_path + "'")
 		);
 
-		return Value();
+		return v8::Null(isolate);
 	}
 }
 

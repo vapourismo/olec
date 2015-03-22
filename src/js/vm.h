@@ -5,7 +5,6 @@
 
 #include <v8.h>
 #include <memory>
-#include <vector>
 #include <map>
 #include <fstream>
 #include <string>
@@ -52,7 +51,7 @@ struct EngineInstance {
 	Context global_context;
 
 	ObjectTemplate global_template;
-	std::map<String, v8::Handle<v8::Value>> modules;
+	std::map<String, v8::Persistent<v8::Value>> modules;
 
 	EngineInstance();
 
