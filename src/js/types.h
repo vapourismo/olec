@@ -213,6 +213,30 @@ struct Foreign<External<T>> {
  * For other values
  */
 template <>
+struct Foreign<v8::UniquePersistent<v8::Object>> {
+	static
+	constexpr const char* name = "Object";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsObject();
+	}
+
+	static inline
+	v8::UniquePersistent<v8::Object> extract(const v8::Local<v8::Value>& value) {
+		return v8::UniquePersistent<v8::Object>(v8::Isolate::GetCurrent(), value->ToObject());
+	}
+
+	static inline
+	v8::Local<v8::Object> generate(v8::Isolate* isolate, v8::UniquePersistent<v8::Object> value) {
+		return v8::Local<v8::Object>::New(isolate, value);
+	}
+};
+
+/**
+ * For other values
+ */
+template <>
 struct Foreign<v8::UniquePersistent<v8::Value>> {
 	static
 	constexpr const char* name = "Value";
