@@ -5,6 +5,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 using namespace std;
 using namespace olec;
@@ -55,13 +56,25 @@ struct ApplicationWrapper: virtual Application {
 
 int main(int argc, char** argv) {
 	char* ipc_path = getenv("OLEC_IPC");
+	char* home_path = getenv("HOME");
 
 	if (ipc_path) {
 		// Redirect cerr
-		ofstream cerr_log("error.log", ios_base::app);
+		ofstream cerr_log(string(home_path ? home_path : ".") + "/.olec.log", ios_base::app);
 		cerr.rdbuf(cerr_log.rdbuf());
 
 		int exit_status = 2;
+
+		// Figure where the executable is
+		char* argc_real_cstr = realpath(argv[0], nullptr);
+
+		if (!argc_real_cstr) {
+			cerr << "Failed to determine realpath of '" << argv[0] << "'" << endl;
+			return 2;
+		}
+
+		string exe_dir(dirname(argc_real_cstr));
+		free(argc_real_cstr);
 
 		// Create seperate scope for all V8 tasks
 		// because for some fucking reason the damn
@@ -88,7 +101,8 @@ int main(int argc, char** argv) {
 			try {
 				TryCatch catcher;
 
-				ScriptFile script("ext/js/entry.js");
+				cerr << "Script: Launching entry point '" << exe_dir << "/ext/js/entry.js'" << endl;
+				ScriptFile script(exe_dir + "/ext/js/entry.js");
 				catcher.check();
 
 				script.run();
