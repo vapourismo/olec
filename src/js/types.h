@@ -35,16 +35,6 @@ using UnsignedInteger = uint32_t;
 using String = std::string;
 
 /**
- * JavaScript Object Type
- */
-using Object = v8::Local<v8::Object>;
-
-/**
- * JavaScript Generic Type
- */
-using Value = v8::Local<v8::Value>;
-
-/**
  * JavaScript External Type
  */
 template <typename T>
@@ -185,60 +175,12 @@ struct Foreign<String> {
 	static inline
 	String extract(const v8::Local<v8::Value>& value) {
 		v8::String::Utf8Value strval(value);
-		return *strval;
+		return String(*strval ? *strval : "<none>");
 	}
 
 	static inline
 	v8::Local<v8::String> generate(v8::Isolate* isolate, String value) {
 		return v8::String::NewFromUtf8(isolate, value.c_str());
-	}
-};
-
-/**
- * For object values
- */
-template <>
-struct Foreign<Object> {
-	static
-	constexpr const char* name = "Object";
-
-	static inline
-	bool check(const v8::Local<v8::Value>& value) {
-		return value->IsObject();
-	}
-
-	static inline
-	Object extract(const v8::Local<v8::Value>& value) {
-		return value->ToObject();
-	}
-
-	static inline
-	v8::Local<v8::Object> generate(v8::Isolate* isolate, Object value) {
-		return value;
-	}
-};
-
-/**
- * For generic values
- */
-template <>
-struct Foreign<Value> {
-	static
-	constexpr const char* name = "Value";
-
-	static inline
-	bool check(const v8::Local<v8::Value>& value) {
-		return true;
-	}
-
-	static inline
-	Value extract(const v8::Local<v8::Value>& value) {
-		return value;
-	}
-
-	static inline
-	v8::Local<v8::Value> generate(v8::Isolate* isolate, Value value) {
-		return value;
 	}
 };
 
