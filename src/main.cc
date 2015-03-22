@@ -39,11 +39,11 @@ struct ApplicationWrapper: virtual Application {
 		    ev.info.key_press.mod == GDK_CONTROL_MASK &&
 		    ev.info.key_press.key == 'q') {
 
-	    	exit();
-		    return;
-	    }
+			exit();
+			return;
+		}
 
-	    v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
+		v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
 		if (!eh.IsEmpty() && eh->IsCallable()) {
 			eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
 		}
