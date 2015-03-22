@@ -1,10 +1,11 @@
 #ifndef OLEC_COMM_H_
 #define OLEC_COMM_H_
 
-#include <cstdint>
 #include <string>
 #include <list>
 #include <iostream>
+#include <thread>
+#include <cstdint>
 #include <cassert>
 
 #include <sys/socket.h>
@@ -15,6 +16,7 @@
 
 #include <gdk/gdk.h>
 #include <event2/event.h>
+#include <event2/thread.h>
 
 namespace olec {
 
@@ -274,6 +276,35 @@ struct EventNode {
 
 	virtual
 	void handle(const T& data) = 0;
+};
+
+struct _EvThreadSetup {
+	inline
+	_EvThreadSetup() {
+		assert(evthread_use_pthreads() == 0);
+	}
+};
+
+/**
+ * Threaded event hub
+ */
+template <typename T>
+struct ThreadedEventHub: _EvThreadSetup, EventHub<T> {
+	static void thread_worker(ThreadedEventHub<T>* self) {
+		self->dispatch();
+	}
+
+	std::thread worker;
+
+	ThreadedEventHub(const std::string& un_path):
+		EventHub<T>(un_path),
+		worker(thread_worker, this)
+	{}
+
+	~ThreadedEventHub() {
+		EventHub<T>::exit();
+		worker.join();
+	}
 };
 
 }
