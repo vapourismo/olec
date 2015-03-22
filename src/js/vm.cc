@@ -13,17 +13,6 @@ using namespace std;
 namespace olec {
 namespace js {
 
-struct V8Initializer {
-	V8Initializer() {
-		v8::V8::InitializeICU();
-		v8::V8::Initialize();
-	}
-
-	~V8Initializer() {
-		v8::V8::Dispose();
-	}
-} v8init;
-
 static
 void js_debug_log(const v8::FunctionCallbackInfo<v8::Value>& args) {
 	for (int i = 0; i < args.Length(); i++) {
