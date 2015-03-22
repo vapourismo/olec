@@ -10,6 +10,25 @@ namespace olec {
 namespace js {
 
 /**
+ * Anchor a JavaScript value to a C++ context.
+ */
+template <typename T>
+struct Anchor: v8::Persistent<T> {
+	inline
+	Anchor(v8::Handle<T> other):
+		v8::Persistent<T>(v8::Isolate::GetCurrent(), other)
+	{}
+
+	/**
+	 * Rematerialize the handle.
+	 */
+	inline
+	v8::Local<T> get(v8::Isolate* isolate) {
+		return v8::Local<T>::New(isolate, *this);
+	}
+};
+
+/**
  * JavaScript Number Type
  */
 using Boolean = bool;
