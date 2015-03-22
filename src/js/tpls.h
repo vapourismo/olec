@@ -233,13 +233,22 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 	}
 
 	static
-	void _destruct(const v8::WeakCallbackData<v8::External, T>& data) {
+	void _destruct(const v8::WeakCallbackData<v8::External, v8::UniquePersistent<v8::External>>& data) {
+		// Get handle
+		v8::Local<v8::External> self =
+			v8::Local<v8::External>::New(data.GetIsolate(), *data.GetParameter());
+		T* instance = Foreign<External<T>>::extract(self);
+
+		// Delete class instance
+		delete instance;
+
+		// Delete persistent handle
 		delete data.GetParameter();
 	}
 
 	static
 	void _constructor(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		v8::Isolate* isolate = args.GetIsolate();
+		v8::Isolate* isolate = v8::Isolate::GetCurrent();
 
 		// Check argument types
 		if (args.IsConstructCall() && check<A...>(args)) {
@@ -248,8 +257,9 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 			v8::Local<v8::External> self = v8::External::New(isolate, instance);
 
 			// Construct reference and destructor
-			v8::UniquePersistent<v8::External> self_p(isolate, self);
-			self_p.SetWeak(instance, _destruct);
+			v8::UniquePersistent<v8::External>* self_p =
+				new v8::UniquePersistent<v8::External>(isolate, self);
+			self_p->SetWeak(self_p, _destruct);
 
 			args.This()->SetInternalField(0, self);
 		}
