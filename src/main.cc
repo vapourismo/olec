@@ -102,6 +102,8 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		cerr_log.close();
+
 		// Don't ask ...
 		exit(exit_status);
 		return exit_status;
