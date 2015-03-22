@@ -1,7 +1,7 @@
 #ifndef OLEC_TERMINAL_H_
 #define OLEC_TERMINAL_H_
 
-#include "ipc.h"
+#include "events.h"
 
 #include <gtk/gtk.h>
 #include <vte/vte.h>
@@ -23,6 +23,16 @@ struct TerminalConfig {
  */
 extern
 const TerminalConfig default_config;
+
+/**
+ * Terminal event hub
+ */
+struct TerminalEventHub: ThreadedEventHub<Event> {
+	TerminalEventHub();
+
+	virtual
+	void handle(const Event& event);
+};
 
 /**
  * Virtual terminal window
@@ -55,19 +65,13 @@ struct Terminal {
 
 	std::vector<std::string> child_cmdline;
 
-	std::string ipc_path;
-	int ipc_fd = -1;
+	TerminalEventHub event_hub;
 
 	/**
 	 * Create a terminal window and configure the virtual terminal emulator
 	 * using the given configuration.
 	 */
 	Terminal(const TerminalConfig& config = default_config) throw (Error);
-
-	/**
-	 * Free resources
-	 */
-	~Terminal();
 
 	/**
 	 * Show the window and its children.
