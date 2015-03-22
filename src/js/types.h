@@ -10,25 +10,6 @@ namespace olec {
 namespace js {
 
 /**
- * Anchor a JavaScript value to a C++ context.
- */
-template <typename T>
-struct Anchor: v8::Persistent<T> {
-	inline
-	Anchor(v8::Handle<T> other):
-		v8::Persistent<T>(v8::Isolate::GetCurrent(), other)
-	{}
-
-	/**
-	 * Rematerialize the handle.
-	 */
-	inline
-	v8::Local<T> get(v8::Isolate* isolate) {
-		return v8::Local<T>::New(isolate, *this);
-	}
-};
-
-/**
  * JavaScript Number Type
  */
 using Boolean = bool;
@@ -225,6 +206,30 @@ struct Foreign<External<T>> {
 	static inline
 	v8::Local<v8::External> generate(v8::Isolate* isolate, External<T> value) {
 		return v8::External::New(isolate, value);
+	}
+};
+
+/**
+ * For other values
+ */
+template <>
+struct Foreign<v8::UniquePersistent<v8::Value>> {
+	static
+	constexpr const char* name = "Value";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return true;
+	}
+
+	static inline
+	v8::UniquePersistent<v8::Value> extract(v8::Local<v8::Value> value) {
+		return v8::UniquePersistent<v8::Value>(v8::Isolate::GetCurrent(), value);
+	}
+
+	static inline
+	v8::Local<v8::Value> generate(v8::Isolate* isolate, v8::UniquePersistent<v8::Value> value) {
+		return v8::Local<v8::Value>::New(isolate, value);
 	}
 };
 
