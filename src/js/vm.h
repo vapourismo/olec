@@ -2,6 +2,7 @@
 #define OLEC_JS_VM_H_
 
 #include "tpls.h"
+#include "types.h"
 
 #include <v8.h>
 #include <memory>
@@ -81,7 +82,7 @@ struct EngineInstance {
 
 	static inline
 	EngineInstance* current() {
-		return (EngineInstance*) v8::Isolate::GetCurrent()->GetData(0);
+		return static_cast<EngineInstance*>(v8::Isolate::GetCurrent()->GetData(0));
 	}
 };
 
@@ -101,7 +102,7 @@ Context::Context():
  */
 struct ScriptFile: Context {
 	static inline
-	v8::Local<v8::String> read(v8::Isolate* isolate, const char* file_path) {
+	v8::Local<v8::String> read(v8::Isolate* isolate, const String& file_path) {
 		std::string contents;
 		std::ifstream source(file_path);
 
@@ -112,16 +113,16 @@ struct ScriptFile: Context {
 			source.seekg(0, std::ios::beg);
 			contents.assign(std::istreambuf_iterator<char>(source), std::istreambuf_iterator<char>());
 
-			return v8::String::NewFromUtf8(isolate, contents.c_str());
+			return Foreign<String>::generate(isolate, contents);
 		} else {
-			std::string exc_message = "ScriptError: Cannot open file '" + std::string(file_path) + "'";
-			isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+			std::string exc_message = "ScriptError: Cannot open file '" + file_path + "'";
+			isolate->ThrowException(Foreign<String>::generate(isolate, exc_message));
 			return v8::Local<v8::String>();
 		}
 	}
 
 	static inline
-	v8::Local<v8::Script> compile(v8::Isolate* isolate, const char* file_path) {
+	v8::Local<v8::Script> compile(v8::Isolate* isolate, const String& file_path) {
 		v8::Local<v8::String> contents = read(isolate, file_path);
 
 		if (contents.IsEmpty()) {
@@ -137,13 +138,13 @@ struct ScriptFile: Context {
 	 * Load script from `file_path`
 	 */
 	inline
-	ScriptFile(const char* file_path):
+	ScriptFile(const String& file_path):
 		script(compile(context->GetIsolate(), file_path))
 	{
 		v8::Isolate* isolate = context->GetIsolate();
 		v8::Local<v8::Object> global = context->Global();
 
-		global->Set(v8::String::NewFromUtf8(isolate, "exports"),
+		global->Set(Foreign<String>::generate(isolate, "exports"),
 		            v8::Object::New(isolate));
 	}
 
