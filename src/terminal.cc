@@ -67,7 +67,7 @@ Terminal::Terminal(const TerminalConfig& config) throw (Terminal::Error):
 	gtk_window_set_wmclass(window, "olec", "olec");
 
 	// Connect signals
-	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), nullptr);
 	g_signal_connect(window, "key-press-event", G_CALLBACK(cb_key_press), this);
 	g_signal_connect(terminal, "child-exited", G_CALLBACK(cb_child_exit), this);
 
@@ -85,14 +85,19 @@ Terminal::Terminal(const TerminalConfig& config) throw (Terminal::Error):
 	for (size_t i = 0; i < 16; i++)
 		gdk_rgba_parse(term_palette + i, config.palette[i] ? config.palette[i] : "#ffffff");
 
-	vte_terminal_set_colors(terminal, NULL, NULL, term_palette, 16);
+	vte_terminal_set_colors(terminal, nullptr, nullptr, term_palette, 16);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(terminal, true);
-	vte_terminal_set_encoding(terminal, "UTF-8", NULL);
+	vte_terminal_set_encoding(terminal, "UTF-8", nullptr);
 	vte_terminal_set_cursor_shape(terminal, VTE_CURSOR_SHAPE_IBEAM);
 	vte_terminal_set_cursor_blink_mode(terminal, VTE_CURSOR_BLINK_OFF);
 	vte_terminal_set_scrollback_lines(terminal, 0);
+}
+
+Terminal::~Terminal() {
+	g_signal_handlers_disconnect_by_data(window, this);
+	g_signal_handlers_disconnect_by_data(terminal, this);
 }
 
 void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::Error) {
@@ -101,13 +106,13 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 	transform(cmdline.begin(), cmdline.end(), cstr_cmdline.begin(), [](const std::string& str) {
 		return const_cast<char*>(str.c_str());
 	});
-	cstr_cmdline[cmdline.size()] = NULL;
+	cstr_cmdline[cmdline.size()] = nullptr;
 
 	// Setup environment
 	string env_tag = "OLEC_IPC=" + event_hub.path;
 	char* environment[] = {
 		const_cast<char*>(env_tag.c_str()),
-		NULL
+		nullptr
 	};
 
 	// Save command line for respawning
@@ -117,13 +122,13 @@ void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::E
 	GPid child_pid;
 	if (!vte_terminal_spawn_sync(terminal,
 	                             VTE_PTY_DEFAULT,
-	                             NULL,
+	                             nullptr,
 	                             cstr_cmdline.data(),
 	                             environment,
 	                             G_SPAWN_DEFAULT,
-	                             NULL, NULL,
+	                             nullptr, nullptr,
 	                             &child_pid,
-	                             NULL, NULL))
+	                             nullptr, nullptr))
 		throw SpawnChildFailed;
 
 	// Watch child so we get to handle a 'child-exited' event

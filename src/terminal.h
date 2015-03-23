@@ -73,6 +73,8 @@ struct Terminal {
 	 */
 	Terminal(const TerminalConfig& config = default_config) throw (Error);
 
+	~Terminal();
+
 	/**
 	 * Show the window and its children.
 	 */
