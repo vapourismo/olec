@@ -2,6 +2,7 @@
 #include "app.h"
 #include "js/js.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
@@ -35,7 +36,7 @@ struct ApplicationWrapper: virtual Application {
 	}
 
 	virtual
-	void handle_event(const Event& ev) {
+	void handle(const Event& ev) {
 		if (ev.type == Event::KeyPress &&
 		    ev.info.key_press.mod == GDK_CONTROL_MASK &&
 		    ev.info.key_press.key == 'q') {
@@ -51,15 +52,13 @@ struct ApplicationWrapper: virtual Application {
 	}
 
 	virtual
-	void handle_resize(const winsize& ws) {}
+	void resize(const winsize& ws) {}
 };
 
 int main(int argc, char** argv) {
-	char* ipc_path = getenv("OLEC_IPC");
-	char* home_path = getenv("HOME");
-
-	if (ipc_path) {
+	if (getenv("OLEC_IPC")) {
 		// Redirect cerr
+		char* home_path = getenv("HOME");
 		ofstream cerr_log(string(home_path ? home_path : ".") + "/.olec.log", ios_base::app);
 		cerr.rdbuf(cerr_log.rdbuf());
 
@@ -111,11 +110,10 @@ int main(int argc, char** argv) {
 				exit_status = app.exit_status;
 			} catch (Exception e) {
 				cerr << "JavaScript: " << e.what() << endl;
-			} catch (Application::Error e) {
-				cerr << "Application: " << e << endl;
 			}
 		}
 
+		cerr << "Main: Exit with " << exit_status << endl;
 		cerr_log.close();
 
 		// Don't ask ...
