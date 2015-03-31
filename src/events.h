@@ -1,21 +1,8 @@
 #ifndef OLEC_COMM_H_
 #define OLEC_COMM_H_
 
-#include <string>
-#include <list>
-#include <thread>
-#include <cstdint>
-#include <cassert>
-
-#include <sys/socket.h>
-#include <sys/un.h>
-
-#include <unistd.h>
-#include <string.h>
-
 #include <gdk/gdk.h>
 #include <event2/event.h>
-#include <event2/thread.h>
 
 namespace olec {
 
@@ -63,12 +50,12 @@ struct Event {
 /**
  * Send a chunk of data in it's entirety.
  */
-bool send_entirely(int fd, const void* data, size_t rem);
+bool send_entirely(int fd, const void* data, size_t len);
 
 /**
  * Receive the requested amount of bytes.
  */
-bool receive_entirely(int fd, void* data, size_t rem);
+bool receive_entirely(int fd, void* data, size_t len);
 
 }
 
