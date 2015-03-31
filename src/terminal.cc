@@ -96,8 +96,8 @@ Terminal::Terminal(const TerminalConfig& config) throw (Terminal::Error):
 }
 
 Terminal::~Terminal() {
-	g_signal_handlers_disconnect_by_data(window, this);
-	g_signal_handlers_disconnect_by_data(terminal, this);
+	// g_signal_handlers_disconnect_by_data(window, this);
+	// g_signal_handlers_disconnect_by_data(terminal, this);
 }
 
 void Terminal::spawn(const std::vector<std::string>& cmdline) throw (Terminal::Error) {
