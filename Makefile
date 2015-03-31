@@ -14,7 +14,7 @@ BASENAME        = olec
 SRCDIR          = src
 
 # Artifacts
-FILES           = main.cc terminal.cc app.cc keymap.cc events.cc js/vm.cc
+FILES           = main.cc terminal.cc app.cc keymap.cc anchor.cc events.cc js/vm.cc
 OBJS            = $(FILES:%.cc=$(SRCDIR)/%.o)
 DEPS            = $(FILES:%.cc=$(SRCDIR)/%.d)
 EXEOUTPUT       = $(BASENAME)
@@ -35,7 +35,7 @@ CXXFLAGS        += -std=c++11 -O2 -fmessage-length=0 \
                    $(shell pkg-config --cflags gtk+-3.0 vte-2.91)
 LDFLAGS         += -flto
 LDLIBS          := $(shell pkg-config --libs gtk+-3.0 vte-2.91) \
-                   -lncurses -levent -levent_pthreads -lv8
+                   -lncurses -levent -levent_pthreads -lv8 -lutil
 
 # Default Targets
 all: $(EXEOUTPUT)
