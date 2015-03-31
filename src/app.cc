@@ -21,41 +21,31 @@ void cb_event_dispatch(int data, short what, Application* app) {
 	}
 }
 
-Application::Application(const std::string& ipc_path):
-	EventNode<Event>(ipc_path)
-{
+Application::Application() {
 	// Allocate events
-	ev_resize =
-		event_new(ev_base, SIGWINCH, EV_PERSIST | EV_SIGNAL,
-		          (event_callback_fn) cb_event_dispatch, this);
-	ev_reload =
-		event_new(ev_base, SIGUSR1, EV_PERSIST | EV_SIGNAL,
-		          (event_callback_fn) cb_event_dispatch, this);
+	// ev_resize =
+	// 	event_new(ev_base, SIGWINCH, EV_PERSIST | EV_SIGNAL,
+	// 	          (event_callback_fn) cb_event_dispatch, this);
 }
 
 Application::~Application() {
 	// Free events
-	event_free(ev_resize);
-	event_free(ev_reload);
+	// event_free(ev_resize);
 }
 
 void Application::exit(int status) {
 	exit_status = status;
 
 	// Remove events
-	event_del(ev_resize);
-	event_del(ev_reload);
-
-	EventNode<Event>::exit();
+	// event_del(ev_resize);
 }
 
 void Application::main() {
 	// Add events
-	event_add(ev_resize, nullptr);
-	event_add(ev_reload, nullptr);
+	// event_add(ev_resize, nullptr);
 
 	// Dispatch events
-	dispatch();
+	// dispatch();
 }
 
 }

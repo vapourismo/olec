@@ -1,6 +1,6 @@
 var counter = 0;
 
-application.eventHandler = function () {
+application.eventHandler = function() {
 	debug.log(this, counter++);
 }
 

@@ -1,3 +1,4 @@
+#include "anchor.h"
 #include "terminal.h"
 #include "app.h"
 #include "js/js.h"
@@ -12,72 +13,63 @@ using namespace std;
 using namespace olec;
 using namespace olec::js;
 
-struct ApplicationWrapper: virtual Application {
+struct ApplicationWrapper {
 	v8::Isolate* isolate;
 	v8::UniquePersistent<v8::Object> event_handler;
 
 	ApplicationWrapper():
-		Application(getenv("OLEC_IPC")),
 		isolate(v8::Isolate::GetCurrent())
 	{
 		event_handler.Reset(isolate, FunctionTemplate<void>(isolate, [](){})->GetFunction());
 	}
 
-	void reload() {
-		Application::exit(1);
-	}
-
-	void exit(Integer status = 0) {
-		Application::exit(status);
-	}
-
 	void main() {
-		Application::main();
+
 	}
 
-	virtual
-	void handle(const Event& ev) {
-		if (ev.type == Event::KeyPress &&
-		    ev.info.key_press.mod == GDK_CONTROL_MASK &&
-		    ev.info.key_press.key == 'q') {
+	// void handle(const Event& ev) {
+	// 	if (ev.type == Event::KeyPress &&
+	// 	    ev.info.key_press.mod == GDK_CONTROL_MASK &&
+	// 	    ev.info.key_press.key == 'q') {
 
-			exit();
-			return;
-		}
+	// 		exit();
+	// 		return;
+	// 	}
 
-		v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
-		if (!eh.IsEmpty() && eh->IsCallable()) {
-			eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
-		}
-	}
+	// 	v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
+	// 	if (!eh.IsEmpty() && eh->IsCallable()) {
+	// 		eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
+	// 	}
+	// }
 
-	virtual
-	void resize(const winsize& ws) {}
+	// void resize(const winsize& ws) {
+
+	// }
 };
 
 int main(int argc, char** argv) {
-	if (getenv("OLEC_IPC")) {
-		// Redirect cerr
-		char* home_path = getenv("HOME");
-		ofstream cerr_log(string(home_path ? home_path : ".") + "/.olec.log", ios_base::app);
-		cerr.rdbuf(cerr_log.rdbuf());
+	Anchor a;
 
-		int exit_status = 2;
+	if (a) {
+		gtk_init(&argc, &argv);
 
-		// Figure where the executable is
+		Terminal term(a);
+		term.show();
+
+		gtk_main();
+	} else {
+		// Figure where the executable is located
 		char* argc_real_cstr = realpath(argv[0], nullptr);
 
 		if (!argc_real_cstr) {
 			cerr << "Failed to determine realpath of '" << argv[0] << "'" << endl;
-			return 2;
+			return 1;
 		}
 
 		string exe_dir(dirname(argc_real_cstr));
 		free(argc_real_cstr);
 
 		// Create seperate scope for all V8 tasks
-		// because for some fucking reason the damn
-		// thing doesn't let me exit properly.
 		{
 			// Initialize V8
 			EngineInstance vm;
@@ -87,8 +79,6 @@ int main(int argc, char** argv) {
 
 			// Application wrapper
 			ClassTemplate<ApplicationWrapper> app_wrapper(vm);
-			app_wrapper.method("reload", &ApplicationWrapper::reload);
-			app_wrapper.method("exit", &ApplicationWrapper::exit);
 			app_wrapper.method("main", &ApplicationWrapper::main);
 			app_wrapper.property("eventHandler", &ApplicationWrapper::event_handler);
 
@@ -106,28 +96,12 @@ int main(int argc, char** argv) {
 
 				script.run();
 				catcher.check();
-
-				exit_status = app.exit_status;
 			} catch (Exception e) {
 				cerr << "JavaScript: " << e.what() << endl;
+				return 1;
 			}
 		}
-
-		cerr << "Main: Exit with " << exit_status << endl;
-		cerr_log.close();
-
-		// Don't ask ...
-		exit(exit_status);
-		return exit_status;
-	} else {
-		gtk_init(&argc, &argv);
-
-		Terminal term;
-
-		term.spawn({argv[0]});
-		term.show();
-
-		gtk_main();
-		return 0;
 	}
+
+	return 0;
 }

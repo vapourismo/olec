@@ -1,6 +1,7 @@
 #ifndef OLEC_TERMINAL_H_
 #define OLEC_TERMINAL_H_
 
+#include "anchor.h"
 #include "events.h"
 
 #include <gtk/gtk.h>
@@ -23,16 +24,6 @@ struct TerminalConfig {
  */
 extern
 const TerminalConfig default_config;
-
-/**
- * Terminal event hub
- */
-struct TerminalEventHub: ThreadedEventHub<Event> {
-	TerminalEventHub();
-
-	virtual
-	void handle(const Event& event);
-};
 
 /**
  * Virtual terminal window
@@ -60,20 +51,16 @@ struct Terminal {
 		SpawnChildFailed
 	};
 
+	const Anchor& anchor;
+
 	GtkWindow* window;
 	VteTerminal* terminal;
-
-	std::vector<std::string> child_cmdline;
-
-	TerminalEventHub event_hub;
 
 	/**
 	 * Create a terminal window and configure the virtual terminal emulator
 	 * using the given configuration.
 	 */
-	Terminal(const TerminalConfig& config = default_config) throw (Error);
-
-	~Terminal();
+	Terminal(const Anchor& anchor, const TerminalConfig& config = default_config) throw (Error);
 
 	/**
 	 * Show the window and its children.
@@ -82,11 +69,6 @@ struct Terminal {
 	void show() {
 		gtk_widget_show_all(GTK_WIDGET(window));
 	}
-
-	/**
-	 * Spawn a process to be display by the terminal.
-	 */
-	void spawn(const std::vector<std::string>& cmdline) throw (Error);
 };
 
 }

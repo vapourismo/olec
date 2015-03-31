@@ -4,20 +4,18 @@
 #include "events.h"
 #include "keymap.h"
 
-#include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <event2/event.h>
 
 namespace olec {
 
-struct Application: EventNode<Event> {
+struct Application {
 	int exit_status = 0;
 
 	event* ev_resize;
-	event* ev_reload;
 
-	Application(const std::string& ipc_path);
+	Application();
 
 	virtual
 	~Application();
