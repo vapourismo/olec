@@ -13,38 +13,39 @@ using namespace std;
 using namespace olec;
 using namespace olec::js;
 
-struct ApplicationWrapper {
+struct ApplicationWrapper: Application {
 	v8::Isolate* isolate;
 	v8::UniquePersistent<v8::Object> event_handler;
 
-	ApplicationWrapper():
+	ApplicationWrapper(const Anchor& anchor):
+		Application(anchor),
 		isolate(v8::Isolate::GetCurrent())
 	{
 		event_handler.Reset(isolate, FunctionTemplate<void>(isolate, [](){})->GetFunction());
 	}
 
 	void main() {
-
+		dispatch();
 	}
 
-	// void handle(const Event& ev) {
-	// 	if (ev.type == Event::KeyPress &&
-	// 	    ev.info.key_press.mod == GDK_CONTROL_MASK &&
-	// 	    ev.info.key_press.key == 'q') {
+	void event(const Event& ev) {
+		if (ev.type == Event::KeyPress &&
+		    ev.info.key_press.mod == GDK_CONTROL_MASK &&
+		    ev.info.key_press.key == 'q') {
 
-	// 		exit();
-	// 		return;
-	// 	}
+			quit();
+			return;
+		}
 
-	// 	v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
-	// 	if (!eh.IsEmpty() && eh->IsCallable()) {
-	// 		eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
-	// 	}
-	// }
+		v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
+		if (!eh.IsEmpty() && eh->IsCallable()) {
+			eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
+		}
+	}
 
-	// void resize(const winsize& ws) {
+	void resize(const winsize& ws) {
 
-	// }
+	}
 };
 
 int main(int argc, char** argv) {
@@ -77,20 +78,28 @@ int main(int argc, char** argv) {
 				cerr << "JavaScript: [" << location << "]: " << message << endl;
 			});
 
-			// Application wrapper
-			ClassTemplate<ApplicationWrapper> app_wrapper(vm);
-			app_wrapper.method("main", &ApplicationWrapper::main);
-			app_wrapper.property("eventHandler", &ApplicationWrapper::event_handler);
+			// // Application wrapper
+			// ClassTemplate<ApplicationWrapper, const Anchor&> app_wrapper(vm);
+			// app_wrapper.method("main", &ApplicationWrapper::main);
+			// app_wrapper.property("eventHandler", &ApplicationWrapper::event_handler);
 
-			// Instantiate global application object
-			ApplicationWrapper app;
-			vm.global_template.set("application", app_wrapper.reuse(&app));
+			// // Instantiate global application object
+			// ApplicationWrapper app(a);
+			// vm.global_template.set("application", app_wrapper.reuse(&app));
+
+			ApplicationWrapper app(a);
+			ObjectTemplate app_tpl(vm);
+
+			app_tpl.set("main", function<void()>([&app]() {
+				app.main();
+			}));
+
+			vm.global_template.set("application", app_tpl);
 
 			// Launch the JavaScript entry point
 			try {
 				TryCatch catcher;
 
-				cerr << "Script: Launching entry point '" << exe_dir << "/ext/js/entry.js'" << endl;
 				ScriptFile script(exe_dir + "/ext/js/entry.js");
 				catcher.check();
 

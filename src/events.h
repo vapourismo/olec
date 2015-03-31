@@ -47,16 +47,6 @@ struct Event {
 	}
 };
 
-/**
- * Send a chunk of data in it's entirety.
- */
-bool send_entirely(int fd, const void* data, size_t len);
-
-/**
- * Receive the requested amount of bytes.
- */
-bool receive_entirely(int fd, void* data, size_t len);
-
 }
 
 #endif

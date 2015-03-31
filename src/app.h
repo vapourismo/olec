@@ -1,8 +1,8 @@
 #ifndef OLEC_APP_H_
 #define OLEC_APP_H_
 
+#include "anchor.h"
 #include "events.h"
-#include "keymap.h"
 
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -11,18 +11,23 @@
 namespace olec {
 
 struct Application {
-	int exit_status = 0;
+	const Anchor& anchor;
 
+	event_base* ev_base;
+	event* ev_event;
 	event* ev_resize;
 
-	Application();
+	Application(const Anchor& anchor);
 
 	virtual
 	~Application();
 
-	void main();
+	void dispatch();
 
-	void exit(int status = 0);
+	void quit();
+
+	virtual
+	void event(const Event& ev) = 0;
 
 	virtual
 	void resize(const winsize& ws) = 0;
