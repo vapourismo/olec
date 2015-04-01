@@ -9,7 +9,8 @@
 namespace olec {
 
 struct Anchor {
-	static const Anchor* self;
+	static
+	const Anchor* self;
 
 	int pty_fd = -1;
 	pid_t pid = -1;
@@ -55,7 +56,7 @@ struct Anchor {
 	};
 
 	/**
-	 *
+	 * Log a message
 	 */
 	void log(LogLevel lvl, const char* format, ...) const;
 };
