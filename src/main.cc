@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 		char* argc_real_cstr = realpath(argv[0], nullptr);
 
 		if (!argc_real_cstr) {
-			cerr << "Failed to determine realpath of '" << argv[0] << "'" << endl;
+			logerror("Failed to determine realpath of '%s'", argv[0]);
 			return 1;
 		}
 
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 			// Initialize V8
 			EngineInstance vm;
 			vm.isolate->SetFatalErrorHandler([](const char* location, const char* message) {
-				cerr << "JavaScript: [" << location << "]: " << message << endl;
+				logerror("Fatal V8 Error [%s]: %s", location, message);
 			});
 
 			// // Application wrapper
@@ -105,15 +105,15 @@ int main(int argc, char** argv) {
 
 				string js_entry = exe_dir + "/ext/js/entry.js";
 
-				a.log(Anchor::Debug, "Loading entry point '%s'", js_entry.c_str());
+				logdebug("Loading entry point '%s'", js_entry.c_str());
 				ScriptFile script(js_entry);
 				catcher.check();
 
-				a.log(Anchor::Debug, "Launching entry point");
+				logdebug("Launching entry point");
 				script.run();
 				catcher.check();
 			} catch (Exception e) {
-				a.log(Anchor::Error, "During JavaScript execution: %s", e.what());
+				logerror("During JavaScript execution: %s", e.what());
 				return 1;
 			}
 		}
