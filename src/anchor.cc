@@ -1,6 +1,7 @@
 #include "anchor.h"
 
 #include <cassert>
+#include <cstdarg>
 
 #include <pty.h>
 #include <fcntl.h>
@@ -63,10 +64,23 @@ Anchor::Anchor():
 		fifo_fd = open(fifo_path.c_str(), O_WRONLY);
 		assert(fifo_fd > 0);
 	}
+
+	char* env_home = getenv("HOME");
+	string log_path;
+
+	if (env_home) {
+		log_path = string(env_home) + "/.olec.log";
+	} else {
+		log_path = "olec.log";
+	}
+
+	log_fd = fopen(log_path.c_str(), "a+");
+	assert(log_fd != nullptr);
 }
 
 Anchor::~Anchor() {
 	close(fifo_fd);
+	fclose(log_fd);
 	if (pid > 0) unlink(fifo_path.c_str());
 }
 
@@ -76,6 +90,44 @@ bool Anchor::send(const Event& ev) const {
 
 bool Anchor::receive(Event& ev) const {
 	return receive_entirely(fifo_fd, &ev, sizeof(Event));
+}
+
+void Anchor::log(Anchor::LogLevel lvl, const char* format, ...) const {
+#ifdef NDEBUG
+	if (lvl == Debug)
+		return;
+#endif
+
+	va_list vargs;
+	va_start(vargs, format);
+
+	flockfile(log_fd);
+
+	switch (lvl) {
+		case Info:
+			fputs("Info: ", log_fd);
+			break;
+
+		case Warn:
+			fputs("\033[33mWarning\033[0m: ", log_fd);
+			break;
+
+		case Error:
+			fputs("\033[31mError\033[0m: ", log_fd);
+			break;
+
+		default:
+			fputs("\033[35mDebug\033[0m: ", log_fd);
+			break;
+	}
+
+	vfprintf(log_fd, format, vargs);
+	fputc('\n', log_fd);
+	fflush(log_fd);
+
+	funlockfile(log_fd);
+
+	va_end(vargs);
 }
 
 }

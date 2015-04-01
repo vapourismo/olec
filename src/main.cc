@@ -29,6 +29,9 @@ struct ApplicationWrapper: Application {
 	}
 
 	void event(const Event& ev) {
+		anchor.log(Anchor::Debug, "mod = %i, key = %i",
+		           ev.info.key_press.mod, ev.info.key_press.key);
+
 		if (ev.type == Event::KeyPress &&
 		    ev.info.key_press.mod == GDK_CONTROL_MASK &&
 		    ev.info.key_press.key == 'q') {
@@ -100,13 +103,17 @@ int main(int argc, char** argv) {
 			try {
 				TryCatch catcher;
 
-				ScriptFile script(exe_dir + "/ext/js/entry.js");
+				string js_entry = exe_dir + "/ext/js/entry.js";
+
+				a.log(Anchor::Debug, "Loading entry point '%s'", js_entry.c_str());
+				ScriptFile script(js_entry);
 				catcher.check();
 
+				a.log(Anchor::Debug, "Launching entry point");
 				script.run();
 				catcher.check();
 			} catch (Exception e) {
-				cerr << "JavaScript: " << e.what() << endl;
+				a.log(Anchor::Error, "During JavaScript execution: %s", e.what());
 				return 1;
 			}
 		}

@@ -15,18 +15,47 @@ struct Anchor {
 	std::string fifo_path;
 	int fifo_fd = -1;
 
+	FILE* log_fd = nullptr;
+
+	/**
+	 * Fork process and construct anchor
+	 */
 	Anchor();
 
 	~Anchor();
 
+	/**
+	 * Is parent anchor?
+	 */
 	inline
 	operator bool() {
 		return pid > 0;
 	}
 
+	/**
+	 * Send event through communication channel.
+	 */
 	bool send(const Event& ev) const;
 
+	/**
+	 * Get event from communication channel.
+	 */
 	bool receive(Event& ev) const;
+
+	/**
+	 * Log Level
+	 */
+	enum LogLevel {
+		Debug,
+		Info,
+		Warn,
+		Error
+	};
+
+	/**
+	 *
+	 */
+	void log(LogLevel lvl, const char* format, ...) const;
 };
 
 }
