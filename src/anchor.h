@@ -9,6 +9,8 @@
 namespace olec {
 
 struct Anchor {
+	static const Anchor* self;
+
 	int pty_fd = -1;
 	pid_t pid = -1;
 
@@ -57,6 +59,11 @@ struct Anchor {
 	 */
 	void log(LogLevel lvl, const char* format, ...) const;
 };
+
+#define logdebug(...) olec::Anchor::self->log(olec::Anchor::Debug, __VA_ARGS__)
+#define loginfo(...)  olec::Anchor::self->log(olec::Anchor::Info,  __VA_ARGS__)
+#define logwarn(...)  olec::Anchor::self->log(olec::Anchor::Warn,  __VA_ARGS__)
+#define logerror(...) olec::Anchor::self->log(olec::Anchor::Error, __VA_ARGS__)
 
 }
 

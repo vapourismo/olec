@@ -47,6 +47,8 @@ bool receive_entirely(int fd, void* data, size_t rem) {
 	return true;
 }
 
+const Anchor* Anchor::self = nullptr;
+
 Anchor::Anchor():
 	fifo_path("/tmp/olec-" + to_string(getpid()))
 {
@@ -76,6 +78,8 @@ Anchor::Anchor():
 
 	log_fd = fopen(log_path.c_str(), "a+");
 	assert(log_fd != nullptr);
+
+	Anchor::self = this;
 }
 
 Anchor::~Anchor() {
