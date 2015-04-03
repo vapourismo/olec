@@ -79,15 +79,12 @@ Terminal::Terminal(const Anchor& anchor, const TerminalConfig& config) throw (Te
 	vte_terminal_set_font(terminal, font);
 
 	// Configure colors
-	GdkRGBA term_palette[256];
+	GdkRGBA term_palette[8];
 
 	for (size_t i = 0; i < 8; i++)
 		gdk_rgba_parse(term_palette + i, config.palette[i] ? config.palette[i] : "#ffffff");
 
-	for (size_t i = 8; i < 256; i++)
-		gdk_rgba_parse(term_palette + i, "#ffffff");
-
-	vte_terminal_set_colors(terminal, nullptr, nullptr, term_palette, 256);
+	vte_terminal_set_colors(terminal, nullptr, nullptr, term_palette, 8);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(terminal, true);

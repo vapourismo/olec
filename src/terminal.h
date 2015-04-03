@@ -16,7 +16,7 @@ namespace olec {
  */
 struct TerminalConfig {
 	const char* font_description;
-	const char* palette[16];
+	const char* palette[8];
 };
 
 /**
