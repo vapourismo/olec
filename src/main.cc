@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <cassert>
 
+#include <ncurses.h>
+
 using namespace std;
 using namespace olec;
 using namespace olec::js;
@@ -46,16 +48,73 @@ struct EventDispatcherWrap: EventDispatcher {
 	}
 
 	void resize(const winsize& ws) {
-
+		if (stdscr != nullptr && !isendwin()) {
+			resizeterm(ws.ws_col, ws.ws_row);
+		}
 	}
 
-	void set_key_handler(v8::Local<v8::Object> eh) {
+	void setKeyHandler(v8::Local<v8::Object> eh) {
 		if (!eh.IsEmpty() && eh->IsCallable()) {
 			key_handler.Reset(isolate, eh);
 		} else {
 			v8::String::Utf8Value strval(eh);
 			logwarn("Provided key handler '%s' is not callable", *strval);
 		}
+	}
+};
+
+using NCursesWindow = WINDOW;
+
+struct Frame {
+	ClassBuilder<Frame>& type_template;
+	NCursesWindow* screen;
+
+	Frame(ClassBuilder<Frame>& tt):
+		type_template(tt)
+	{
+		initscr();
+		start_color();
+		screen = stdscr;
+	}
+
+	Frame(ClassBuilder<Frame>& tt,
+	      NCursesWindow* scr):
+		type_template(tt),
+		screen(scr)
+	{}
+
+	~Frame() {
+		if (screen == stdscr) {
+			endwin();
+		} else {
+			delwin(screen);
+		}
+	}
+
+	void moveCursor(UnsignedInteger x, UnsignedInteger y) {
+		wmove(screen, y, x);
+	}
+
+	void drawString(String str) {
+		waddstr(screen, str.c_str());
+	}
+
+	void clear() {
+		wclear(screen);
+	}
+
+	void render() {
+		wrefresh(screen);
+	}
+
+	v8::Local<v8::Value> createSubFrame(UnsignedInteger x, UnsignedInteger y,
+	                                    UnsignedInteger w, UnsignedInteger h) {
+		NCursesWindow* sub_screen = subwin(screen, h, w, y, x);
+
+		if (sub_screen)
+			return type_template.instantiate(type_template, sub_screen);
+		else
+			return v8::Null(v8::Isolate::GetCurrent());
 	}
 };
 
@@ -81,9 +140,20 @@ int main(int argc, char** argv) {
 		ClassBuilder<EventDispatcherWrap> event_tpls(vm);
 
 		event_tpls.method("dispatch", &EventDispatcherWrap::dispatch);
-		event_tpls.method("setKeyHandler", &EventDispatcherWrap::set_key_handler);
+		event_tpls.method("setKeyHandler", &EventDispatcherWrap::setKeyHandler);
 
 		vm.global_template.set("event", event_tpls.instantiate(vm, a.fifo_fd));
+
+		// Frame wrapper
+		ClassBuilder<Frame> frame_tpl(vm);
+
+		frame_tpl.method("moveCursor", &Frame::moveCursor);
+		frame_tpl.method("drawString", &Frame::drawString);
+		frame_tpl.method("clear", &Frame::clear);
+		frame_tpl.method("render", &Frame::render);
+		frame_tpl.method("createSubFrame", &Frame::createSubFrame);
+
+		vm.global_template.set("screen", frame_tpl.instantiate(frame_tpl));
 
 		// Logging wrapper
 		ObjectTemplate log_tpl(vm);
