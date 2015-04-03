@@ -123,6 +123,11 @@ struct ObjectTemplate: v8::Local<v8::ObjectTemplate> {
 		FunctionTemplate<R, A...> func_tpl(isolate, func);
 		set(name, func_tpl);
 	}
+
+	template <typename T> inline
+	void setForeign(const char* name, T&& val) {
+		set(name, Foreign<T>::generate(isolate, std::forward<T>(val)));
+	}
 };
 
 }
