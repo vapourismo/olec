@@ -232,6 +232,29 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 		                      _getter<AR>, _setter<AR>,
 		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
 	}
+
+	/**
+	 * Instantiate this class.
+	 */
+	v8::Local<v8::Object> instantiate(A&&... args) {
+		T* val = new T(std::forward<A>(args)...);
+		EngineInstance::current()->track(val, _deleter);
+		return reuse(val);
+	}
+
+	/**
+	 * Use an existing instance of this class.
+	 */
+	v8::Local<v8::Object> reuse(T* me) {
+		// Construct C++ type
+		v8::Local<v8::External> self = v8::External::New(isolate, me);
+
+		// Instantiate object
+		v8::Local<v8::Object> obj = instance->NewInstance();
+		obj->SetInternalField(0, self);
+
+		return obj;
+	}
 };
 
 /**
