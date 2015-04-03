@@ -1,7 +1,7 @@
 #ifndef OLEC_JS_VM_H_
 #define OLEC_JS_VM_H_
 
-#include "tpls.h"
+#include "objtpl.h"
 #include "types.h"
 
 #include <v8.h>
@@ -68,7 +68,26 @@ struct EngineInstance {
 	ObjectTemplate global_template;
 	std::map<String, v8::Persistent<v8::Value>> modules;
 
+	std::map<void*, std::function<void(void*)>> finalizers;
+
 	EngineInstance();
+
+	~EngineInstance();
+
+	inline
+	void track(void* ptr, std::function<void(void*)> final) {
+		finalizers[ptr] = final;
+	}
+
+	inline
+	void finalize(void* ptr) {
+		auto it = finalizers.find(ptr);
+
+		if (it != finalizers.end()) {
+			it->second(it->first);
+			finalizers.erase(it);
+		}
+	}
 
 	inline
 	operator v8::Isolate*() const {

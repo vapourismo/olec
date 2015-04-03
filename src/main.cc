@@ -7,10 +7,6 @@
 #include <cstdlib>
 #include <cassert>
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <libgen.h>
-
 using namespace std;
 using namespace olec;
 using namespace olec::js;

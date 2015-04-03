@@ -2,128 +2,11 @@
 #define OLEC_JS_TPLS_H_
 
 #include "types.h"
-
-#include <v8.h>
+#include "objtpl.h"
+#include "vm.h"
 
 namespace olec {
 namespace js {
-
-// Forward declarations
-template <typename, typename...>
-struct ClassTemplate;
-
-/**
- * JavaScript Function Template
- */
-template <typename R, typename... A>
-struct FunctionTemplate: v8::Local<v8::FunctionTemplate> {
-	static
-	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		// Check if request arguments are present
-		if (check<A...>(args)) {
-			// Retrieve function
-			v8::Handle<v8::External> js_method =
-				v8::Handle<v8::External>::Cast(args.Data());
-			std::function<R(A...)>* func =
-				static_cast<std::function<R(A...)>*>(js_method->Value());
-
-			// Invoke function and generate return value
-			v8::Local<v8::Value> ret =
-				Foreign<R>::generate(args.GetIsolate(),
-				                     direct(*func, args));
-			args.GetReturnValue().Set(ret);
-		}
-	}
-
-	/**
-	 * Construct a Function Template
-	 */
-	FunctionTemplate(v8::Isolate* isolate, std::function<R(A...)> func):
-		v8::Local<v8::FunctionTemplate>(
-			v8::FunctionTemplate::New(
-				isolate, _function,
-				v8::External::New(isolate, new std::function<R(A...)> {func})
-			)
-		)
-	{}
-};
-
-/**
- * JavaScript Function Template for functions without a return value
- */
-template <typename... A>
-struct FunctionTemplate<void, A...>: v8::Local<v8::FunctionTemplate> {
-	static
-	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
-		// Check if request arguments are present
-		if (check<A...>(args)) {
-			// Retrieve function
-			v8::Handle<v8::External> js_method =
-				v8::Handle<v8::External>::Cast(args.Data());
-			std::function<void(A...)>* func =
-				static_cast<std::function<void(A...)>*>(js_method->Value());
-
-			// Invoke function
-			direct(*func, args);
-		}
-	}
-
-	/**
-	 * Construct a Function Template
-	 */
-	FunctionTemplate(v8::Isolate* isolate, std::function<void(A...)> func):
-		v8::Local<v8::FunctionTemplate>(
-			v8::FunctionTemplate::New(
-				isolate, _function,
-				v8::External::New(isolate, new std::function<void(A...)> {func})
-			)
-		)
-	{}
-};
-
-/**
- * JavaScript Object Template
- */
-struct ObjectTemplate: v8::Local<v8::ObjectTemplate> {
-	v8::Isolate* isolate;
-
-	inline
-	ObjectTemplate(v8::Isolate* isolate):
-		v8::Local<v8::ObjectTemplate>(v8::ObjectTemplate::New()),
-		isolate(isolate)
-	{}
-
-	inline
-	ObjectTemplate(v8::Isolate* isolate, v8::Local<v8::ObjectTemplate> value):
-		v8::Local<v8::ObjectTemplate>(value),
-		isolate(isolate)
-	{}
-
-	template <typename T, typename... A>
-	inline
-	void set(const char* name, ClassTemplate<T, A...>& class_tpl) {
-		v8::Local<v8::String> name_val = v8::String::NewFromUtf8(isolate, name);
-		class_tpl->SetClassName(name_val);
-		(*this)->Set(name_val, class_tpl);
-	}
-
-	inline
-	void set(const char* name, v8::Handle<v8::Data> data) {
-		(*this)->Set(v8::String::NewFromUtf8(isolate, name), data);
-	}
-
-	template <typename R, typename... A> inline
-	void set(const char* name, std::function<R(A...)> func) {
-		FunctionTemplate<R, A...> func_tpl(isolate, func);
-		set(name, func_tpl);
-	}
-
-	template <typename R, typename... A> inline
-	void set(const char* name, R (* func)(A...)) {
-		FunctionTemplate<R, A...> func_tpl(isolate, func);
-		set(name, func_tpl);
-	}
-};
 
 /**
  * JavaScript Method Template
@@ -228,8 +111,15 @@ struct MethodTemplate<T, void, A...>: v8::Local<v8::FunctionTemplate> {
 template <typename T, typename... A>
 struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 	static
+	void _deleter(void* instance) {
+		delete static_cast<T*>(instance);
+	}
+
+	static
 	T* _invoke_constructor(A... args) {
-		return new T(args...);
+		T* instance = new T(args...);
+		EngineInstance::current()->track(instance, std::function<void(void*)>(_deleter));
+		return instance;
 	}
 
 	static
@@ -240,7 +130,7 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 		T* instance = Foreign<External<T>>::extract(self);
 
 		// Delete class instance
-		delete instance;
+		EngineInstance::current()->finalize(instance);
 
 		// Delete persistent handle
 		delete data.GetParameter();
@@ -257,8 +147,7 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 			v8::Local<v8::External> self = v8::External::New(isolate, instance);
 
 			// Construct reference and destructor
-			v8::UniquePersistent<v8::External>* self_p =
-				new v8::UniquePersistent<v8::External>(isolate, self);
+			auto* self_p = new v8::UniquePersistent<v8::External>(isolate, self);
 			self_p->SetWeak(self_p, _destruct);
 
 			args.This()->SetInternalField(0, self);
