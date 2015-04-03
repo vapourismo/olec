@@ -77,36 +77,4 @@ EventDispatcher::~EventDispatcher() {
 	event_base_free(ev_base);
 }
 
-// void EventDispatcher::event(const Event& ev) {
-// 	if (ev.type == Event::KeyPress) {
-// 		if (ev.info.key_press.mod == GDK_CONTROL_MASK &&
-// 		    ev.info.key_press.key == 'q') {
-
-// 			quit();
-// 			return;
-// 		}
-
-// 		v8::Local<v8::Value> params[2] = {
-// 			v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.mod),
-// 			v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.key)
-// 		};
-
-// 		auto eh = v8::Local<v8::Object>::New(isolate, key_handler);
-// 		eh->CallAsFunction(v8::Null(isolate), 2, params);
-// 	}
-// }
-
-// void EventDispatcher::resize(const winsize& ws) {
-
-// }
-
-// void EventDispatcher::set_key_handler(v8::Local<v8::Object> eh) {
-// 	if (!eh.IsEmpty() && eh->IsCallable()) {
-// 		key_handler.Reset(isolate, eh);
-// 	} else {
-// 		v8::String::Utf8Value strval(eh);
-// 		logwarn("Provided key handler '%s' is not callable", *strval);
-// 	}
-// }
-
 }

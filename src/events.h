@@ -59,6 +59,7 @@ struct EventDispatcher {
 
 	EventDispatcher(int fd);
 
+	virtual
 	~EventDispatcher();
 
 	void dispatch();
