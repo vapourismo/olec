@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 		// Initialize V8
 		EngineInstance vm;
 		vm.isolate->SetFatalErrorHandler([](const char* location, const char* message) {
-			logerror("Fatal V8 Error [%s]: %s", location, message);
+			logerror("[%s] %s", location, message);
 		});
 
 		// Application wrapper
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 			script.run();
 			catcher.check();
 		} catch (Exception e) {
-			logerror("During JavaScript execution: %s", e.what());
+			logerror(e.what());
 			return 1;
 		}
 	}

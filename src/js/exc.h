@@ -30,7 +30,7 @@ struct Exception: virtual std::exception {
 		file_path = *u_source_file;
 		message = *u_message;
 
-		what_msg = "[" + file_path + ":" + std::to_string(line) + ":" + std::to_string(column_start + 1) + "]: " + message;
+		what_msg = "[" + file_path + ":" + std::to_string(line) + ":" + std::to_string(column_start + 1) + "] " + message;
 	}
 
 	virtual
