@@ -51,7 +51,7 @@ struct Terminal {
 		SpawnChildFailed
 	};
 
-	const Anchor& anchor;
+	int fifo_fd;
 
 	GtkWindow* window;
 	VteTerminal* terminal;

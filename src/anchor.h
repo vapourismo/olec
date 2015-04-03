@@ -1,8 +1,6 @@
 #ifndef OLEC_ANCHOR_H_
 #define OLEC_ANCHOR_H_
 
-#include "events.h"
-
 #include <string>
 #include <unistd.h>
 
@@ -39,16 +37,6 @@ struct Anchor {
 	operator bool() {
 		return pid > 0;
 	}
-
-	/**
-	 * Send event through communication channel.
-	 */
-	bool send(const Event& ev) const;
-
-	/**
-	 * Get event from communication channel.
-	 */
-	bool receive(Event& ev) const;
 
 	/**
 	 * Log Level

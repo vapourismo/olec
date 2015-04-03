@@ -12,42 +12,6 @@ using namespace std;
 
 namespace olec {
 
-static inline
-bool send_entirely(int fd, const void* data, size_t rem) {
-	const uint8_t* pos = (const uint8_t*) data;
-	const uint8_t* end = pos + rem;
-
-	while (pos != end) {
-		ssize_t r = ::write(fd, pos, rem);
-
-		if (r < 0)
-			return false;
-
-		pos += r;
-		rem -= r;
-	}
-
-	return true;
-}
-
-static inline
-bool receive_entirely(int fd, void* data, size_t rem) {
-	uint8_t* pos = (uint8_t*) data;
-	uint8_t* end = pos + rem;
-
-	while (pos != end) {
-		ssize_t r = ::read(fd, pos, rem);
-
-		if (r < 0)
-			return false;
-
-		pos += r;
-		rem -= r;
-	}
-
-	return true;
-}
-
 const Anchor* Anchor::self = nullptr;
 
 Anchor::Anchor(const char* progname):
@@ -96,14 +60,6 @@ Anchor::~Anchor() {
 		unlink(fifo_path.c_str());
 
 	Anchor::self = nullptr;
-}
-
-bool Anchor::send(const Event& ev) const {
-	return send_entirely(fifo_fd, &ev, sizeof(Event));
-}
-
-bool Anchor::receive(Event& ev) const {
-	return receive_entirely(fifo_fd, &ev, sizeof(Event));
 }
 
 void Anchor::log(Anchor::LogLevel lvl, const char* format, ...) const {

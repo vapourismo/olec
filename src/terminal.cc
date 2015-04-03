@@ -12,18 +12,36 @@ using namespace std;
 
 namespace olec {
 
-static
-gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* term) {
-	if (!event->is_modifier) {
-		Event ev((KeyModifier) (event->state & GDK_MODIFIER_MASK), event->keyval);
-		term->anchor.send(ev);
+static inline
+bool send_entirely(int fd, const void* data, size_t rem) {
+	const uint8_t* pos = (const uint8_t*) data;
+	const uint8_t* end = pos + rem;
+
+	while (pos != end) {
+		ssize_t r = ::write(fd, pos, rem);
+
+		if (r < 0)
+			return false;
+
+		pos += r;
+		rem -= r;
 	}
 
 	return true;
 }
 
 static
-void cb_child_exit(VteTerminal* terminal, gint status, Terminal* term) {
+gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, Terminal* self) {
+	if (!event->is_modifier) {
+		Event ev((KeyModifier) (event->state & GDK_MODIFIER_MASK), event->keyval);
+		send_entirely(self->fifo_fd, &ev, sizeof(Event));
+	}
+
+	return true;
+}
+
+static
+void cb_child_exit(VteTerminal* terminal, gint status, Terminal* self) {
 	cout << "Child exited with status " << WEXITSTATUS(status) << endl;
 	gtk_main_quit();
 }
@@ -36,7 +54,7 @@ const TerminalConfig default_config = {
 };
 
 Terminal::Terminal(const Anchor& anchor, const TerminalConfig& config) throw (Terminal::Error):
-	anchor(anchor),
+	fifo_fd(anchor.fifo_fd),
 	window(GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL))),
 	terminal(VTE_TERMINAL(vte_terminal_new()))
 {
