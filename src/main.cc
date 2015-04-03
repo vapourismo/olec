@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
 			logerror("Fatal V8 Error [%s]: %s", location, message);
 		});
 
-		// V8 wrapper
+		// Application wrapper
 		ApplicationWrapper app(a);
 		ObjectTemplate app_tpl(vm);
 
@@ -79,7 +79,28 @@ int main(int argc, char** argv) {
 			app.main();
 		}));
 
+		// Logging wrapper
+		ObjectTemplate log_tpl(vm);
+
+		log_tpl.set("debug", function<void(String)>([](String msg) {
+			logdebug(msg.c_str());
+		}));
+
+		log_tpl.set("info", function<void(String)>([](String msg) {
+			loginfo(msg.c_str());
+		}));
+
+		log_tpl.set("warn", function<void(String)>([](String msg) {
+			logwarn(msg.c_str());
+		}));
+
+		log_tpl.set("error", function<void(String)>([](String msg) {
+			logerror(msg.c_str());
+		}));
+
+		// Submit object templates
 		vm.global_template.set("application", app_tpl);
+		vm.global_template.set("log", log_tpl);
 
 		// Launch the JavaScript entry point
 		try {
