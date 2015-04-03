@@ -127,7 +127,7 @@ EngineInstance::EngineInstance():
 
 EngineInstance::~EngineInstance() {
 	for (auto it = finalizers.rbegin(); it != finalizers.rend(); it++) {
-		pair->second(pair->first);
+		it->second(it->first);
 	}
 
 	finalizers.clear();
