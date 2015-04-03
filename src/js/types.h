@@ -324,8 +324,8 @@ namespace internal {
 
 		template <typename R, typename F, typename... A>
 		static inline
-		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A... rest) {
-			return f(rest...);
+		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A&&... rest) {
+			return f(std::forward<A>(rest)...);
 		}
 	};
 
@@ -353,8 +353,8 @@ namespace internal {
 
 		template <typename R, typename F, typename... A>
 		static inline
-		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A... rest) {
-			return f(rest..., Foreign<T>::extract(args[N]));
+		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A&&... rest) {
+			return f(std::forward<A>(rest)..., Foreign<T>::extract(args[N]));
 		}
 	};
 
@@ -372,8 +372,8 @@ namespace internal {
 
 		template <typename R, typename F, typename... A>
 		static inline
-		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A... rest) {
-			return ArgumentCheckN<N + 1, Ts...>::template direct<R, F>(f, args, rest...,
+		R direct(F f, const v8::FunctionCallbackInfo<v8::Value>& args, A&&... rest) {
+			return ArgumentCheckN<N + 1, Ts...>::template direct<R, F>(f, args, std::forward<A>(rest)...,
 			                                                           Foreign<T>::extract(args[N]));
 		}
 	};
