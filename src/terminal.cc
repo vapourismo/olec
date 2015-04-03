@@ -49,8 +49,7 @@ void cb_child_exit(VteTerminal* terminal, gint status, Terminal* self) {
 extern
 const TerminalConfig default_config = {
 	"Inconsolata 10.5",
-	{"#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5",
-	 "#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5"}
+	{"#1A1A1A", "#D9715F", "#B2CC46", "#FFCB55", "#6486BC", "#AD7FA8", "#06989A", "#D5D5D5"}
 };
 
 Terminal::Terminal(const Anchor& anchor, const TerminalConfig& config) throw (Terminal::Error):
@@ -80,11 +79,15 @@ Terminal::Terminal(const Anchor& anchor, const TerminalConfig& config) throw (Te
 	vte_terminal_set_font(terminal, font);
 
 	// Configure colors
-	GdkRGBA term_palette[16];
-	for (size_t i = 0; i < 16; i++)
+	GdkRGBA term_palette[256];
+
+	for (size_t i = 0; i < 8; i++)
 		gdk_rgba_parse(term_palette + i, config.palette[i] ? config.palette[i] : "#ffffff");
 
-	vte_terminal_set_colors(terminal, nullptr, nullptr, term_palette, 16);
+	for (size_t i = 8; i < 256; i++)
+		gdk_rgba_parse(term_palette + i, "#ffffff");
+
+	vte_terminal_set_colors(terminal, nullptr, nullptr, term_palette, 256);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(terminal, true);
