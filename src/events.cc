@@ -31,7 +31,6 @@ bool receive_entirely(int fd, void* data, size_t rem) {
 
 static
 void cb_resize(int sig, short what, EventDispatcher* app) {
-	// Handle window resize
 	winsize ws;
 	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) != 0)
 		return;
@@ -61,22 +60,18 @@ EventDispatcher::EventDispatcher(int fd) {
 }
 
 void EventDispatcher::dispatch() {
-	// Add events
 	event_add(ev_event, nullptr);
 	event_add(ev_resize, nullptr);
 
-	// Dispatch events
 	event_base_dispatch(ev_base);
 }
 
 void EventDispatcher::quit() {
-	// Remove events
 	event_del(ev_event);
 	event_del(ev_resize);
 }
 
 EventDispatcher::~EventDispatcher() {
-	// Free events
 	event_free(ev_event);
 	event_free(ev_resize);
 	event_base_free(ev_base);
