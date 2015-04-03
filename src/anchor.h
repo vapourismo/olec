@@ -20,10 +20,12 @@ struct Anchor {
 
 	FILE* log_fd = nullptr;
 
+	std::string base_path = ".";
+
 	/**
 	 * Fork process and construct anchor
 	 */
-	Anchor();
+	Anchor(const char* progname);
 
 	~Anchor();
 
@@ -61,7 +63,10 @@ struct Anchor {
 	void log(LogLevel lvl, const char* format, ...) const;
 };
 
-#define logdebug(...) olec::Anchor::self->log(olec::Anchor::Debug, __VA_ARGS__)
+#ifdef DEBUG
+	#define logdebug(...) olec::Anchor::self->log(olec::Anchor::Debug, __VA_ARGS__)
+#endif
+
 #define loginfo(...)  olec::Anchor::self->log(olec::Anchor::Info,  __VA_ARGS__)
 #define logwarn(...)  olec::Anchor::self->log(olec::Anchor::Warn,  __VA_ARGS__)
 #define logerror(...) olec::Anchor::self->log(olec::Anchor::Error, __VA_ARGS__)
