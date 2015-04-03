@@ -49,7 +49,8 @@ struct EventDispatcherWrap: EventDispatcher {
 
 	void resize(const winsize& ws) {
 		if (stdscr != nullptr && !isendwin()) {
-			resizeterm(ws.ws_col, ws.ws_row);
+			loginfo("Resize terminal %ix%i", ws.ws_col, ws.ws_row);
+			resizeterm(ws.ws_row, ws.ws_col);
 		}
 	}
 
@@ -95,6 +96,10 @@ struct Frame {
 		wmove(screen, y, x);
 	}
 
+	void setStyle(UnsignedInteger attrs, UnsignedInteger pair) {
+		wattrset(screen, attrs | COLOR_PAIR(pair));
+	}
+
 	void drawString(String str) {
 		waddstr(screen, str.c_str());
 	}
@@ -105,6 +110,14 @@ struct Frame {
 
 	void render() {
 		wrefresh(screen);
+	}
+
+	UnsignedInteger getWidth() {
+		return getmaxx(screen);
+	}
+
+	UnsignedInteger getHeight() {
+		return getmaxy(screen);
 	}
 
 	v8::Local<v8::Value> createSubFrame(UnsignedInteger x, UnsignedInteger y,
@@ -148,12 +161,35 @@ int main(int argc, char** argv) {
 		ClassBuilder<Frame> frame_tpl(vm);
 
 		frame_tpl.method("moveCursor", &Frame::moveCursor);
+		frame_tpl.method("setStyle", &Frame::setStyle);
 		frame_tpl.method("drawString", &Frame::drawString);
 		frame_tpl.method("clear", &Frame::clear);
 		frame_tpl.method("render", &Frame::render);
 		frame_tpl.method("createSubFrame", &Frame::createSubFrame);
+		frame_tpl.method("getWidth", &Frame::getWidth);
+		frame_tpl.method("getHeight", &Frame::getHeight);
 
 		vm.global_template.set("screen", frame_tpl.instantiate(frame_tpl));
+
+		// Style constants
+		ObjectTemplate consts_tpl(vm);
+
+		consts_tpl.setForeign("normal", UnsignedInteger(A_NORMAL));
+		consts_tpl.setForeign("bold", UnsignedInteger(A_BOLD));
+
+		UnsignedInteger pair_counter = 1;
+		consts_tpl.set(
+			"definePair",
+			function<UnsignedInteger(UnsignedInteger, UnsignedInteger)>(
+				[&pair_counter](UnsignedInteger fg, UnsignedInteger bg) {
+					UnsignedInteger col = pair_counter++;
+					init_pair(col, fg, bg);
+					return col;
+				}
+			)
+		);
+
+		vm.global_template.set("style", consts_tpl);
 
 		// Logging wrapper
 		ObjectTemplate log_tpl(vm);
