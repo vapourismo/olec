@@ -263,7 +263,7 @@ struct Foreign<v8::UniquePersistent<v8::Value>> {
 template <>
 struct Foreign<v8::Local<v8::Object>> {
 	static
-	constexpr const char* name = "Value";
+	constexpr const char* name = "Object";
 
 	static inline
 	bool check(const v8::Local<v8::Value>& value) {
