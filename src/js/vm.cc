@@ -126,8 +126,8 @@ EngineInstance::EngineInstance():
 }
 
 EngineInstance::~EngineInstance() {
-	for (const auto& pair: finalizers) {
-		pair.second(pair.first);
+	for (auto it = finalizers.rbegin(); it != finalizers.rend(); it++) {
+		pair->second(pair->first);
 	}
 
 	finalizers.clear();
