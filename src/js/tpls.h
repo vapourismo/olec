@@ -340,7 +340,9 @@ struct ClassBuilder {
 	 */
 	template <typename... A>
 	v8::Local<v8::Object> instantiate(A&&... args) {
-		return reuse(new T(std::forward<A>(args)...));
+		T* val = new T(std::forward<A>(args)...);
+		EngineInstance::current()->track(val, _deleter);
+		return reuse(val);
 	}
 
 	/**
