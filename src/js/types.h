@@ -261,6 +261,30 @@ struct Foreign<v8::UniquePersistent<v8::Value>> {
  * For raw values
  */
 template <>
+struct Foreign<v8::Local<v8::Object>> {
+	static
+	constexpr const char* name = "Value";
+
+	static inline
+	bool check(const v8::Local<v8::Value>& value) {
+		return value->IsObject();
+	}
+
+	static inline
+	v8::Local<v8::Object> extract(v8::Local<v8::Value> value) {
+		return value->ToObject();
+	}
+
+	static inline
+	v8::Local<v8::Object> generate(v8::Isolate* isolate, v8::Local<v8::Object> value) {
+		return value;
+	}
+};
+
+/**
+ * For raw values
+ */
+template <>
 struct Foreign<v8::Local<v8::Value>> {
 	static
 	constexpr const char* name = "Value";

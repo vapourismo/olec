@@ -27,6 +27,9 @@ struct Anchor {
 	 */
 	Anchor(const char* progname);
 
+	Anchor(const Anchor&) = delete;
+	Anchor(Anchor&&) = delete;
+
 	~Anchor();
 
 	/**

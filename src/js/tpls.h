@@ -232,20 +232,115 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 		                      _getter<AR>, _setter<AR>,
 		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
 	}
+};
+
+/**
+ * JavaScript Class Template which will be instantiated in C++
+ */
+template <typename T>
+struct ClassBuilder {
+	static
+	void _deleter(void* instance) {
+		delete static_cast<T*>(instance);
+	}
+
+	static
+	void _destruct(const v8::WeakCallbackData<v8::External, v8::UniquePersistent<v8::External>>& data) {
+		// Get handle
+		v8::Local<v8::External> self =
+			v8::Local<v8::External>::New(data.GetIsolate(), *data.GetParameter());
+		T* instance = Foreign<External<T>>::extract(self);
+
+		// Delete class instance
+		EngineInstance::current()->finalize(instance);
+
+		// Delete persistent handle
+		delete data.GetParameter();
+	}
+
+	template <typename R>
+	struct _property_wrapper {
+		R T::* property;
+	};
+
+	template <typename R> static
+	void _getter(v8::Local<v8::String>, const v8::PropertyCallbackInfo<v8::Value>& info) {
+		// Get instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+		R T::* property = static_cast<_property_wrapper<R>*>(js_property->Value())->property;
+
+		// Return the current property value
+		info.GetReturnValue().Set(Foreign<R>::generate(info.GetIsolate(), instance->*property));
+	}
+
+	template <typename R> static
+	void _setter(v8::Local<v8::String>, v8::Local<v8::Value> value,
+	             const v8::PropertyCallbackInfo<void>& info) {
+		v8::Isolate* isolate = info.GetIsolate();
+
+		// Get instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+		R T::* property = static_cast<_property_wrapper<R>*>(js_property->Value())->property;
+
+		// Check if the new value matches the old type
+		if (Foreign<R>::check(value)) {
+			instance->*property = Foreign<R>::extract(value);
+		} else {
+			std::string exc_message = std::string("IllegalArgument: Expected ") + Foreign<R>::name;
+			isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+		}
+	}
+
+	v8::Isolate* isolate;
+	ObjectTemplate instance;
+
+	/**
+	 * Construct a Class Template for a class.
+	 */
+	ClassBuilder(v8::Isolate* isolate):
+		isolate(isolate),
+		instance(isolate)
+	{
+		instance->SetInternalFieldCount(1);
+	}
+
+	/**
+	 * Bind a method to this class.
+	 */
+	template <typename MR, typename... MA>
+	void method(const char* name, MR (T::* method)(MA...)) {
+		MethodTemplate<T, MR, MA...> method_tpl(isolate, method);
+		instance.set(name, method_tpl);
+	}
+
+	/**
+	 * Bind a property accessor to this class.
+	 */
+	template <typename AR>
+	void property(const char* name, AR T::* property) {
+		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
+		                      _getter<AR>, _setter<AR>,
+		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
+	}
 
 	/**
 	 * Instantiate this class.
 	 */
-	v8::Local<v8::Object> instantiate(A... args) {
-		// Construct C++ type
-		v8::Local<v8::External> self = v8::External::New(isolate, new T(args...));
-
-		// Instantiate object
-		v8::Local<v8::Object> obj = instance->NewInstance();
-		obj->SetPrototype(prototype->NewInstance());
-		obj->SetInternalField(0, self);
-
-		return obj;
+	template <typename... A>
+	v8::Local<v8::Object> instantiate(A&&... args) {
+		return reuse(new T(std::forward<A>(args)...));
 	}
 
 	/**
@@ -257,7 +352,6 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 
 		// Instantiate object
 		v8::Local<v8::Object> obj = instance->NewInstance();
-		obj->SetPrototype(prototype->NewInstance());
 		obj->SetInternalField(0, self);
 
 		return obj;

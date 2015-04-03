@@ -20,6 +20,11 @@ struct ApplicationWrapper: Application {
 		isolate(v8::Isolate::GetCurrent())
 	{
 		event_handler.Reset(isolate, FunctionTemplate<void>(isolate, [](){})->GetFunction());
+		logdebug("ApplicationWrapper");
+	}
+
+	~ApplicationWrapper() {
+		logdebug("~ApplicationWrapper");
 	}
 
 	void main() {
@@ -27,7 +32,7 @@ struct ApplicationWrapper: Application {
 	}
 
 	void event(const Event& ev) {
-		anchor.log(Anchor::Debug, "mod = %i, key = %i",
+		anchor.log(Anchor::Debug, "Key press: Mod = %i, Key = %i",
 		           ev.info.key_press.mod, ev.info.key_press.key);
 
 		if (ev.type == Event::KeyPress &&
@@ -68,12 +73,8 @@ int main(int argc, char** argv) {
 		});
 
 		// Application wrapper
-		ApplicationWrapper app(a);
-		ObjectTemplate app_tpl(vm);
-
-		app_tpl.set("main", function<void()>([&app]() {
-			app.main();
-		}));
+		ClassBuilder<ApplicationWrapper> app_tpl(vm);
+		app_tpl.method("main", &ApplicationWrapper::main);
 
 		// Logging wrapper
 		ObjectTemplate log_tpl(vm);
@@ -95,7 +96,7 @@ int main(int argc, char** argv) {
 		}));
 
 		// Submit object templates
-		vm.global_template.set("application", app_tpl);
+		vm.global_template.set("application", app_tpl.instantiate(a));
 		vm.global_template.set("log", log_tpl);
 
 		// Launch the JavaScript entry point
