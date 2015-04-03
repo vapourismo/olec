@@ -13,44 +13,49 @@ using namespace olec::js;
 
 struct ApplicationWrapper: Application {
 	v8::Isolate* isolate;
-	v8::UniquePersistent<v8::Object> event_handler;
+	v8::UniquePersistent<v8::Object> key_handler;
 
 	ApplicationWrapper(const Anchor& anchor):
 		Application(anchor),
 		isolate(v8::Isolate::GetCurrent())
 	{
-		event_handler.Reset(isolate, FunctionTemplate<void>(isolate, [](){})->GetFunction());
-		logdebug("ApplicationWrapper");
-	}
-
-	~ApplicationWrapper() {
-		logdebug("~ApplicationWrapper");
-	}
-
-	void main() {
-		dispatch();
+		key_handler.Reset(isolate, FunctionTemplate<void>(isolate, [](){})->GetFunction());
 	}
 
 	void event(const Event& ev) {
-		anchor.log(Anchor::Debug, "Key press: Mod = %i, Key = %i",
-		           ev.info.key_press.mod, ev.info.key_press.key);
+		if (ev.type == Event::KeyPress) {
+			if (ev.info.key_press.mod == GDK_CONTROL_MASK &&
+			    ev.info.key_press.key == 'q') {
 
-		if (ev.type == Event::KeyPress &&
-		    ev.info.key_press.mod == GDK_CONTROL_MASK &&
-		    ev.info.key_press.key == 'q') {
+				quit();
+				return;
+			}
 
-			quit();
-			return;
-		}
+			v8::Local<v8::Value> params[2] = {
+				v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.mod),
+				v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.key)
+			};
 
-		v8::Local<v8::Object> eh = v8::Local<v8::Object>::New(isolate, event_handler);
-		if (!eh.IsEmpty() && eh->IsCallable()) {
-			eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
+			auto eh = v8::Local<v8::Object>::New(isolate, key_handler);
+			eh->CallAsFunction(v8::Null(isolate), 2, params);
 		}
 	}
 
 	void resize(const winsize& ws) {
 
+	}
+
+	void set_key_handler(v8::Local<v8::Object> eh) {
+		if (!eh.IsEmpty() && eh->IsCallable()) {
+			key_handler.Reset(isolate, eh);
+		} else {
+			v8::String::Utf8Value strval(eh);
+			logwarn("Provided key handler '%s' is not callable", *strval);
+		}
+	}
+
+	void main() {
+		dispatch();
 	}
 };
 
@@ -75,6 +80,7 @@ int main(int argc, char** argv) {
 		// Application wrapper
 		ClassBuilder<ApplicationWrapper> app_tpl(vm);
 		app_tpl.method("main", &ApplicationWrapper::main);
+		app_tpl.method("setKeyHandler", &ApplicationWrapper::set_key_handler);
 
 		// Logging wrapper
 		ObjectTemplate log_tpl(vm);
