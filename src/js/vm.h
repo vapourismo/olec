@@ -1,7 +1,7 @@
 #ifndef OLEC_JS_VM_H_
 #define OLEC_JS_VM_H_
 
-#include "objtpl.h"
+#include "objtpls.h"
 #include "types.h"
 
 #include <v8.h>

@@ -2,7 +2,7 @@
 #define OLEC_JS_TPLS_H_
 
 #include "types.h"
-#include "objtpl.h"
+#include "objtpls.h"
 #include "vm.h"
 
 namespace olec {
