@@ -54,6 +54,10 @@ struct EventDispatcherWrap: EventDispatcher {
 		}
 	}
 
+	v8::Local<v8::Object> getKeyHandler() {
+		return v8::Local<v8::Object>::New(isolate, key_handler);
+	}
+
 	void setKeyHandler(v8::Local<v8::Object> eh) {
 		if (!eh.IsEmpty() && eh->IsCallable()) {
 			key_handler.Reset(isolate, eh);
@@ -160,7 +164,9 @@ int main(int argc, char** argv) {
 		ClassBuilder<EventDispatcherWrap> event_tpls(vm);
 
 		event_tpls.method("dispatch", &EventDispatcherWrap::dispatch);
-		event_tpls.method("setKeyHandler", &EventDispatcherWrap::setKeyHandler);
+		event_tpls.property("keyHandler",
+		                    &EventDispatcherWrap::getKeyHandler,
+		                    &EventDispatcherWrap::setKeyHandler);
 
 		vm.global_template.set("event", event_tpls.instantiate(vm, a.fifo_fd));
 

@@ -1,7 +1,7 @@
 var pair = style.definePair(style.defineColor(1000, 0, 0), 0);
 screen.setStyle(style.normal, pair);
 
-event.setKeyHandler(function(mod, key) {
+event.keyHandler = function (mod, key) {
 	log.debug("Key press: Mod = " + mod + ", Key = " + key);
 
 	screen.clear();
@@ -10,6 +10,6 @@ event.setKeyHandler(function(mod, key) {
 	screen.drawString("Key press: Mod = " + mod + ", Key = " + key);
 
 	screen.render();
-});
+};
 
 event.dispatch();

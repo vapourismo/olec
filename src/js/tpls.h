@@ -199,6 +199,55 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 		}
 	}
 
+	template <typename R>
+	struct _property_func_wrapper {
+		R (T::* getter)();
+		void (T::* setter)(R);
+	};
+
+	template <typename R> static
+	void _getter_func(v8::Local<v8::String>, const v8::PropertyCallbackInfo<v8::Value>& info) {
+		// Get instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+		R (T::* getter)() = static_cast<_property_func_wrapper<R>*>(js_property->Value())->getter;
+
+		// Return the current property value
+		info.GetReturnValue().Set(Foreign<R>::generate(info.GetIsolate(), (instance->*getter)()));
+	}
+
+	template <typename R> static
+	void _setter_func(v8::Local<v8::String>, v8::Local<v8::Value> value,
+	                  const v8::PropertyCallbackInfo<void>& info) {
+		v8::Isolate* isolate = info.GetIsolate();
+
+		// Get instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+		void (T::* setter)(R) = static_cast<_property_func_wrapper<R>*>(js_property->Value())->setter;
+
+		if (!setter)
+			return;
+
+		// Check if the new value matches the old type
+		if (Foreign<R>::check(value)) {
+			(instance->*setter)(Foreign<R>::extract(value));
+		} else {
+			std::string exc_message = std::string("IllegalArgument: Expected ") + Foreign<R>::name;
+			isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+		}
+	}
+
 	v8::Isolate* isolate;
 	ObjectTemplate instance, prototype;
 
@@ -231,6 +280,17 @@ struct ClassTemplate: v8::Local<v8::FunctionTemplate> {
 		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
 		                      _getter<AR>, _setter<AR>,
 		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
+	}
+
+	/**
+	 * Bind a property getter and setter to this class.
+	 */
+	template <typename AR>
+	void property(const char* name, AR (T::* getter)(), void (T::* setter)(AR) = nullptr) {
+		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
+		                      _getter_func<AR>, _setter_func<AR>,
+		                      v8::External::New(isolate,
+		                                        new _property_func_wrapper<AR> {getter, setter}));
 	}
 
 	/**
@@ -326,6 +386,55 @@ struct ClassBuilder {
 		}
 	}
 
+	template <typename R>
+	struct _property_func_wrapper {
+		R (T::* getter)();
+		void (T::* setter)(R);
+	};
+
+	template <typename R> static
+	void _getter_func(v8::Local<v8::String>, const v8::PropertyCallbackInfo<v8::Value>& info) {
+		// Get instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+		R (T::* getter)() = static_cast<_property_func_wrapper<R>*>(js_property->Value())->getter;
+
+		// Return the current property value
+		info.GetReturnValue().Set(Foreign<R>::generate(info.GetIsolate(), (instance->*getter)()));
+	}
+
+	template <typename R> static
+	void _setter_func(v8::Local<v8::String>, v8::Local<v8::Value> value,
+	                  const v8::PropertyCallbackInfo<void>& info) {
+		v8::Isolate* isolate = info.GetIsolate();
+
+		// Get instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(info.Holder()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Get property offset
+		v8::Handle<v8::External> js_property =
+			v8::Handle<v8::External>::Cast(info.Data());
+		void (T::* setter)(R) = static_cast<_property_func_wrapper<R>*>(js_property->Value())->setter;
+
+		if (!setter)
+			return;
+
+		// Check if the new value matches the old type
+		if (Foreign<R>::check(value)) {
+			(instance->*setter)(Foreign<R>::extract(value));
+		} else {
+			std::string exc_message = std::string("IllegalArgument: Expected ") + Foreign<R>::name;
+			isolate->ThrowException(v8::String::NewFromUtf8(isolate, exc_message.c_str()));
+		}
+	}
+
 	v8::Isolate* isolate;
 	ObjectTemplate instance;
 
@@ -356,6 +465,17 @@ struct ClassBuilder {
 		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
 		                      _getter<AR>, _setter<AR>,
 		                      v8::External::New(isolate, new _property_wrapper<AR> {property}));
+	}
+
+	/**
+	 * Bind a property getter and setter to this class.
+	 */
+	template <typename AR>
+	void property(const char* name, AR (T::* getter)(), void (T::* setter)(AR) = nullptr) {
+		instance->SetAccessor(v8::String::NewFromUtf8(isolate, name),
+		                      _getter_func<AR>, _setter_func<AR>,
+		                      v8::External::New(isolate,
+		                                        new _property_func_wrapper<AR> {getter, setter}));
 	}
 
 	/**
