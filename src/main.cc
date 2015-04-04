@@ -132,6 +132,10 @@ struct Frame {
 };
 
 int main(int argc, char** argv) {
+	// Enable 256 colors
+	putenv((char*) "TERM=xterm-256color");
+
+	// Fork process
 	assert(argc > 0);
 	Anchor a(argv[0]);
 
@@ -184,6 +188,18 @@ int main(int argc, char** argv) {
 				[&pair_counter](UnsignedInteger fg, UnsignedInteger bg) {
 					UnsignedInteger col = pair_counter++;
 					init_pair(col, fg, bg);
+					return col;
+				}
+			)
+		);
+
+		UnsignedInteger color_counter = 9;
+		consts_tpl.set(
+			"defineColor",
+			function<UnsignedInteger(UnsignedInteger, UnsignedInteger, UnsignedInteger)>(
+				[&color_counter](UnsignedInteger r, UnsignedInteger g, UnsignedInteger b) {
+					UnsignedInteger col = color_counter++;
+					init_color(col, r, g, b);
 					return col;
 				}
 			)
