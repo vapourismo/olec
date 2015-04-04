@@ -76,6 +76,9 @@ struct Frame {
 		initscr();
 		start_color();
 		screen = stdscr;
+
+		if (!can_change_color())
+			logwarn("Cannot change colors");
 	}
 
 	Frame(ClassBuilder<Frame>& tt,
