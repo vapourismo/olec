@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
 			)
 		);
 
-		UnsignedInteger color_counter = 9;
+		UnsignedInteger color_counter = 8;
 		consts_tpl.set(
 			"defineColor",
 			function<v8::Local<v8::Value>(UnsignedInteger, UnsignedInteger, UnsignedInteger)>(
