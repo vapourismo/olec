@@ -187,11 +187,14 @@ int main(int argc, char** argv) {
 		UnsignedInteger pair_counter = 1;
 		consts_tpl.set(
 			"definePair",
-			function<UnsignedInteger(UnsignedInteger, UnsignedInteger)>(
-				[&pair_counter](UnsignedInteger fg, UnsignedInteger bg) {
+			function<v8::Local<v8::Value>(UnsignedInteger, UnsignedInteger)>(
+				[&](UnsignedInteger fg, UnsignedInteger bg) -> v8::Local<v8::Value> {
 					UnsignedInteger col = pair_counter++;
-					init_pair(col, fg, bg);
-					return col;
+
+					if (init_pair(col, fg, bg) == 0)
+						return Foreign<UnsignedInteger>::generate(vm, col);
+					else
+						return v8::Null(vm);
 				}
 			)
 		);
@@ -199,11 +202,14 @@ int main(int argc, char** argv) {
 		UnsignedInteger color_counter = 9;
 		consts_tpl.set(
 			"defineColor",
-			function<UnsignedInteger(UnsignedInteger, UnsignedInteger, UnsignedInteger)>(
-				[&color_counter](UnsignedInteger r, UnsignedInteger g, UnsignedInteger b) {
+			function<v8::Local<v8::Value>(UnsignedInteger, UnsignedInteger, UnsignedInteger)>(
+				[&](UnsignedInteger r, UnsignedInteger g, UnsignedInteger b) -> v8::Local<v8::Value> {
 					UnsignedInteger col = color_counter++;
-					init_color(col, r, g, b);
-					return col;
+
+					if (init_color(col, r, g, b) == 0)
+						return Foreign<UnsignedInteger>::generate(vm, col);
+					else
+						return v8::Null(vm);
 				}
 			)
 		);
