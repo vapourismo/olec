@@ -179,8 +179,8 @@ int main(int argc, char** argv) {
 		frame_tpl.method("clear", &Frame::clear);
 		frame_tpl.method("render", &Frame::render);
 		frame_tpl.method("createSubFrame", &Frame::createSubFrame);
-		frame_tpl.method("getWidth", &Frame::getWidth);
-		frame_tpl.method("getHeight", &Frame::getHeight);
+		frame_tpl.property("width", &Frame::getWidth);
+		frame_tpl.property("height", &Frame::getHeight);
 
 		vm.global_template.set("screen", frame_tpl.instantiate(frame_tpl));
 
