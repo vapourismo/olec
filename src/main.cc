@@ -604,8 +604,8 @@ int main(int argc, char** argv) {
 		// Style constants
 		ObjectTemplate consts_tpl(vm);
 
-		consts_tpl.setForeign("normal", UnsignedInteger(A_NORMAL));
-		consts_tpl.setForeign("bold", UnsignedInteger(A_BOLD));
+		consts_tpl.setForeign("Normal", UnsignedInteger(A_NORMAL));
+		consts_tpl.setForeign("Bold", UnsignedInteger(A_BOLD));
 
 		UnsignedInteger pair_counter = 1;
 		consts_tpl.set(
