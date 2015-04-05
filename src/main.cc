@@ -22,10 +22,28 @@ struct EventDispatcherWrap: EventDispatcher {
 		self->reload();
 	}
 
+	static
+	void cb_mouse(int, short, EventDispatcherWrap* self) {
+		getch();
+
+		// int ch = getch();
+
+		// logdebug("getch: %i (expect %i)", ch, KEY_MOUSE);
+
+		// if (ch == KEY_MOUSE) {
+		// 	MEVENT mouse_event;
+		// 	getmouse(&mouse_event);
+
+		// 	logdebug("Mouse: coords = %ix%i, state = %i",
+		// 	         mouse_event.x, mouse_event.y, mouse_event.bstate);
+		// }
+	}
+
 	v8::Isolate* isolate;
 	v8::UniquePersistent<v8::Object> key_handler;
 
 	struct event* ev_reload;
+	struct event* ev_mouse;
 
 	bool loop = false;
 
@@ -38,14 +56,21 @@ struct EventDispatcherWrap: EventDispatcher {
 		ev_reload = event_new(ev_base, SIGUSR1, EV_PERSIST | EV_SIGNAL,
 	                          (event_callback_fn) cb_reload, this);
 		assert(ev_reload != nullptr);
+
+		ev_mouse = event_new(ev_base, STDIN_FILENO, EV_PERSIST | EV_READ,
+	                         (event_callback_fn) cb_mouse, this);
+		assert(ev_mouse != nullptr);
 	}
 
 	~EventDispatcherWrap() {
 		event_free(ev_reload);
+		event_free(ev_mouse);
 	}
 
 	void dispatch() {
 		event_add(ev_reload, nullptr);
+		event_add(ev_mouse, nullptr);
+
 		EventDispatcher::dispatch();
 	}
 
@@ -53,17 +78,16 @@ struct EventDispatcherWrap: EventDispatcher {
 		logdebug("Quit event dispatcher");
 
 		event_del(ev_reload);
-		EventDispatcher::quit();
+		event_del(ev_mouse);
 
+		EventDispatcher::quit();
 		loop = false;
 	}
 
 	void reload() {
 		logdebug("Reload application");
 
-		event_del(ev_reload);
-		EventDispatcher::quit();
-
+		quit();
 		loop = true;
 	}
 
@@ -111,6 +135,12 @@ struct Frame {
 	{
 		initscr();
 		start_color();
+		noecho();
+		raw();
+
+		keypad(stdscr, true);
+		mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, nullptr);
+
 		screen = stdscr;
 
 		if (!can_change_color())
