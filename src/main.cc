@@ -169,33 +169,29 @@ int main(int argc, char** argv) {
 		});
 
 		// Event dispatcher wrapper
-		ClassBuilder<EventDispatcherWrap> event_tpls(vm);
+		ClassBuilder<EventDispatcherWrap> events_tpls(vm);
 
-		event_tpls.method("dispatch", &EventDispatcherWrap::dispatch);
-		event_tpls.method("quit", &EventDispatcherWrap::quit);
-		event_tpls.method("reload", &EventDispatcherWrap::reload);
-		event_tpls.property("keyHandler",
+		events_tpls.method("dispatch", &EventDispatcherWrap::dispatch);
+		events_tpls.method("quit", &EventDispatcherWrap::quit);
+		events_tpls.method("reload", &EventDispatcherWrap::reload);
+		events_tpls.property("keyHandler",
 		                    &EventDispatcherWrap::getKeyHandler,
 		                    &EventDispatcherWrap::setKeyHandler);
 
-		ObjectTemplate event_keys_tpls(vm);
-
 		// Key modifier
-		event_keys_tpls.setForeign("control", UnsignedInteger(GDK_CONTROL_MASK));
-		event_keys_tpls.setForeign("lock",   UnsignedInteger(GDK_LOCK_MASK));
-		event_keys_tpls.setForeign("shift",   UnsignedInteger(GDK_SHIFT_MASK));
-		event_keys_tpls.setForeign("alt",   UnsignedInteger(GDK_MOD1_MASK));
-		event_keys_tpls.setForeign("meta", UnsignedInteger(GDK_META_MASK));
-		event_keys_tpls.setForeign("super", UnsignedInteger(GDK_SUPER_MASK));
-		event_keys_tpls.setForeign("hyper", UnsignedInteger(GDK_HYPER_MASK));
+		events_tpls.instance.setForeign("control", UnsignedInteger(GDK_CONTROL_MASK));
+		events_tpls.instance.setForeign("lock",   UnsignedInteger(GDK_LOCK_MASK));
+		events_tpls.instance.setForeign("shift",   UnsignedInteger(GDK_SHIFT_MASK));
+		events_tpls.instance.setForeign("alt",   UnsignedInteger(GDK_MOD1_MASK));
+		events_tpls.instance.setForeign("meta", UnsignedInteger(GDK_META_MASK));
+		events_tpls.instance.setForeign("super", UnsignedInteger(GDK_SUPER_MASK));
+		events_tpls.instance.setForeign("hyper", UnsignedInteger(GDK_HYPER_MASK));
 
-		event_keys_tpls.setForeign("q", UnsignedInteger('q'));
-		event_keys_tpls.setForeign("r", UnsignedInteger('r'));
-
-		event_tpls.instance.set("keys", event_keys_tpls);
+		events_tpls.instance.setForeign("q", UnsignedInteger('q'));
+		events_tpls.instance.setForeign("r", UnsignedInteger('r'));
 
 		EventDispatcherWrap event_dispatcher(vm, a.fifo_fd);
-		vm.global_template.set("event", event_tpls.reuse(&event_dispatcher));
+		vm.global_template.set("events", events_tpls.reuse(&event_dispatcher));
 
 		// Frame wrapper
 		ClassBuilder<Frame> frame_tpl(vm);
