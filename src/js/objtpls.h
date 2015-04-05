@@ -48,6 +48,33 @@ struct FunctionTemplate: v8::Local<v8::FunctionTemplate> {
 /**
  * JavaScript Function Template for functions without a return value
  */
+template <>
+struct FunctionTemplate<void, const v8::FunctionCallbackInfo<v8::Value>&>: v8::Local<v8::FunctionTemplate> {
+	using function_type = std::function<void(const v8::FunctionCallbackInfo<v8::Value>&)>;
+
+	static
+	void _function(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Retrieve function
+		v8::Handle<v8::External> js_method = v8::Handle<v8::External>::Cast(args.Data());
+		(*static_cast<function_type*>(js_method->Value()))(args);
+	}
+
+	/**
+	 * Construct a Function Template
+	 */
+	FunctionTemplate(v8::Isolate* isolate, function_type func):
+		v8::Local<v8::FunctionTemplate>(
+			v8::FunctionTemplate::New(
+				isolate, _function,
+				v8::External::New(isolate, new function_type {func})
+			)
+		)
+	{}
+};
+
+/**
+ * JavaScript Function Template for functions without a return value
+ */
 template <typename... A>
 struct FunctionTemplate<void, A...>: v8::Local<v8::FunctionTemplate> {
 	static
