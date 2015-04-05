@@ -213,6 +213,28 @@ struct Frame {
 	v8::Local<v8::Value> getRoot() {
 		return type_template.instantiate(type_template, wgetparent(screen));
 	}
+
+	bool setBounds(UnsignedInteger x, UnsignedInteger y, UnsignedInteger w, UnsignedInteger h) {
+		if (screen == stdscr) {
+			logwarn("Cannot set bounds of standard screen");
+			return false;
+		}
+
+		NCursesWindow* new_window = derwin(wgetparent(screen), h, w, y, x);
+
+		if (!new_window) {
+			logerror("Failed to set bounds");
+			return false;
+		}
+
+		wclear(screen);
+		wrefresh(screen);
+
+		delwin(screen);
+		screen = new_window;
+
+		return true;
+	}
 };
 
 int main(int argc, char** argv) {
@@ -549,8 +571,9 @@ int main(int argc, char** argv) {
 		frame_tpl.method("drawString", &Frame::drawString);
 		frame_tpl.method("clear", &Frame::clear);
 		frame_tpl.method("render", &Frame::render);
-		frame_tpl.method("createSubFrame", &Frame::createSubFrame);
 		frame_tpl.method("getRoot", &Frame::getRoot);
+		frame_tpl.method("setBounds", &Frame::setBounds);
+		frame_tpl.method("createSubFrame", &Frame::createSubFrame);
 
 		frame_tpl.property("width", &Frame::getWidth);
 		frame_tpl.property("height", &Frame::getHeight);
