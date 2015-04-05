@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <cassert>
 
+#include <signal.h>
+#include <event2/event.h>
 #include <ncurses.h>
 
 using namespace std;
@@ -15,8 +17,15 @@ using namespace olec;
 using namespace olec::js;
 
 struct EventDispatcherWrap: EventDispatcher {
+	static
+	void cb_reload(int, short, EventDispatcherWrap* self) {
+		self->reload();
+	}
+
 	v8::Isolate* isolate;
 	v8::UniquePersistent<v8::Object> key_handler;
+
+	struct event* ev_reload;
 
 	bool loop = false;
 
@@ -25,21 +34,36 @@ struct EventDispatcherWrap: EventDispatcher {
 		isolate(isolate)
 	{
 		key_handler.Reset(isolate, FunctionTemplate<void>(isolate, [](){})->GetFunction());
+
+		ev_reload = event_new(ev_base, SIGUSR1, EV_PERSIST | EV_SIGNAL,
+	                          (event_callback_fn) cb_reload, this);
+		assert(ev_reload != nullptr);
+	}
+
+	~EventDispatcherWrap() {
+		event_free(ev_reload);
 	}
 
 	void dispatch() {
+		event_add(ev_reload, nullptr);
 		EventDispatcher::dispatch();
 	}
 
 	void quit() {
 		logdebug("Quit event dispatcher");
+
+		event_del(ev_reload);
 		EventDispatcher::quit();
+
 		loop = false;
 	}
 
 	void reload() {
 		logdebug("Reload application");
+
+		event_del(ev_reload);
 		EventDispatcher::quit();
+
 		loop = true;
 	}
 
