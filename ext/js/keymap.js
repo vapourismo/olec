@@ -74,12 +74,15 @@ KeyMap.prototype.bind = function (mod, key, callback) {
 };
 
 KeyMap.prototype.trigger = function (mod, key) {
-	if (this.root) {
-		var elem = this.root.find(mod, key);
-		return (elem && elem.callback.call(null, mod, key) == true);
-	} else {
+	if (!this.root)
 		return false;
-	}
+
+	var elem = this.root.find(mod, key);
+	if (!elem)
+		return false;
+
+	elem.callback.call(null, mod, key);
+	return true;
 };
 
 exports = KeyMap;
