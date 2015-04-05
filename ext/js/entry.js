@@ -1,13 +1,14 @@
-var KeyMap = require("keymap.js");
+var keys = require('keys.js');
 
-var keymap = new KeyMap();
+var mainFrame = new Object();
+mainFrame.globalKeyMap = new keys.KeyMap();
 
-keymap.bind(events.Control, KeyMap.charCode('q'), events.quit.bind(events));
-keymap.bind(events.Control, KeyMap.charCode('r'), events.reload.bind(events));
+mainFrame.globalKeyMap.bind(events.Control, keys.charCode('q'), events.quit.bind(events));
+mainFrame.globalKeyMap.bind(events.Control, keys.charCode('r'), events.reload.bind(events));
 
 events.keyHandler = function (mod, key) {
-	if (!keymap.trigger(mod, key)) {
-		log.debug("keyHandler", mod, key);
+	if (!mainFrame.globalKeyMap.trigger(mod, key)) {
+		log.debug("Unbound key", mod, key);
 	}
 };
 
