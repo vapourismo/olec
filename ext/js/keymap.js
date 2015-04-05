@@ -58,6 +58,12 @@ var KeyMap = function () {
 	this.root = null;
 };
 
+KeyMap.charCode = function (char) {
+	if (typeof(char) == "string" && char.length > 0) {
+		return char.charCodeAt(0);
+	}
+}
+
 KeyMap.prototype.bind = function (mod, key, callback) {
 	var elem = new KeyBinding(mod, key, callback);
 
