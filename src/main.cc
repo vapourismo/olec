@@ -180,7 +180,15 @@ int main(int argc, char** argv) {
 
 		ObjectTemplate event_keys_tpls(vm);
 
+		// Key modifier
 		event_keys_tpls.setForeign("control", UnsignedInteger(GDK_CONTROL_MASK));
+		event_keys_tpls.setForeign("lock",   UnsignedInteger(GDK_LOCK_MASK));
+		event_keys_tpls.setForeign("shift",   UnsignedInteger(GDK_SHIFT_MASK));
+		event_keys_tpls.setForeign("alt",   UnsignedInteger(GDK_MOD1_MASK));
+		event_keys_tpls.setForeign("meta", UnsignedInteger(GDK_META_MASK));
+		event_keys_tpls.setForeign("super", UnsignedInteger(GDK_SUPER_MASK));
+		event_keys_tpls.setForeign("hyper", UnsignedInteger(GDK_HYPER_MASK));
+
 		event_keys_tpls.setForeign("q", UnsignedInteger('q'));
 		event_keys_tpls.setForeign("r", UnsignedInteger('r'));
 
