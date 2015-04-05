@@ -18,6 +18,8 @@ struct EventDispatcherWrap: EventDispatcher {
 	v8::Isolate* isolate;
 	v8::UniquePersistent<v8::Object> key_handler;
 
+	bool loop = false;
+
 	EventDispatcherWrap(v8::Isolate* isolate, int fd):
 		EventDispatcher(fd),
 		isolate(isolate)
@@ -29,15 +31,18 @@ struct EventDispatcherWrap: EventDispatcher {
 		EventDispatcher::dispatch();
 	}
 
+	void quit() {
+		EventDispatcher::quit();
+		loop = false;
+	}
+
+	void reload() {
+		EventDispatcher::quit();
+		loop = true;
+	}
+
 	void event(const Event& ev) {
 		if (ev.type == Event::KeyPress) {
-			if (ev.info.key_press.mod == GDK_CONTROL_MASK &&
-			    ev.info.key_press.key == 'q') {
-
-				quit();
-				return;
-			}
-
 			v8::Local<v8::Value> params[2] = {
 				v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.mod),
 				v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.key)
@@ -165,11 +170,22 @@ int main(int argc, char** argv) {
 		ClassBuilder<EventDispatcherWrap> event_tpls(vm);
 
 		event_tpls.method("dispatch", &EventDispatcherWrap::dispatch);
+		event_tpls.method("quit", &EventDispatcherWrap::quit);
+		event_tpls.method("reload", &EventDispatcherWrap::reload);
 		event_tpls.property("keyHandler",
 		                    &EventDispatcherWrap::getKeyHandler,
 		                    &EventDispatcherWrap::setKeyHandler);
 
-		vm.global_template.set("event", event_tpls.instantiate(vm, a.fifo_fd));
+		ObjectTemplate event_keys_tpls(vm);
+
+		event_keys_tpls.setForeign("control", UnsignedInteger(GDK_CONTROL_MASK));
+		event_keys_tpls.setForeign("q", UnsignedInteger('q'));
+		event_keys_tpls.setForeign("r", UnsignedInteger('r'));
+
+		event_tpls.instance.set("keys", event_keys_tpls);
+
+		EventDispatcherWrap event_dispatcher(vm, a.fifo_fd);
+		vm.global_template.set("event", event_tpls.reuse(&event_dispatcher));
 
 		// Frame wrapper
 		ClassBuilder<Frame> frame_tpl(vm);
@@ -298,17 +314,21 @@ int main(int argc, char** argv) {
 
 		// Launch the JavaScript entry point
 		try {
-			TryCatch catcher;
+			do {
+				TryCatch catcher;
 
-			string js_entry = a.base_path + "/ext/js/entry.js";
+				string js_entry = a.base_path + "/ext/js/entry.js";
 
-			logdebug("Loading entry point '%s'", js_entry.c_str());
-			ScriptFile script(js_entry);
-			catcher.check();
+				logdebug("Loading entry point '%s'", js_entry.c_str());
+				ScriptFile script(js_entry);
+				catcher.check();
 
-			logdebug("Launching entry point");
-			script.run();
-			catcher.check();
+				logdebug("Launching entry point");
+				script.run();
+				catcher.check();
+
+				vm.modules.clear();
+			} while (event_dispatcher.loop);
 		} catch (Exception e) {
 			logerror(e.what());
 			return 1;
