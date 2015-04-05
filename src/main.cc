@@ -40,7 +40,7 @@ struct EventDispatcherWrap: EventDispatcher {
 	}
 
 	v8::Isolate* isolate;
-	v8::UniquePersistent<v8::Object> key_handler;
+	v8::UniquePersistent<v8::Object> key_handler, resize_handler;
 
 	struct event* ev_reload;
 	struct event* ev_mouse;
@@ -107,6 +107,9 @@ struct EventDispatcherWrap: EventDispatcher {
 		if (stdscr != nullptr && !isendwin()) {
 			logdebug("Resize terminal %ix%i", ws.ws_col, ws.ws_row);
 			resizeterm(ws.ws_row, ws.ws_col);
+
+			auto eh = v8::Local<v8::Object>::New(isolate, resize_handler);
+			eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
 		}
 	}
 
@@ -120,6 +123,19 @@ struct EventDispatcherWrap: EventDispatcher {
 		} else {
 			v8::String::Utf8Value strval(eh);
 			logwarn("Provided key handler '%s' is not callable", *strval);
+		}
+	}
+
+	v8::Local<v8::Object> getResizeHandler() {
+		return v8::Local<v8::Object>::New(isolate, resize_handler);
+	}
+
+	void setResizeHandler(v8::Local<v8::Object> eh) {
+		if (!eh.IsEmpty() && eh->IsCallable()) {
+			resize_handler.Reset(isolate, eh);
+		} else {
+			v8::String::Utf8Value strval(eh);
+			logwarn("Provided resize handler '%s' is not callable", *strval);
 		}
 	}
 };
@@ -268,6 +284,9 @@ int main(int argc, char** argv) {
 		events_tpls.property("keyHandler",
 		                     &EventDispatcherWrap::getKeyHandler,
 		                     &EventDispatcherWrap::setKeyHandler);
+		events_tpls.property("resizeHandler",
+		                     &EventDispatcherWrap::getResizeHandler,
+		                     &EventDispatcherWrap::setResizeHandler);
 
 		// Key codes
 		events_tpls.instance.setForeign("BackSpace", UnsignedInteger(GDK_KEY_BackSpace));
