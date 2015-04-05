@@ -4,6 +4,7 @@
 #include "js/js.h"
 
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <cassert>
 
@@ -225,21 +226,73 @@ int main(int argc, char** argv) {
 		// Logging wrapper
 		ObjectTemplate log_tpl(vm);
 
-		log_tpl.set("debug", function<void(String)>([](String msg) {
-			logdebug(msg.c_str());
-		}));
+		log_tpl.set("debug", function<void(const v8::FunctionCallbackInfo<v8::Value>&)>(
+			[](const v8::FunctionCallbackInfo<v8::Value>& args) {
+				ostringstream msgbuilder;
 
-		log_tpl.set("info", function<void(String)>([](String msg) {
-			loginfo(msg.c_str());
-		}));
+				for (int i = 0; i < args.Length(); i++) {
+					if (i > 0)
+						msgbuilder << ' ';
 
-		log_tpl.set("warn", function<void(String)>([](String msg) {
-			logwarn(msg.c_str());
-		}));
+					v8::String::Utf8Value str_value(args[i]->ToString());
+					msgbuilder << *str_value;
+				}
 
-		log_tpl.set("error", function<void(String)>([](String msg) {
-			logerror(msg.c_str());
-		}));
+				string msg = msgbuilder.str();
+				logdebug(msg.c_str());
+			}
+		));
+
+		log_tpl.set("info", function<void(const v8::FunctionCallbackInfo<v8::Value>&)>(
+			[](const v8::FunctionCallbackInfo<v8::Value>& args) {
+				ostringstream msgbuilder;
+
+				for (int i = 0; i < args.Length(); i++) {
+					if (i > 0)
+						msgbuilder << ' ';
+
+					v8::String::Utf8Value str_value(args[i]->ToString());
+					msgbuilder << *str_value;
+				}
+
+				string msg = msgbuilder.str();
+				loginfo(msg.c_str());
+			}
+		));
+
+		log_tpl.set("warn", function<void(const v8::FunctionCallbackInfo<v8::Value>&)>(
+			[](const v8::FunctionCallbackInfo<v8::Value>& args) {
+				ostringstream msgbuilder;
+
+				for (int i = 0; i < args.Length(); i++) {
+					if (i > 0)
+						msgbuilder << ' ';
+
+					v8::String::Utf8Value str_value(args[i]->ToString());
+					msgbuilder << *str_value;
+				}
+
+				string msg = msgbuilder.str();
+				logwarn(msg.c_str());
+			}
+		));
+
+		log_tpl.set("error", function<void(const v8::FunctionCallbackInfo<v8::Value>&)>(
+			[](const v8::FunctionCallbackInfo<v8::Value>& args) {
+				ostringstream msgbuilder;
+
+				for (int i = 0; i < args.Length(); i++) {
+					if (i > 0)
+						msgbuilder << ' ';
+
+					v8::String::Utf8Value str_value(args[i]->ToString());
+					msgbuilder << *str_value;
+				}
+
+				string msg = msgbuilder.str();
+				logerror(msg.c_str());
+			}
+		));
 
 		vm.global_template.set("log", log_tpl);
 
