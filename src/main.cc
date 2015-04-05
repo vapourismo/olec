@@ -189,14 +189,29 @@ struct Frame {
 		return getmaxy(screen);
 	}
 
+	UnsignedInteger getX() {
+		return getparx(screen);
+	}
+
+	UnsignedInteger getY() {
+		return getpary(screen);
+	}
+
 	v8::Local<v8::Value> createSubFrame(UnsignedInteger x, UnsignedInteger y,
 	                                    UnsignedInteger w, UnsignedInteger h) {
-		NCursesWindow* sub_screen = subwin(screen, h, w, y, x);
+		NCursesWindow* sub_screen = derwin(screen, h, w, y, x);
 
-		if (sub_screen)
+		if (sub_screen) {
 			return type_template.instantiate(type_template, sub_screen);
-		else
+		} else {
+			logerror("Failed to create sub window; parent = %p, rect = (%i, %i, %i, %i)",
+			         screen, x, y, w, h);
 			return v8::Null(v8::Isolate::GetCurrent());
+		}
+	}
+
+	v8::Local<v8::Value> getRoot() {
+		return type_template.instantiate(type_template, wgetparent(screen));
 	}
 };
 
@@ -239,8 +254,8 @@ int main(int argc, char** argv) {
 		events_tpls.instance.setForeign("Clear", UnsignedInteger(GDK_KEY_Clear));
 		events_tpls.instance.setForeign("Return", UnsignedInteger(GDK_KEY_Return));
 		events_tpls.instance.setForeign("Pause", UnsignedInteger(GDK_KEY_Pause));
-		events_tpls.instance.setForeign("Scroll_Lock", UnsignedInteger(GDK_KEY_Scroll_Lock));
-		events_tpls.instance.setForeign("Sys_Req", UnsignedInteger(GDK_KEY_Sys_Req));
+		events_tpls.instance.setForeign("ScrollLock", UnsignedInteger(GDK_KEY_Scroll_Lock));
+		events_tpls.instance.setForeign("SysReq", UnsignedInteger(GDK_KEY_Sys_Req));
 		events_tpls.instance.setForeign("Escape", UnsignedInteger(GDK_KEY_Escape));
 		events_tpls.instance.setForeign("Delete", UnsignedInteger(GDK_KEY_Delete));
 		events_tpls.instance.setForeign("Home", UnsignedInteger(GDK_KEY_Home));
@@ -535,8 +550,12 @@ int main(int argc, char** argv) {
 		frame_tpl.method("clear", &Frame::clear);
 		frame_tpl.method("render", &Frame::render);
 		frame_tpl.method("createSubFrame", &Frame::createSubFrame);
+		frame_tpl.method("getRoot", &Frame::getRoot);
+
 		frame_tpl.property("width", &Frame::getWidth);
 		frame_tpl.property("height", &Frame::getHeight);
+		frame_tpl.property("x", &Frame::getX);
+		frame_tpl.property("y", &Frame::getY);
 
 		vm.global_template.set("screen", frame_tpl.instantiate(frame_tpl));
 
