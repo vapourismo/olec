@@ -61,6 +61,42 @@ struct MethodTemplate: v8::Local<v8::FunctionTemplate> {
 /**
  * JavaScript Method Template for Methods without a return value
  */
+template <typename T>
+struct MethodTemplate<T, void, const v8::FunctionCallbackInfo<v8::Value>&>: v8::Local<v8::FunctionTemplate> {
+	using method_type = void (T::*)(const v8::FunctionCallbackInfo<v8::Value>&);
+
+	struct _method_wrapper {
+		method_type method;
+	};
+
+	static
+	void _method(const v8::FunctionCallbackInfo<v8::Value>& args) {
+		// Retrieve instance pointer
+		v8::Handle<v8::External> js_instance =
+			v8::Handle<v8::External>::Cast(args.This()->GetInternalField(0));
+		T* instance = static_cast<T*>(js_instance->Value());
+
+		// Retrieve method offset
+		v8::Handle<v8::External> js_method =
+			v8::Handle<v8::External>::Cast(args.Data());
+		method_type method = static_cast<_method_wrapper*>(js_method->Value())->method;
+
+		// Invoke method
+		(instance->*method)(args);
+	}
+
+	/**
+	 * Construct a Method Template for a method.
+	 */
+	MethodTemplate(v8::Isolate* isolate, method_type method):
+		v8::Local<v8::FunctionTemplate>(v8::FunctionTemplate::New(isolate, _method,
+		                                v8::External::New(isolate, new _method_wrapper {method})))
+	{}
+};
+
+/**
+ * JavaScript Method Template for Methods without a return value
+ */
 template <typename T, typename... A>
 struct MethodTemplate<T, void, A...>: v8::Local<v8::FunctionTemplate> {
 	struct _method_wrapper {
