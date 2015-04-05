@@ -32,11 +32,13 @@ struct EventDispatcherWrap: EventDispatcher {
 	}
 
 	void quit() {
+		logdebug("Quit event dispatcher");
 		EventDispatcher::quit();
 		loop = false;
 	}
 
 	void reload() {
+		logdebug("Reload application");
 		EventDispatcher::quit();
 		loop = true;
 	}
@@ -55,7 +57,7 @@ struct EventDispatcherWrap: EventDispatcher {
 
 	void resize(const winsize& ws) {
 		if (stdscr != nullptr && !isendwin()) {
-			loginfo("Resize terminal %ix%i", ws.ws_col, ws.ws_row);
+			logdebug("Resize terminal %ix%i", ws.ws_col, ws.ws_row);
 			resizeterm(ws.ws_row, ws.ws_col);
 		}
 	}
