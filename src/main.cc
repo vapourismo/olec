@@ -93,6 +93,8 @@ struct EventDispatcherWrap: EventDispatcher {
 
 	void event(const Event& ev) {
 		if (ev.type == Event::KeyPress) {
+			TryCatch catcher;
+
 			v8::Local<v8::Value> params[2] = {
 				v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.mod),
 				v8::Uint32::NewFromUnsigned(isolate, ev.info.key_press.key)
@@ -100,6 +102,12 @@ struct EventDispatcherWrap: EventDispatcher {
 
 			auto eh = v8::Local<v8::Object>::New(isolate, key_handler);
 			eh->CallAsFunction(v8::Null(isolate), 2, params);
+
+			if (catcher.HasCaught()) {
+				logerror("Exception during key handler");
+				quit();
+				catcher.ReThrow();
+			}
 		}
 	}
 
@@ -108,8 +116,16 @@ struct EventDispatcherWrap: EventDispatcher {
 			logdebug("Resize terminal %ix%i", ws.ws_col, ws.ws_row);
 			resizeterm(ws.ws_row, ws.ws_col);
 
+			TryCatch catcher;
+
 			auto eh = v8::Local<v8::Object>::New(isolate, resize_handler);
 			eh->CallAsFunction(v8::Null(isolate), 0, nullptr);
+
+			if (catcher.HasCaught()) {
+				logerror("Exception during resize handler");
+				quit();
+				catcher.ReThrow();
+			}
 		}
 	}
 
