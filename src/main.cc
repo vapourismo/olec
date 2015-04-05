@@ -266,8 +266,8 @@ int main(int argc, char** argv) {
 		events_tpls.method("quit", &EventDispatcherWrap::quit);
 		events_tpls.method("reload", &EventDispatcherWrap::reload);
 		events_tpls.property("keyHandler",
-		                    &EventDispatcherWrap::getKeyHandler,
-		                    &EventDispatcherWrap::setKeyHandler);
+		                     &EventDispatcherWrap::getKeyHandler,
+		                     &EventDispatcherWrap::setKeyHandler);
 
 		// Key codes
 		events_tpls.instance.setForeign("BackSpace", UnsignedInteger(GDK_KEY_BackSpace));
