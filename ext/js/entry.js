@@ -1,22 +1,9 @@
-var target = screen.createSubFrame(10, 10, 30, 10);
+var KeyMap = require("keymap.js");
 
-event.keyHandler = function (mod, key) {
-	if (mod == event.keys.control && key == event.keys.q) {
-		event.quit();
-		return;
-	} else if (mod == event.keys.control && key == event.keys.r) {
-		event.reload();
-		return;
-	}
+var keymap = new KeyMap();
 
-	log.debug("Key press:", mod, key);
+keymap.bind(event.keys.control, event.keys.q, event.quit.bind(event));
+keymap.bind(event.keys.control, event.keys.r, event.reload.bind(event));
 
-	target.clear();
-
-	target.moveCursor(0, 0);
-	target.drawString("Key press: Mod = " + mod + ", Key = " + key);
-
-	target.render();
-};
-
+event.keyHandler = keymap.trigger.bind(keymap);
 event.dispatch();
