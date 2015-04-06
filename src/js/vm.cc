@@ -1,4 +1,5 @@
 #include "vm.h"
+#include "../anchor.h"
 
 #include <iostream>
 #include <map>
@@ -50,8 +51,10 @@ v8::Local<v8::Value> js_require_file(v8::Isolate* isolate, String path) {
 	auto& modules = EngineInstance::current()->modules;
 
 	// Is module already present?
-	if (modules.count(path) > 0)
+	if (modules.count(path) > 0) {
+		logdebug("Reuse cached copy of '%s'", path.c_str());
 		return v8::Local<v8::Value>::New(isolate, modules[path]);
+	}
 
 	// Compile script
 	ScriptFile script(path.c_str());
@@ -62,6 +65,7 @@ v8::Local<v8::Value> js_require_file(v8::Isolate* isolate, String path) {
 
 	// Launch script
 	script.run();
+	logdebug("Loaded file '%s'", path.c_str());
 
 	// Fetch exports
 	v8::Local<v8::String> export_key = v8::String::NewFromUtf8(isolate, "exports");
@@ -126,11 +130,7 @@ EngineInstance::EngineInstance():
 }
 
 EngineInstance::~EngineInstance() {
-	for (auto it = finalizers.rbegin(); it != finalizers.rend(); it++) {
-		it->second(it->first);
-	}
-
-	finalizers.clear();
+	finalizeAll();
 }
 
 }

@@ -90,6 +90,17 @@ struct EngineInstance {
 	}
 
 	inline
+	void finalizeAll() {
+		modules.clear();
+
+		for (auto it = finalizers.rbegin(); it != finalizers.rend(); it++) {
+			it->second(it->first);
+		}
+
+		finalizers.clear();
+	}
+
+	inline
 	operator v8::Isolate*() const {
 		return isolate.get();
 	}

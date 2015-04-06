@@ -615,8 +615,6 @@ int main(int argc, char** argv) {
 		frame_tpl.property("x", &Frame::getX);
 		frame_tpl.property("y", &Frame::getY);
 
-		vm.global_template.set("screen", frame_tpl.instantiate(frame_tpl));
-
 		// Style constants
 		ObjectTemplate consts_tpl(vm);
 
@@ -731,6 +729,9 @@ int main(int argc, char** argv) {
 		// Launch the JavaScript entry point
 		try {
 			do {
+				vm.finalizeAll();
+				vm.global_template.set("screen", frame_tpl.instantiate(frame_tpl));
+
 				TryCatch catcher;
 
 				string js_entry = a.base_path + "/ext/js/entry.js";
