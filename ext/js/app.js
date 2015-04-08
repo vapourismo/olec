@@ -7,6 +7,10 @@ var Application = function () {
 	this.hsplit = new layout.HSplit(screen, -1);
 	this.editor = new editor.Editor(this.hsplit.top);
 
+	this.editor.lines.push("Hello World");
+	this.editor.lines.push("Hello World!");
+	this.editor.lines.push("Hello World?");
+
 	this.statusLine = "";
 
 	events.keyHandler = this.keyMap.trigger.bind(this.keyMap);
@@ -24,6 +28,8 @@ Application.prototype.onResize = function () {
 };
 
 Application.prototype.render = function () {
+	screen.clear();
+
 	// Render status bar
 	this.hsplit.bottom.moveCursor(0, 0);
 	this.hsplit.bottom.setStyle(style.Normal, Application.statusStylePair);
@@ -45,6 +51,5 @@ Application.prototype.render = function () {
 	// Print to screen
 	screen.render();
 };
-
 
 exports = new Application();
