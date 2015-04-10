@@ -5,8 +5,13 @@
 #include <vte/vte.h>
 #include <pty.h>
 
+static
+gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, void* self) {
+    return true;
+}
+
 extern
-int olec_begin(const char* font_descr) {
+int olec_begin(const char* font_descr, const char** color_palette, int num_colors) {
     setenv("TERM", "xterm-256color", true);
     gtk_init(NULL, NULL);
 
@@ -30,7 +35,7 @@ int olec_begin(const char* font_descr) {
     // Connect signals
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(terminal, "child-exited", G_CALLBACK(gtk_main_quit), NULL);
-    // g_signal_connect(window, "key-press-event", G_CALLBACK(cb_key_press), this);
+    g_signal_connect(window, "key-press-event", G_CALLBACK(cb_key_press), NULL);
 
     // Setup layout
     GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -42,12 +47,12 @@ int olec_begin(const char* font_descr) {
     vte_terminal_set_font(terminal, font);
 
     // Configure colors
-    // GdkRGBA term_palette[8];
+    GdkRGBA term_palette[num_colors];
 
-    // for (size_t i = 0; i < 8; i++)
-    //     gdk_rgba_parse(term_palette + i, config.palette[i] ? config.palette[i] : "#ffffff");
+    for (int i = 0; i < num_colors; i++)
+        gdk_rgba_parse(term_palette + i, color_palette[i] ? color_palette[i] : "#ffffff");
 
-    // vte_terminal_set_colors(terminal, NULL, NULL, term_palette, 8);
+    vte_terminal_set_colors(terminal, NULL, NULL, term_palette, num_colors);
 
     // Configure miscellaneous settings
     vte_terminal_set_allow_bold(terminal, true);
