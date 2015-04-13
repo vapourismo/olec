@@ -11,6 +11,8 @@ import Foreign.C
 import Foreign.Marshal
 import Foreign.Ptr
 
+import Graphics.Vty
+
 foreign import ccall "olec_begin"
     olecBegin_ :: CString -> Ptr CString -> CInt -> IO CInt
 
@@ -49,8 +51,14 @@ main = do
     }
 
     when (p == 0) $ do
-        putStrLn "Hello World"
-        threadDelay 10000000
+        ui <- mkVty mempty {
+            termName = Just "xterm-256color"
+        }
+
+        update ui emptyPicture
+        --refresh ui
+        nextEvent ui
+        shutdown ui
 
     putStrLn "Terminating ..."
     return ()

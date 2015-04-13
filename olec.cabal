@@ -14,7 +14,7 @@ cabal-version:       >= 1.10
 executable olec
   hs-source-dirs:      src
   main-is:             Main.hs
-  ghc-options:         -O2 -j -Wall -fno-warn-unused-do-bind -fprof-auto
+  ghc-options:         -O2 -j -Wall -fno-warn-unused-do-bind -fprof-auto -threaded
   c-sources:           ext/gtk-wrapper.c
   cc-options:          -std=c99 -O2 -fmessage-length=0
                        -Wall -Wextra -Wno-unused-parameter
