@@ -62,13 +62,13 @@ int olec_begin(const char* font_descr, const char** color_palette, int num_color
     vte_terminal_set_cursor_blink_mode(terminal, VTE_CURSOR_BLINK_OFF);
     vte_terminal_set_scrollback_lines(terminal, 0);
 
+    // Display window
+    gtk_widget_show_all(GTK_WIDGET(window));
+
     // Set PTY target
     VtePty* pty = vte_pty_new_foreign_sync(remote_pty, NULL, NULL);
     vte_terminal_set_pty(terminal, pty);
     vte_terminal_watch_child(terminal, remote_pid);
-
-    // Display window
-    gtk_widget_show_all(GTK_WIDGET(window));
 
     // Run main
     gtk_main();
