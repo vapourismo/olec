@@ -55,9 +55,13 @@ main = do
             termName = Just "xterm-256color"
         }
 
-        update ui emptyPicture
-        --refresh ui
-        nextEvent ui
+        update ui (Picture {
+            picCursor = Cursor 0 0,
+            picLayers = [],
+            picBackground = ClearBackground
+        })
+
+        threadDelay 5000000
         shutdown ui
 
     putStrLn "Terminating ..."
