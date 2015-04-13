@@ -13,13 +13,14 @@ gboolean cb_key_press(GtkWidget* widget, GdkEventKey* event, void* self) {
 extern
 int olec_begin(const char* font_descr, const char** color_palette, int num_colors) {
     setenv("TERM", "xterm-256color", true);
-    gtk_init(NULL, NULL);
 
     int remote_pty;
     pid_t remote_pid = forkpty(&remote_pty, NULL, NULL, NULL);
 
     if (remote_pid <= 0)
         return remote_pid;
+
+    gtk_init(NULL, NULL);
 
     // Initialize
     GtkWindow* window = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
