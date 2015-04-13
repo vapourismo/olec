@@ -17,7 +17,7 @@ executable olec
   ghc-options:         -O2 -j -Wall -fno-warn-unused-do-bind -fprof-auto
   c-sources:           ext/gtk-wrapper.c
   cc-options:          -std=c99 -O2 -fmessage-length=0
-                       -Wall -Wextra
+                       -Wall -Wextra -Wno-unused-parameter
                        -pthread -D_DEFAULT_SOURCE
   include-dirs:        /usr/include/vte-2.91
                        /usr/include/gtk-3.0
