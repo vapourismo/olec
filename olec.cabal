@@ -15,46 +15,5 @@ executable olec
   hs-source-dirs:      src
   main-is:             Main.hs
   ghc-options:         -O2 -j -Wall -fno-warn-unused-do-bind -fprof-auto -threaded
-  c-sources:           ext/gtk-wrapper.c
-  cc-options:          -std=c99 -O2 -fmessage-length=0
-                       -Wall -Wextra -Wno-unused-parameter
-                       -pthread -D_DEFAULT_SOURCE
-  include-dirs:        /usr/include/vte-2.91
-                       /usr/include/gtk-3.0
-                       /usr/include/at-spi2-atk/2.0
-                       /usr/include/at-spi-2.0
-                       /usr/include/dbus-1.0
-                       /usr/lib/dbus-1.0/include
-                       /usr/include/gtk-3.0
-                       /usr/include/gio-unix-2.0/
-                       /usr/include/cairo
-                       /usr/include/pango-1.0
-                       /usr/include/atk-1.0
-                       /usr/include/cairo
-                       /usr/include/pixman-1
-                       /usr/include/freetype2
-                       /usr/include/libpng16
-                       /usr/include/harfbuzz
-                       /usr/include/freetype2
-                       /usr/include/harfbuzz
-                       /usr/include/libdrm
-                       /usr/include/libpng16
-                       /usr/include/gdk-pixbuf-2.0
-                       /usr/include/libpng16
-                       /usr/include/glib-2.0
-                       /usr/lib/glib-2.0/include
-  extra-libraries:     vte-2.91
-                       gtk-3
-                       gdk-3
-                       pangocairo-1.0
-                       pango-1.0
-                       atk-1.0
-                       cairo-gobject
-                       cairo
-                       gdk_pixbuf-2.0
-                       gio-2.0
-                       gobject-2.0
-                       glib-2.0
-                       util
   default-language:    Haskell2010
-  build-depends:       base, bytestring, vty
+  build-depends:       base, bytestring, gtk, vte, mtl
