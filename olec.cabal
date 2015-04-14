@@ -16,4 +16,4 @@ executable olec
   main-is:             Main.hs
   ghc-options:         -O2 -j -Wall -fno-warn-unused-do-bind -fprof-auto -threaded
   default-language:    Haskell2010
-  build-depends:       base, bytestring, gtk, vte, mtl
+  build-depends:       base, bytestring, gtk, vte, pango, unix, mtl, vty
