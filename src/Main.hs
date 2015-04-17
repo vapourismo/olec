@@ -1,21 +1,22 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE ForeignFunctionInterface, OverloadedStrings, RecordWildCards #-}
 
 module Main (main) where
 
+import Control.Monad
+import Control.Monad.Trans
 import Control.Concurrent
-import Control.Monad.Reader
+
+import Data.IORef
 
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Vte.Vte
-
-import Graphics.Vty
 
 import Foreign.C
 import Foreign.Ptr
+import Foreign.ForeignPtr
 import Foreign.Marshal
 import Foreign.Storable
 
-import System.Posix.Types
+import System.Glib.GObject
 
 foreign import ccall "openpty"
     openpty :: Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> Ptr () -> IO CInt
@@ -38,65 +39,72 @@ isModifierKey key =
     (0xfe11 <= key && key <= 0xfe13) ||
     key == 0xff7e
 
+--foreign import ccall unsafe "forkpty"
+--    forkpty :: Ptr CInt -> Ptr () -> Ptr () -> Ptr () -> IO CPid
+
+foreign import ccall unsafe "olec_make_vte"
+    makeVTE :: CInt -> IO (Ptr GObject)
+
+foreign import ccall unsafe "vte_terminal_get_column_count"
+    countCols :: Ptr GObject -> IO CLong
+
+foreign import ccall unsafe "vte_terminal_get_row_count"
+    countRows :: Ptr GObject -> IO CLong
+
+newTerminal :: CInt -> IO Widget
+newTerminal ptm = do
+    raw <- makeVTE ptm
+    objectRef raw
+
+    ptr <- newForeignPtr objectUnref raw
+    return (castToWidget (GObject ptr))
+
+data Event
+    = Resize CLong CLong
+    | KeyPress [Modifier] KeyVal
+    deriving (Show)
+
 main :: IO ()
 main = do
     initGUI
+    eventChan <- newChan
 
-    -- Widgets
+    -- Main window
     win <- windowNew
-    box <- vBoxNew False 0
-    term <- terminalNew
-
-    -- Events
+    set win [windowTitle := ("Olec Text Editor" :: String)]
     on win objectDestroy mainQuit
 
     on win keyPressEvent $ do
-        mods <- eventModifier
-        key <- eventKeyVal
+        eval <- eventKeyVal
+        emod <- eventModifier
 
-        unless (isModifierKey key) . liftIO $
-            -- Handle key event
-            return ()
+        unless (isModifierKey eval) . lift $ do
+            writeChan eventChan (KeyPress emod eval)
 
         return True
 
-    on term childExited $
-        liftIO (putStrLn "Child exited")
-
-    -- Layout
+    -- Box
+    box <- vBoxNew False 0
     containerAdd win box
+
+    -- Terminal
+    (ptm, _) <- createPseudoTerminal
+    term <- newTerminal ptm
     boxPackStart box term PackGrow 0
 
-    -- Configure window
-    windowSetTitle win ("Olec Text Editor" :: String)
+    dimRef <- newIORef (0, 0)
+    on term sizeAllocate $ \ _ ->
+        let GObject ptr = toGObject term
+        in withForeignPtr ptr $ \ raw -> do
+            tup <- (,) <$> countCols raw <*> countRows raw
+            tup' <- readIORef dimRef
+            when (tup /= tup') $ do
+                writeIORef dimRef tup
+                writeChan eventChan (uncurry Resize tup)
 
-    -- Configure terminal
-    terminalSetFontFromString term ("Inconsolata 10.5" :: String)
-
-    (ptm, pts) <- createPseudoTerminal
-    terminalSetPty term (fromIntegral ptm)
-
-    -- Display
-    widgetShowAll win
-
-    forkIO $ do
-        vty <- mkVty mempty {
-            inputFd = Nothing,
-            outputFd = Just (Fd pts)
-        }
-
-        update vty Picture {
-            picCursor = NoCursor,
-            picLayers = [text' mempty "Hello World" <|> text' mempty "!"],
-            picBackground = ClearBackground
-        }
-
-        putStrLn "Waiting ..."
-        threadDelay 5000000
-
-        putStrLn "Shutting down ..."
-        shutdown vty
-        mainQuit
+    -- Dispatch events
+    forkIO (forever (readChan eventChan >>= print))
 
     -- Run
+    widgetShowAll win
     mainGUI
