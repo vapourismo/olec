@@ -11,25 +11,11 @@ import Data.IORef
 import Graphics.UI.Gtk
 
 import Foreign.C
-import Foreign.Ptr
-import Foreign.Marshal
-import Foreign.Storable
+
+import System.Posix.Types
+import System.Posix.Terminal
 
 import Olec.Terminal
-
-foreign import ccall "openpty"
-    openpty :: Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> Ptr () -> IO CInt
-
-createPseudoTerminal :: IO (CInt, CInt)
-createPseudoTerminal =
-    with 0 $ \ ptmPtr -> with 0 $ \ ptsPtr -> do
-        r <- openpty ptmPtr ptsPtr nullPtr nullPtr nullPtr
-        when (r /= 0) (error "Could not create pseudo-terminal")
-
-        ptm <- peek ptmPtr
-        pts <- peek ptsPtr
-
-        return (ptm, pts)
 
 isModifierKey :: KeyVal -> Bool
 isModifierKey key =
@@ -65,7 +51,7 @@ main = do
     containerAdd win box
 
     -- Terminal
-    (ptm, _) <- createPseudoTerminal
+    (Fd ptm, _) <- openPseudoTerminal
     term <- newTerminal ptm
     boxPackStart box term PackGrow 0
 
