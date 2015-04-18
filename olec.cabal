@@ -14,7 +14,8 @@ cabal-version:       >= 1.10
 executable olec
   hs-source-dirs:      src
   main-is:             Main.hs
-  ghc-options:         -O2 -j -Wall -fno-warn-unused-do-bind -fno-warn-tabs -fprof-auto -threaded
+  ghc-options:         -O2 -j -Wall -fprof-auto -threaded
+                       -fno-warn-missing-signatures -fno-warn-unused-do-bind -fno-warn-tabs
   default-language:    Haskell2010
   build-depends:       base, gtk3, glib, unix, mtl
   include-dirs:        /usr/include/vte-2.91
