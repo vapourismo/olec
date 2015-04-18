@@ -1,6 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main (main) where
 
 import Control.Concurrent
+
+import qualified Data.Text as T
 
 import Graphics.UI.Gtk
 
@@ -17,7 +21,7 @@ main = do
 
 	-- Main window
 	win <- windowNew
-	set win [windowTitle := "Olec Text Editor"]
+	set win [windowTitle := ("Olec Text Editor" :: T.Text)]
 	on win objectDestroy mainQuit
 
 	-- Box
@@ -36,7 +40,9 @@ main = do
 	let loop = do
 		k <- readChan eventChan
 		case k of
-			KeyPress m 113 | m == toModifierMask [Control] -> mainQuit
+			KeyPress m v
+				| m == toModifierMask [Control] &&
+				  v == toKeyValue "q" -> mainQuit
 			_ -> print k >> loop
 
 	forkIO loop
