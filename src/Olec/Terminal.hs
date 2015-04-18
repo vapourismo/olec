@@ -1,10 +1,10 @@
-module Olec.Terminal (
-    Terminal,
-    newTerminal,
-    terminalSize
-) where
+{-# LANGUAGE ForeignFunctionInterface #-}
 
---import Control.Applicative
+module Olec.Terminal (
+	Terminal,
+	newTerminal,
+	terminalSize
+) where
 
 import Foreign.C.Types
 import Foreign.Ptr
@@ -16,20 +16,20 @@ import Graphics.UI.Gtk.Abstract.Widget
 import System.Glib.GObject
 
 foreign import ccall "olec_make_vte"
-    makeVTE :: CInt -> IO (Ptr Terminal)
+	makeVTE :: CInt -> IO (Ptr Terminal)
 
 foreign import ccall "vte_terminal_get_column_count"
-    getColumnCount :: Ptr Terminal -> IO CLong
+	getColumnCount :: Ptr Terminal -> IO CLong
 
 foreign import ccall "vte_terminal_get_row_count"
-    getRowCount :: Ptr Terminal -> IO CLong
+	getRowCount :: Ptr Terminal -> IO CLong
 
 -- | Terminal Widget
 newtype Terminal = Terminal (ForeignPtr Terminal)
 
 instance GObjectClass Terminal where
-    toGObject (Terminal ptr) = GObject (castForeignPtr ptr)
-    unsafeCastGObject (GObject ptr) = Terminal (castForeignPtr ptr)
+	toGObject (Terminal ptr) = GObject (castForeignPtr ptr)
+	unsafeCastGObject (GObject ptr) = Terminal (castForeignPtr ptr)
 
 instance WidgetClass Terminal
 
@@ -44,5 +44,5 @@ withTerminalPtr (Terminal ptr) f = withForeignPtr ptr f
 -- | Get the column and row count.
 terminalSize :: Terminal -> IO (CLong, CLong)
 terminalSize term =
-    withTerminalPtr term $ \ ptr ->
-        (,) <$> getColumnCount ptr <*> getRowCount ptr
+	withTerminalPtr term $ \ ptr ->
+		(,) <$> getColumnCount ptr <*> getRowCount ptr
