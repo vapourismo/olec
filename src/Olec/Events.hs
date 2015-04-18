@@ -5,7 +5,7 @@ module Olec.Events (
 	forwardResizeEvents,
 
 	toModifierMask,
-	toKeyVal
+	toKeyValue
 ) where
 
 import Control.Monad
@@ -16,6 +16,7 @@ import Data.Bits
 import Data.List
 import Data.Word
 import Data.IORef
+import qualified Data.Text as T
 
 import Graphics.UI.Gtk
 
@@ -40,7 +41,8 @@ toModifierMask :: [Modifier] -> Word32
 toModifierMask = foldl' (.|.) 0 . map (bit . fromEnum)
 
 -- | Fetch key value using it's name.
-toKeyVal = keyFromName
+toKeyValue :: T.Text -> Word32
+toKeyValue = keyFromName
 
 -- | Forward key events to an event channel.
 forwardKeyPressEvents :: (WidgetClass widget) => widget -> Chan Event -> IO ()
