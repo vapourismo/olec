@@ -1,18 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main (main) where
 
 import Control.Concurrent
-
-import qualified Data.Text as T
 
 import Graphics.UI.Gtk
 
 import System.Posix.Types
 import System.Posix.Terminal
 
-import Olec.Terminal
 import Olec.Events
+import Olec.Terminal
+import Olec.Application
 
 main :: IO ()
 main = do
@@ -21,15 +18,14 @@ main = do
 
 	-- Main window
 	win <- windowNew
-	set win [windowTitle := ("Olec Text Editor" :: T.Text)]
-	on win objectDestroy mainQuit
+	set win [windowTitle := "Olec Text Editor"]
 
 	-- Box
 	box <- vBoxNew False 0
 	containerAdd win box
 
 	-- Terminal
-	(Fd ptm, _) <- openPseudoTerminal
+	(Fd ptm, pts) <- openPseudoTerminal
 	term <- newTerminal ptm
 	boxPackStart box term PackGrow 0
 
@@ -37,16 +33,11 @@ main = do
 	forwardKeyPressEvents win eventChan
 	forwardResizeEvents term eventChan
 
-	let loop = do
-		k <- readChan eventChan
-		case k of
-			KeyPress m v
-				| m == toModifierMask [Control] &&
-				  v == toKeyValue "q" -> mainQuit
-			_ -> print k >> loop
-
-	forkIO loop
+	on win objectDestroy mainQuit
+	on term buttonPressEvent (return True)
+	on term buttonReleaseEvent (return True)
 
 	-- Run
 	widgetShowAll win
+	forkIO (terminalApplication pts eventChan >> mainQuit)
 	mainGUI
