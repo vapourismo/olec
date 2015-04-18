@@ -1,5 +1,6 @@
 module Olec.Events (
 	Event (..),
+	toModifierMask,
 	forwardKeyPressEvents,
 	forwardResizeEvents
 ) where
@@ -8,6 +9,9 @@ import Control.Monad
 import Control.Monad.Trans
 import Control.Concurrent
 
+import Data.Bits
+import Data.List
+import Data.Word
 import Data.IORef
 
 import Graphics.UI.Gtk
@@ -17,7 +21,7 @@ import Olec.Terminal
 -- | Application event
 data Event
 	= Resize Int Int
-	| KeyPress [Modifier] KeyVal
+	| KeyPress Word32 Word32
 	deriving (Show)
 
 -- | Check if the given key value is single modifier key stroke.
@@ -28,6 +32,10 @@ isModifier key =
 	(0xfe11 <= key && key <= 0xfe13) ||
 	key == 0xff7e
 
+-- | Make a modifier mask from a list of modifiers.
+toModifierMask :: [Modifier] -> Word32
+toModifierMask = foldl' (.|.) 0 . map (bit . fromEnum)
+
 -- | Forward key events to an event channel.
 forwardKeyPressEvents :: (WidgetClass widget) => widget -> Chan Event -> IO ()
 forwardKeyPressEvents widget chan =
@@ -36,7 +44,7 @@ forwardKeyPressEvents widget chan =
 		emod <- eventModifier
 
 		unless (isModifier eval) . lift $ do
-			writeChan chan (KeyPress emod eval)
+			writeChan chan (KeyPress (toModifierMask emod) eval)
 
 -- | Forward resize events to an event channel.
 forwardResizeEvents :: Terminal -> Chan Event -> IO ()

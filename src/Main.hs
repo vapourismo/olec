@@ -1,6 +1,5 @@
 module Main (main) where
 
-import Control.Monad
 import Control.Concurrent
 
 import Graphics.UI.Gtk
@@ -37,7 +36,7 @@ main = do
 	let loop = do
 		k <- readChan eventChan
 		case k of
-			KeyPress [Control] 113 -> mainQuit
+			KeyPress m 113 | m == toModifierMask [Control] -> mainQuit
 			_ -> print k >> loop
 
 	forkIO loop
