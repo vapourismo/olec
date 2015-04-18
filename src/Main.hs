@@ -12,11 +12,10 @@ import Graphics.UI.Gtk
 
 import Foreign.C
 import Foreign.Ptr
-import Foreign.ForeignPtr
 import Foreign.Marshal
 import Foreign.Storable
 
-import System.Glib.GObject
+import Olec.Terminal
 
 foreign import ccall "openpty"
     openpty :: Ptr CInt -> Ptr CInt -> Ptr () -> Ptr () -> Ptr () -> IO CInt
@@ -39,26 +38,6 @@ isModifierKey key =
     (0xfe11 <= key && key <= 0xfe13) ||
     key == 0xff7e
 
---foreign import ccall unsafe "forkpty"
---    forkpty :: Ptr CInt -> Ptr () -> Ptr () -> Ptr () -> IO CPid
-
-foreign import ccall unsafe "olec_make_vte"
-    makeVTE :: CInt -> IO (Ptr GObject)
-
-foreign import ccall unsafe "vte_terminal_get_column_count"
-    countCols :: Ptr GObject -> IO CLong
-
-foreign import ccall unsafe "vte_terminal_get_row_count"
-    countRows :: Ptr GObject -> IO CLong
-
-newTerminal :: CInt -> IO Widget
-newTerminal ptm = do
-    raw <- makeVTE ptm
-    objectRef raw
-
-    ptr <- newForeignPtr objectUnref raw
-    return (castToWidget (GObject ptr))
-
 data Event
     = Resize CLong CLong
     | KeyPress [Modifier] KeyVal
@@ -74,14 +53,12 @@ main = do
     set win [windowTitle := ("Olec Text Editor" :: String)]
     on win objectDestroy mainQuit
 
-    on win keyPressEvent $ do
+    on win keyPressEvent $ True <$ do
         eval <- eventKeyVal
         emod <- eventModifier
 
         unless (isModifierKey eval) . lift $ do
             writeChan eventChan (KeyPress emod eval)
-
-        return True
 
     -- Box
     box <- vBoxNew False 0
@@ -93,10 +70,8 @@ main = do
     boxPackStart box term PackGrow 0
 
     dimRef <- newIORef (0, 0)
-    on term sizeAllocate $ \ _ ->
-        let GObject ptr = toGObject term
-        in withForeignPtr ptr $ \ raw -> do
-            tup <- (,) <$> countCols raw <*> countRows raw
+    on term sizeAllocate $ \ _ -> do
+            tup <- terminalSize term
             tup' <- readIORef dimRef
             when (tup /= tup') $ do
                 writeIORef dimRef tup
