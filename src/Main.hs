@@ -37,7 +37,10 @@ main = do
 	on term buttonPressEvent (return True)
 	on term buttonReleaseEvent (return True)
 
-	-- Run
+	-- Show interface
 	widgetShowAll win
-	forkIO (terminalApplication pts eventChan >> mainQuit)
-	mainGUI
+	forkOS mainGUI
+
+	-- Launch application
+	terminalApplication pts eventChan
+	mainQuit
