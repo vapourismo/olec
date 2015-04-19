@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Exception
 import Control.Concurrent
 
 import Graphics.UI.Gtk
@@ -10,6 +11,16 @@ import System.Posix.Terminal
 import Olec.Events
 import Olec.Terminal
 import Olec.Application
+
+newtype EventLogWidget = EventLogWidget [Event]
+
+instance Visual EventLogWidget where
+	render (EventLogWidget events) (_, height) =
+		vertCat (map (string mempty . show) (reverse (take height events)))
+
+instance KeyEventRecipient EventLogWidget where
+	onKeyPress (EventLogWidget evs) m k =
+		return (EventLogWidget (KeyPress m k : evs))
 
 main :: IO ()
 main = do
@@ -39,8 +50,7 @@ main = do
 
 	-- Show interface
 	widgetShowAll win
-	forkOS mainGUI
+	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
 	-- Launch application
-	terminalApplication pts eventChan
-	mainQuit
+	terminalApplication pts eventChan (EventLogWidget [])

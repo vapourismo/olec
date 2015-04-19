@@ -1,50 +1,58 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Olec.Application (
-	terminalApplication
+	KeyEventRecipient (..),
+
+	terminalApplication,
+
+	module Olec.Events,
+	module Olec.Render
 ) where
 
 import Control.Concurrent
+
+import Data.Word
+
+import Graphics.UI.Gtk.General.General
 
 import System.Posix.Types
 
 import Olec.Events
 import Olec.Render
 
--- |
-newtype EventLogWidget = EventLogWidget [Event]
+class KeyEventRecipient a where
+	onKeyPress :: a -> Word32 -> Word32 -> IO a
 
-instance Visual EventLogWidget where
-	render (EventLogWidget events) (width, height) =
-		cropRight width $ vertCat $
-			map (string mempty . show) (reverse (take height events))
-
--- |
-appendEvent :: EventLogWidget -> Event -> EventLogWidget
-appendEvent (EventLogWidget evs) ev = EventLogWidget (ev : evs)
+-- | Render an instance of "Visual".
+renderVisual :: (Visual a) => Vty -> a -> Size -> IO ()
+renderVisual vty widget size =
+	update vty Picture {
+		picCursor = NoCursor,
+		picLayers = [render' widget size],
+		picBackground = ClearBackground
+	}
 
 -- | The function name is just a coincidence.
-terminalApplication :: Fd -> Chan Event -> IO ()
-terminalApplication pts events = do
+terminalApplication :: (KeyEventRecipient a, Visual a) => Fd -> Chan Event -> a -> IO ()
+terminalApplication pts events initWidget = do
 	vty <- mkVty mempty {
 		inputFd = Just pts,
 		outputFd = Just pts
 	}
 
-	let loop w s = do
-		ev <- readChan events
-		case ev of
+	let loop widget size = do
+		event <- readChan events
+		case event of
 			KeyPress m k | m == toModifierMask [Control] &&
 			               k == toKeyValue "q" ->
-				return ()
-			Resize x y -> loop w (x, y)
-			_ -> do
-				let w' = appendEvent w ev
-				update vty Picture {
-					picCursor = NoCursor,
-					picLayers = [render w' s],
-					picBackground = ClearBackground
-				}
-				loop w' s
+				mainQuit
+			ExitRequest -> return ()
+			KeyPress m k -> do
+				widget' <- onKeyPress widget m k
+				renderVisual vty widget' size
+				loop widget' size
+			Resize width height -> do
+				renderVisual vty widget (width, height)
+				loop widget (width, height)
 
-	loop (EventLogWidget []) (1, 1)
+	loop initWidget (1, 1)

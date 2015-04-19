@@ -28,6 +28,7 @@ import Olec.Terminal
 data Event
 	= Resize Int Int
 	| KeyPress Word32 Word32
+	| ExitRequest
 	deriving (Show)
 
 -- | Check if the given key value is single modifier key stroke.
