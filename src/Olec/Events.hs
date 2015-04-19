@@ -5,7 +5,9 @@ module Olec.Events (
 	forwardResizeEvents,
 
 	toModifierMask,
-	toKeyValue
+	toKeyValue,
+
+	Modifier (..),
 ) where
 
 import Control.Monad
