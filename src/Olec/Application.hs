@@ -23,8 +23,8 @@ terminalApplication pts events = do
 
 	forever $ do
 		ev <- readChan events
-		update vty (Picture {
+		update vty Picture {
 			picCursor = NoCursor,
 			picLayers = [string mempty (show ev)],
 			picBackground = ClearBackground
-		})
+		}
