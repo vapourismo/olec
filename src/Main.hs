@@ -9,18 +9,19 @@ import System.Posix.Types
 import System.Posix.Terminal
 
 import Olec.Events
+import Olec.Render
 import Olec.Terminal
 import Olec.Application
 
-newtype EventLogWidget = EventLogWidget [Event]
+--newtype EventLogWidget = EventLogWidget [Event]
 
-instance Visual EventLogWidget where
-	render (EventLogWidget events) (_, height) =
-		vertCat (map (string mempty . show) (reverse (take height events)))
+--instance Visual EventLogWidget where
+--	render (EventLogWidget events) (_, height) =
+--		vertCat (map (string mempty . show) (reverse (take height events)))
 
-instance KeyEventRecipient EventLogWidget where
-	onKeyPress (EventLogWidget evs) m k =
-		return (EventLogWidget (KeyPress m k : evs))
+--instance Olec.Application.Widget EventLogWidget where
+--	onKeyPress (EventLogWidget evs) m k =
+--		return (EventLogWidget (KeyPress m k : evs))
 
 main :: IO ()
 main = do
@@ -53,4 +54,5 @@ main = do
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
 	-- Launch application
-	terminalApplication pts eventChan (EventLogWidget [])
+	terminalApplication pts eventChan $
+		VLayout [LeftOver (Raster '1'), Relative 0.5 (Raster '2')]
