@@ -6,7 +6,8 @@ module Olec.Render (
 	-- * Render types
 	RenderM,
 	Renderer,
-	render,
+	renderPicture,
+	renderImage,
 	canvasSize,
 
 	-- * Cursor functions
@@ -14,8 +15,12 @@ module Olec.Render (
 	getCursor,
 	hideCursor,
 
-	-- * Render functions
+	-- * Drawing
 	drawText,
+
+	-- * Layouts
+	DivisionHint (..),
+	alignVertically
 ) where
 
 import Control.Monad.State
@@ -24,6 +29,8 @@ import Control.Monad.Reader
 import qualified Data.Text as T
 
 import Graphics.Vty hiding (Event, hideCursor)
+
+import Olec.Util
 
 type Size = (Int, Int)
 
@@ -36,10 +43,14 @@ type RenderM = ReaderT Size (State Cursor)
 type Renderer = RenderM Image
 
 -- | Run the renderer in a canvas with the given size.
-render :: Renderer -> Size -> Picture
-render r s =
+renderPicture :: Renderer -> Size -> Picture
+renderPicture r s =
 	Picture cur [img] ClearBackground
 	where (img, cur) = runState (runReaderT r s) NoCursor
+
+-- | Run the renderer but retrieve the image only.
+renderImage :: Renderer -> Size -> Image
+renderImage r s@(w, h) = resize w h (evalState (runReaderT r s) NoCursor)
 
 -- | Move the cursor to a certain location.
 putCursor :: Position -> RenderM ()
@@ -60,3 +71,10 @@ canvasSize = ask
 -- | Produce an image containing the given text.
 drawText :: Attr -> T.Text -> Renderer
 drawText attr val = pure (text' attr val)
+
+-- | Align elements vertically.
+alignVertically :: [DivisionHint Int Double Renderer] -> Renderer
+alignVertically hints =
+	flip fmap canvasSize $ \ (width, height) ->
+		vertCat (map (\ (h, r) -> renderImage r (width, h))
+		             (divideMetric hints height))

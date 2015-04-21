@@ -35,11 +35,11 @@ updateDisplayLoop vty events img = do
 				return ()
 
 			KeyPress _ _ -> do
-				V.update vty (render img size)
+				V.update vty (renderPicture img size)
 				loop size
 
 			Resize width height -> do
-				V.update vty (render img (width, height))
+				V.update vty (renderPicture img (width, height))
 				loop (width, height)
 
 	loop (80, 24)
@@ -52,4 +52,8 @@ main = do
 
 	-- Display
 	display <- makeDisplay pts
-	updateDisplayLoop display events undefined
+	updateDisplayLoop display events $
+		alignVertically [
+			Relative 0.5 (drawText mempty "Hello"),
+			LeftOver (drawText mempty "World")
+		]
