@@ -20,7 +20,7 @@ executable olec
   build-depends:       base, gtk3, glib, unix, mtl, text, vty, containers
   include-dirs:        /usr/include/vte-2.91
   extra-libraries:     vte-2.91 pango-1.0
-  cc-options:          -std=c99 -O2 -fmessage-length=0
+  cc-options:          -std=c99 -O2 -fmessage-length=0 -fPIC
                        -Wall -Wextra -Wno-unused-parameter
                        -pthread -D_DEFAULT_SOURCE
   c-sources:           cbits/extern.c
