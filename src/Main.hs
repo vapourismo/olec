@@ -1,58 +1,55 @@
+{-# LANGUAGE RecordWildCards, OverloadedStrings #-}
+
 module Main (main) where
 
-import Control.Exception
 import Control.Concurrent
 
-import Graphics.UI.Gtk
-
-import System.Posix.Types
-import System.Posix.Terminal
+import qualified Graphics.Vty as V
+import Graphics.UI.Gtk (mainQuit)
 
 import Olec.Events
+import Olec.Interface
 import Olec.Render
-import Olec.Terminal
-import Olec.Application
 
---newtype EventLogWidget = EventLogWidget [Event]
+import System.Posix.Types
 
---instance Visual EventLogWidget where
---	render (EventLogWidget events) (_, height) =
---		vertCat (map (string mempty . show) (reverse (take height events)))
+-- |
+makeDisplay :: Fd -> IO V.Vty
+makeDisplay pts =
+	V.mkVty mempty {
+		V.inputFd = Just pts,
+		V.outputFd = Just pts
+	}
 
---instance Olec.Application.Widget EventLogWidget where
---	onKeyPress (EventLogWidget evs) m k =
---		return (EventLogWidget (KeyPress m k : evs))
+-- |
+updateDisplayLoop :: V.Vty -> Chan Event -> Renderer -> IO ()
+updateDisplayLoop vty events img = do
+	let loop size = do
+		event <- readChan events
+		case event of
+			KeyPress m k | m == toModifierMask [Control] &&
+			               k == toKeyValue "q" ->
+				mainQuit
 
+			ExitRequest ->
+				return ()
+
+			KeyPress _ _ -> do
+				V.update vty (render img size)
+				loop size
+
+			Resize width height -> do
+				V.update vty (render img (width, height))
+				loop (width, height)
+
+	loop (80, 24)
+
+-- | Entry point
 main :: IO ()
 main = do
-	initGUI
-	eventChan <- newChan
+	-- Interface
+	(events, pts) <- makeInterface
 
-	-- Main window
-	win <- windowNew
-	set win [windowTitle := "Olec Text Editor"]
-
-	-- Box
-	box <- vBoxNew False 0
-	containerAdd win box
-
-	-- Terminal
-	(Fd ptm, pts) <- openPseudoTerminal
-	term <- newTerminal ptm
-	boxPackStart box term PackGrow 0
-
-	-- Dispatch events
-	forwardKeyPressEvents win eventChan
-	forwardResizeEvents term eventChan
-
-	on win objectDestroy mainQuit
-	on term buttonPressEvent (return True)
-	on term buttonReleaseEvent (return True)
-
-	-- Show interface
-	widgetShowAll win
-	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
-
-	-- Launch application
-	terminalApplication pts eventChan $
-		VLayout [LeftOver (Raster '1'), Relative 0.5 (Raster '2')]
+	-- Display
+	display <- makeDisplay pts
+	updateDisplayLoop display events undefined
