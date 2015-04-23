@@ -54,9 +54,9 @@ main = do
 	display <- makeDisplay pts
 	updateDisplayLoop display events $
 		alignVertically [
-			Relative 0.5 (drawText mempty "A"),
+			Relative 0.5 (fillChar mempty 'A'),
 			LeftOver (alignHorizontally [
-				LeftOver (drawText mempty "B"),
-				LeftOver (drawText mempty "C")
+				LeftOver (fillChar mempty 'B'),
+				LeftOver (fillChar mempty 'C')
 			])
 		]

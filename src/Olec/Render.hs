@@ -17,6 +17,9 @@ module Olec.Render (
 
 	-- * Drawing
 	drawText,
+	drawText',
+	drawString,
+	fillChar,
 
 	-- * Layouts
 	DivisionHint (..),
@@ -28,6 +31,7 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 
 import Graphics.Vty hiding (Event, hideCursor)
 
@@ -69,9 +73,23 @@ hideCursor = put NoCursor
 canvasSize :: RenderM Size
 canvasSize = ask
 
--- | Produce an image containing the given text.
-drawText :: Attr -> T.Text -> Renderer
-drawText attr val = pure (text' attr val)
+-- | Produce an image containing the given "Text".
+drawText :: Attr -> TL.Text -> Renderer
+drawText attr val = pure (text attr val)
+
+-- | Produce an image containing the given "Text".
+drawText' :: Attr -> T.Text -> Renderer
+drawText' attr val = pure (text' attr val)
+
+-- | Produce an image containing the given "String".
+drawString :: Attr -> String -> Renderer
+drawString attr val = pure (string attr val)
+
+-- | Fill the canvas using the given "Char".
+fillChar :: Attr -> Char -> Renderer
+fillChar attr val = do
+	(w, h) <- canvasSize
+	fmap vertCat (replicateM h (drawString attr (replicate w val)))
 
 -- | Align elements vertically.
 alignVertically :: [DivisionHint Int Float Renderer] -> Renderer
