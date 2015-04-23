@@ -20,7 +20,8 @@ module Olec.Render (
 
 	-- * Layouts
 	DivisionHint (..),
-	alignVertically
+	alignVertically,
+	alignHorizontally
 ) where
 
 import Control.Monad.State
@@ -73,8 +74,15 @@ drawText :: Attr -> T.Text -> Renderer
 drawText attr val = pure (text' attr val)
 
 -- | Align elements vertically.
-alignVertically :: [DivisionHint Int Double Renderer] -> Renderer
+alignVertically :: [DivisionHint Int Float Renderer] -> Renderer
 alignVertically hints =
 	flip fmap canvasSize $ \ (width, height) ->
 		vertCat (map (\ (h, r) -> renderImage r (width, h))
 		             (divideMetric hints height))
+
+-- | Align elements horizontally.
+alignHorizontally :: [DivisionHint Int Float Renderer] -> Renderer
+alignHorizontally hints =
+	flip fmap canvasSize $ \ (width, height) ->
+		horizCat (map (\ (w, r) -> renderImage r (w, height))
+		              (divideMetric hints width))
