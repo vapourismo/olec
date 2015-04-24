@@ -1,8 +1,13 @@
 {-# LANGUAGE RecordWildCards, OverloadedStrings #-}
 
-module Main (main) where
+module Main where
 
 import Control.Concurrent
+
+import Control.Monad.State
+import Control.Monad.Reader
+
+import Data.Word
 
 import qualified Graphics.Vty as V
 import Graphics.UI.Gtk (mainQuit)
@@ -22,41 +27,78 @@ makeDisplay pts =
 	}
 
 -- |
-updateDisplayLoop :: V.Vty -> Chan Event -> Renderer -> IO ()
-updateDisplayLoop vty events img = do
-	let loop size = do
-		event <- readChan events
-		case event of
+data RuntimeEnvironment e = RuntimeEnvironment {
+	reChan :: Chan (Event e),
+	reDisplay :: V.Vty
+}
+
+-- |
+data RuntimeState = RuntimeState {
+	rsRenderer :: Renderer,
+	rsSize :: Size
+}
+
+-- |
+type Runtime e = ReaderT (RuntimeEnvironment e) (StateT RuntimeState IO)
+
+-- |
+data RuntimeEvent e
+	= RKeyPress Word32 Word32
+	| RUserEvent e
+	| RExitRequest
+
+-- |
+fetchEvent :: Runtime e (RuntimeEvent e)
+fetchEvent = do
+	RuntimeEnvironment chan display <- ask
+
+	let loop = do
+		ev <- liftIO (readChan chan)
+		case ev of
 			KeyPress m k | m == toModifierMask [Control] &&
-			               k == toKeyValue "q" ->
-				mainQuit
+			               k == toKeyValue "q" -> do
+				liftIO mainQuit
+				return RExitRequest
 
 			ExitRequest ->
-				return ()
-
-			KeyPress _ _ -> do
-				V.update vty (renderPicture img size)
-				loop size
+				return RExitRequest
 
 			Resize width height -> do
-				V.update vty (renderPicture img (width, height))
-				loop (width, height)
+				vis <- gets rsRenderer
+				liftIO (V.update display (renderPicture vis (width, height)))
+				put (RuntimeState vis (width, height))
+				loop
 
-	loop (80, 24)
+			KeyPress k m ->
+				return (RKeyPress k m)
+
+			UserEvent e ->
+				return (RUserEvent e)
+
+	loop
+
+-- |
+render :: Renderer -> Runtime e ()
+render vis = do
+	size <- gets rsSize
+	display <- asks reDisplay
+	liftIO (V.update display (renderPicture vis size))
+	put (RuntimeState vis size)
+
+-- |
+evalRuntime :: Runtime e a -> IO a
+evalRuntime m = do
+	(chan, pts) <- makeInterface
+	display <- makeDisplay pts
+
+	evalStateT (runReaderT m (RuntimeEnvironment chan display)) (RuntimeState emptyRenderer (80, 24))
 
 -- | Entry point
 main :: IO ()
-main = do
-	-- Interface
-	(events, pts) <- makeInterface
-
-	-- Display
-	display <- makeDisplay pts
-	updateDisplayLoop display events $
+main = void $ evalRuntime $ do
+	render $
 		alignVertically [
-			Relative 0.5 (fillChar mempty 'A'),
-			LeftOver (alignHorizontally [
-				LeftOver (fillChar mempty 'B'),
-				LeftOver (fillChar mempty 'C')
-			])
+			LeftOver (fillChar mempty 'A'),
+			LeftOver (fillChar mempty 'B')
 		]
+	fetchEvent

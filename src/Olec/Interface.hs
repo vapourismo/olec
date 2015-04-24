@@ -14,7 +14,7 @@ import Olec.Events
 import Olec.Terminal
 
 -- | Create the main user interface
-makeInterface :: IO (Chan Event, Fd)
+makeInterface :: IO (Chan (Event e), Fd)
 makeInterface = do
 	initGUI
 	eventChan <- newChan

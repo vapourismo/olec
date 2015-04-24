@@ -16,6 +16,7 @@ module Olec.Render (
 	hideCursor,
 
 	-- * Drawing
+	emptyRenderer,
 	drawText,
 	drawText',
 	drawString,
@@ -72,6 +73,10 @@ hideCursor = put NoCursor
 -- | Get the gurrent canvas size.
 canvasSize :: RenderM Size
 canvasSize = ask
+
+-- | An empty image.
+emptyRenderer :: Renderer
+emptyRenderer = return emptyImage
 
 -- | Produce an image containing the given "Text".
 drawText :: Attr -> TL.Text -> Renderer
