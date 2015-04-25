@@ -70,7 +70,7 @@ getCursor = get
 hideCursor :: RenderM ()
 hideCursor = put NoCursor
 
--- | Get the gurrent canvas size.
+-- | Get the current canvas size.
 canvasSize :: RenderM Size
 canvasSize = ask
 
