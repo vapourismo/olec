@@ -19,54 +19,44 @@ import Olec.Render
 import System.Posix.Types
 
 -- |
-makeDisplay :: Fd -> IO V.Vty
-makeDisplay pts =
+mkDisplay :: Fd -> IO V.Vty
+mkDisplay pts =
 	V.mkVty mempty {
 		V.inputFd = Just pts,
 		V.outputFd = Just pts
 	}
 
 -- |
-data RuntimeEnvironment e = RuntimeEnvironment {
+data RuntimeEnvironment w e = RuntimeEnvironment {
 	reChan :: Chan (Event e),
-	reDisplay :: V.Vty
+	reDisplay :: V.Vty,
+	reRenderer :: Renderer w
 }
 
 -- |
-data RuntimeState = RuntimeState {
-	rsRenderer :: Renderer,
-	rsSize :: Size
-}
-
--- |
-type Runtime e = ReaderT (RuntimeEnvironment e) (StateT RuntimeState IO)
+type Runtime w e = ReaderT (RuntimeEnvironment w e) (StateT (RenderContext w) IO)
 
 -- |
 data RuntimeEvent e
 	= RKeyPress Word32 Word32
 	| RUserEvent e
 	| RExitRequest
+	deriving (Show)
 
 -- |
-fetchEvent :: Runtime e (RuntimeEvent e)
+fetchEvent :: Runtime w e (RuntimeEvent e)
 fetchEvent = do
-	RuntimeEnvironment chan display <- ask
+	chan <- asks reChan
 
 	let loop = do
 		ev <- liftIO (readChan chan)
 		case ev of
-			KeyPress m k | m == toModifierMask [Control] &&
-			               k == toKeyValue "q" -> do
-				liftIO mainQuit
-				return RExitRequest
-
 			ExitRequest ->
 				return RExitRequest
 
 			Resize width height -> do
-				vis <- gets rsRenderer
-				liftIO (V.update display (renderPicture vis (width, height)))
-				put (RuntimeState vis (width, height))
+				modify (\ rs -> rs {rcSize = (width, height)})
+				render
 				loop
 
 			KeyPress k m ->
@@ -78,27 +68,48 @@ fetchEvent = do
 	loop
 
 -- |
-render :: Renderer -> Runtime e ()
-render vis = do
-	size <- gets rsSize
-	display <- asks reDisplay
-	liftIO (V.update display (renderPicture vis size))
-	put (RuntimeState vis size)
+requestExit :: Runtime w e ()
+requestExit = liftIO mainQuit
 
 -- |
-evalRuntime :: Runtime e a -> IO a
-evalRuntime m = do
-	(chan, pts) <- makeInterface
-	display <- makeDisplay pts
+render :: Runtime w e ()
+render = do
+	ctx <- get
+	RuntimeEnvironment _ display renderer <- ask
+	liftIO (V.update display (renderPicture renderer ctx))
 
-	evalStateT (runReaderT m (RuntimeEnvironment chan display)) (RuntimeState emptyRenderer (80, 24))
+-- |
+evalRuntime :: (Visual w) => w -> Runtime w e a -> IO a
+evalRuntime w m = do
+	(chan, pts) <- makeInterface
+	display <- mkDisplay pts
+
+	evalStateT (runReaderT m (RuntimeEnvironment chan display mkRenderer)) (RenderContext (80, 24) w)
+
+-- |
+getState :: Runtime w e w
+getState = gets rcState
+
+-- |
+putState :: w -> Runtime w e ()
+putState w = modify (\ rc -> rc {rcState = w})
+
+-- |
+modifyState :: (w -> w) -> Runtime w e ()
+modifyState f = modify (\ rc -> rc {rcState = f (rcState rc)})
+
+data RootWidget = RootWidget
+
+instance Visual RootWidget where
+	mkRenderer =
+		alignVertically [
+			Relative 0.5 (fillChar mempty 'A'),
+			LeftOver (fillChar mempty 'B')
+		]
 
 -- | Entry point
 main :: IO ()
-main = void $ evalRuntime $ do
-	render $
-		alignVertically [
-			LeftOver (fillChar mempty 'A'),
-			LeftOver (fillChar mempty 'B')
-		]
-	fetchEvent
+main =
+	evalRuntime RootWidget $ do
+		render
+		void fetchEvent

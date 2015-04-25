@@ -1,14 +1,22 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module Olec.Render (
 	-- * Base types
 	Size,
 	Position,
 
 	-- * Render types
+	RenderContext (..),
 	RenderM,
 	Renderer,
+	Visual (..),
+	HasVisual (..),
 	renderPicture,
 	renderImage,
-	canvasSize,
+
+	-- * Misc render functions
+	getCanvasSize,
+	getRenderState,
 
 	-- * Cursor functions
 	putCursor,
@@ -42,70 +50,89 @@ type Size = (Int, Int)
 
 type Position = (Int, Int)
 
+-- | Render context
+data RenderContext w = RenderContext {
+	rcSize :: Size,
+	rcState :: w
+}
+
 -- | Render environment
-type RenderM = ReaderT Size (State Cursor)
+type RenderM w = ReaderT (RenderContext w) (State Cursor)
 
 -- | Image renderer
-type Renderer = RenderM Image
+type Renderer w = RenderM w Image
+
+class Visual w where
+	mkRenderer :: Renderer w
+
+-- | Wrap a type which implements the "Visual" type class.
+data HasVisual
+	= forall w. Visual w => HasVisual w
 
 -- | Run the renderer in a canvas with the given size.
-renderPicture :: Renderer -> Size -> Picture
-renderPicture r s =
+renderPicture :: Renderer w -> RenderContext w -> Picture
+renderPicture r c =
 	Picture cur [img] ClearBackground
-	where (img, cur) = runState (runReaderT r s) NoCursor
+	where (img, cur) = runState (runReaderT r c) NoCursor
 
 -- | Run the renderer but retrieve the image only.
-renderImage :: Renderer -> Size -> Image
-renderImage r s@(w, h) = resize w h (evalState (runReaderT r s) NoCursor)
+renderImage :: Renderer w -> RenderContext w -> Image
+renderImage r c@(RenderContext (w, h) _) = resize w h (evalState (runReaderT r c) NoCursor)
 
 -- | Move the cursor to a certain location.
-putCursor :: Position -> RenderM ()
+putCursor :: Position -> RenderM w ()
 putCursor = put . uncurry Cursor
 
 -- | Get the current cursor position.
-getCursor :: RenderM Cursor
+getCursor :: RenderM w Cursor
 getCursor = get
 
 -- | Hide the cursor.
-hideCursor :: RenderM ()
+hideCursor :: RenderM w ()
 hideCursor = put NoCursor
 
 -- | Get the current canvas size.
-canvasSize :: RenderM Size
-canvasSize = ask
+getCanvasSize :: RenderM w Size
+getCanvasSize = asks rcSize
+
+-- | Get the render target.
+getRenderState :: RenderM w w
+getRenderState = asks rcState
 
 -- | An empty image.
-emptyRenderer :: Renderer
+emptyRenderer :: Renderer w
 emptyRenderer = return emptyImage
 
 -- | Produce an image containing the given "Text".
-drawText :: Attr -> TL.Text -> Renderer
+drawText :: Attr -> TL.Text -> Renderer w
 drawText attr val = pure (text attr val)
 
 -- | Produce an image containing the given "Text".
-drawText' :: Attr -> T.Text -> Renderer
+drawText' :: Attr -> T.Text -> Renderer w
 drawText' attr val = pure (text' attr val)
 
 -- | Produce an image containing the given "String".
-drawString :: Attr -> String -> Renderer
+drawString :: Attr -> String -> Renderer w
 drawString attr val = pure (string attr val)
 
 -- | Fill the canvas using the given "Char".
-fillChar :: Attr -> Char -> Renderer
+fillChar :: Attr -> Char -> Renderer w
 fillChar attr val = do
-	(w, h) <- canvasSize
+	(w, h) <- getCanvasSize
 	fmap vertCat (replicateM h (drawString attr (replicate w val)))
 
 -- | Align elements vertically.
-alignVertically :: [DivisionHint Int Float Renderer] -> Renderer
-alignVertically hints =
-	flip fmap canvasSize $ \ (width, height) ->
-		vertCat (map (\ (h, r) -> renderImage r (width, h))
+alignVertically :: [DivisionHint Int Float (Renderer w)] -> Renderer w
+alignVertically hints = do
+	t <- getRenderState
+	flip fmap getCanvasSize $ \ (width, height) ->
+		vertCat (map (\ (h, r) -> renderImage r (RenderContext (width, h) t))
 		             (divideMetric hints height))
 
 -- | Align elements horizontally.
-alignHorizontally :: [DivisionHint Int Float Renderer] -> Renderer
-alignHorizontally hints =
-	flip fmap canvasSize $ \ (width, height) ->
-		horizCat (map (\ (w, r) -> renderImage r (w, height))
+alignHorizontally :: [DivisionHint Int Float (Renderer w)] -> Renderer w
+alignHorizontally hints = do
+	t <- getRenderState
+	flip fmap getCanvasSize $ \ (width, height) ->
+		horizCat (map (\ (w, r) -> renderImage r (RenderContext (w, height) t))
 		              (divideMetric hints width))
