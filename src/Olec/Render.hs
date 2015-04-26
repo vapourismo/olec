@@ -9,8 +9,6 @@ module Olec.Render (
 	RenderContext (..),
 	RenderM,
 	Renderer,
-	Visual (..),
-	HasVisual (..),
 	renderPicture,
 	renderImage,
 
@@ -61,13 +59,6 @@ type RenderM w = ReaderT (RenderContext w) (State Cursor)
 
 -- | Image renderer
 type Renderer w = RenderM w Image
-
-class Visual w where
-	mkRenderer :: Renderer w
-
--- | Wrap a type which implements the "Visual" type class.
-data HasVisual
-	= forall w. Visual w => HasVisual w
 
 -- | Run the renderer in a canvas with the given size.
 renderPicture :: Renderer w -> RenderContext w -> Picture
@@ -125,7 +116,7 @@ fillChar attr val = do
 alignVertically :: [DivisionHint Int Float (Renderer w)] -> Renderer w
 alignVertically hints = do
 	(width, height) <- getCanvasSize
-	fmap horizCat (mapM (\ (h, r) -> withReaderT (\ rc -> rc {rcSize = (width, h)}) r)
+	fmap vertCat (mapM (\ (h, r) -> withReaderT (\ rc -> rc {rcSize = (width, h)}) r)
 	                    (divideMetric hints height))
 
 -- | Align elements horizontally.
