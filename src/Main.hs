@@ -8,7 +8,7 @@ import Olec.Runtime
 -- | Entry point
 main :: IO ()
 main =
-	evalRuntime (render >> forever fetchEvent) () renderer
+	evalRuntime_ (render >> forever fetchEvent) () renderer
 	where
 		renderer =
 			alignVertically [
