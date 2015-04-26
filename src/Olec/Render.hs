@@ -124,15 +124,13 @@ fillChar attr val = do
 -- | Align elements vertically.
 alignVertically :: [DivisionHint Int Float (Renderer w)] -> Renderer w
 alignVertically hints = do
-	t <- getRenderState
-	flip fmap getCanvasSize $ \ (width, height) ->
-		vertCat (map (\ (h, r) -> renderImage r (RenderContext (width, h) t))
-		             (divideMetric hints height))
+	(width, height) <- getCanvasSize
+	fmap horizCat (mapM (\ (h, r) -> withReaderT (\ rc -> rc {rcSize = (width, h)}) r)
+	                    (divideMetric hints height))
 
 -- | Align elements horizontally.
 alignHorizontally :: [DivisionHint Int Float (Renderer w)] -> Renderer w
 alignHorizontally hints = do
-	t <- getRenderState
-	flip fmap getCanvasSize $ \ (width, height) ->
-		horizCat (map (\ (w, r) -> renderImage r (RenderContext (w, height) t))
-		              (divideMetric hints width))
+	(width, height) <- getCanvasSize
+	fmap horizCat (mapM (\ (w, r) -> withReaderT (\ rc -> rc {rcSize = (w, height)}) r)
+	                    (divideMetric hints width))
