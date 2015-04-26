@@ -22,6 +22,7 @@ module Olec.Runtime (
 	module Olec.Render
 ) where
 
+import Control.Exception
 import Control.Concurrent
 
 import Control.Monad.State
@@ -70,7 +71,8 @@ evalRuntime m w r = do
 
 -- | Evaluate the runtime action, but discard the actual value.
 evalRuntime_ :: Runtime w e a -> w -> Renderer w -> IO ()
-evalRuntime_ m w r = void (evalRuntime m w r)
+evalRuntime_ m w r =
+	void (evalRuntime m w r) `catch` \ BlockedIndefinitelyOnMVar -> return ()
 
 -- | Grab the next event.
 fetchEvent :: Runtime w e (RuntimeEvent e)
