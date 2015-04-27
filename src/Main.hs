@@ -2,8 +2,33 @@
 
 module Main where
 
+import qualified Data.Text as T
+
 import Graphics.Vty.Attributes
+
 import Olec.Runtime
+
+-- |
+data StatusBar = StatusBar {
+	sbStatusText :: T.Text
+}
+
+-- |
+data AppState = AppState {
+	asStatusBar :: StatusBar
+}
+
+-- |
+renderStatusBar :: Renderer StatusBar
+renderStatusBar =
+	alignHorizontally [
+		Absolute 1 spacer,
+		LeftOver (getRenderState >>= drawText style . sbStatusText),
+		Absolute 1 spacer
+	]
+	where
+		style = mkAttr 0 7
+		spacer = fillChar style ' '
 
 -- |
 renderInfo :: Attr -> Renderer a
@@ -12,15 +37,15 @@ renderInfo attr = do
 	drawString attr (show w ++ " x " ++ show h)
 
 -- |
-defaultRenderer :: Renderer a
-defaultRenderer =
+renderAppState :: Renderer AppState
+renderAppState =
 	alignVertically [
-		LeftOver (renderInfo (mkAttr 1 7)),
-		Absolute 1 (renderInfo (mkAttr 7 1))
+		LeftOver (renderInfo (mkAttr 7 1)),
+		Absolute 1 (redirect asStatusBar renderStatusBar)
 	]
 
 -- |
-defaultRuntime :: Runtime () () ()
+defaultRuntime :: Runtime AppState () ()
 defaultRuntime =
 	render >> eventLoop
 	where
@@ -37,4 +62,11 @@ defaultRuntime =
 
 -- | Entry point
 main :: IO ()
-main = evalRuntime_ defaultRuntime defaultRenderer ()
+main =
+	evalRuntime_ defaultRuntime renderAppState (
+		AppState {
+			asStatusBar = StatusBar {
+				sbStatusText = "Nothing yet, oasdohaiopmj23cdnh0c79dshsdh89o0sdgfhuioasdfhuiopasdfhjiohjklsdfhjklsdfhjksdfhjksdfhjksdfhjksdfhjksdfhjkdsfoasdohaiopmj23cdnh0c79dshsdh89o0sdgfhuioasdfhuiopasdfhjiohjklsdfhjklsdfhjksdfhjksdfhjksdfhjksdfhjksdfhjkdsfoasdohaiopmj23cdnh0c79dshsdh89o0sdgfhuioasdfhuiopasdfhjiohjklsdfhjklsdfhjksdfhjksdfhjksdfhjksdfhjksdfhjkdsf"
+			}
+		}
+	)
