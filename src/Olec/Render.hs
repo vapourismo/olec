@@ -135,7 +135,7 @@ alignHorizontally hints = do
 -- | Generate a color using an index in [0; 255]
 rawColor :: Word8 -> Color
 rawColor n
-	| n <= 16 = ISOColor n
+	| n < 16 = ISOColor n
 	| otherwise = Color240 n
 
 -- | Make an attribute using a foreground and background color.
