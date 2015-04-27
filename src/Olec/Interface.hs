@@ -5,10 +5,11 @@ module Olec.Interface (
 import Control.Exception
 import Control.Concurrent
 
-import qualified Data.Text as T
+--import qualified Data.Text as T
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.General.StyleContext
+import Graphics.UI.Gtk.General.CssProvider
 
 import System.Posix.Types
 import System.Posix.Terminal
@@ -21,6 +22,13 @@ makeInterface :: IO (Chan (Event e), Fd)
 makeInterface = do
 	initGUI
 	eventChan <- newChan
+
+	-- Remove style classes
+	mbScreen <- screenGetDefault
+	flip (maybe (return ())) mbScreen $ \ screen -> do
+		cssProvider <- cssProviderNew
+		cssProviderLoadFromString cssProvider "VteTerminal { padding: 6px; }"
+		styleContextAddProviderForScreen screen cssProvider 800
 
 	-- Main window
 	win <- windowNew
@@ -42,12 +50,6 @@ makeInterface = do
 	on win objectDestroy mainQuit
 	on term buttonPressEvent (return True)
 	on term buttonReleaseEvent (return True)
-
-	-- Remove style classes from Terminal
-	--styleContext <- widgetGetStyleContext term
-	--styleClasses <- styleContextListClasses styleContext :: IO [T.Text]
-	--print styleClasses
-	--mapM_ (styleContextRemoveClass styleContext) styleClasses
 
 	-- Show interface
 	widgetShowAll win
