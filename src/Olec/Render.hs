@@ -1,5 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
-
 module Olec.Render (
 	-- * Base types
 	Size,
@@ -30,12 +28,16 @@ module Olec.Render (
 	-- * Layouts
 	DivisionHint (..),
 	alignVertically,
-	alignHorizontally
+	alignHorizontally,
+
+	-- * Attributes
+	mkAttr
 ) where
 
 import Control.Monad.State
 import Control.Monad.Reader
 
+import Data.Word
 import qualified Data.Text as T
 
 import Graphics.Vty hiding (Event, hideCursor)
@@ -123,3 +125,14 @@ alignHorizontally hints = do
 	                         fmap (resize w height)
 	                              (withReaderT (\ rc -> rc {rcSize = (w, height)}) r))
 	                    (divideMetric hints width))
+
+-- | Generate a color using an index in [0; 255]
+rawColor :: Word8 -> Color
+rawColor n
+	| n <= 16 = ISOColor n
+	| otherwise = Color240 n
+
+-- | Make an attribute using a foreground and background color.
+mkAttr :: Word8 -> Word8 -> Attr
+mkAttr fg bg =
+	Attr Default (SetTo (rawColor fg)) (SetTo (rawColor bg))

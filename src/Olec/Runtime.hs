@@ -19,12 +19,14 @@ module Olec.Runtime (
 
 	-- * Modules
 	module Olec.Events,
-	module Olec.Render
+	module Olec.Render,
+	liftIO
 ) where
 
 import Control.Exception
 import Control.Concurrent
 
+import Control.Monad.Trans
 import Control.Monad.State
 import Control.Monad.Reader
 

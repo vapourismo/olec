@@ -5,7 +5,10 @@ module Olec.Interface (
 import Control.Exception
 import Control.Concurrent
 
+import qualified Data.Text as T
+
 import Graphics.UI.Gtk
+import Graphics.UI.Gtk.General.StyleContext
 
 import System.Posix.Types
 import System.Posix.Terminal
@@ -39,6 +42,12 @@ makeInterface = do
 	on win objectDestroy mainQuit
 	on term buttonPressEvent (return True)
 	on term buttonReleaseEvent (return True)
+
+	-- Remove style classes from Terminal
+	--styleContext <- widgetGetStyleContext term
+	--styleClasses <- styleContextListClasses styleContext :: IO [T.Text]
+	--print styleClasses
+	--mapM_ (styleContextRemoveClass styleContext) styleClasses
 
 	-- Show interface
 	widgetShowAll win
