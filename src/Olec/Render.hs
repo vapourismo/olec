@@ -26,6 +26,7 @@ module Olec.Render (
 	fillChar,
 
 	-- * Layouts
+	redirect,
 	DivisionHint (..),
 	alignVertically,
 	alignHorizontally,
@@ -107,6 +108,11 @@ fillChar :: Attr -> Char -> Renderer w
 fillChar attr val = do
 	(w, h) <- getCanvasSize
 	fmap vertCat (replicateM h (drawString attr (replicate w val)))
+
+-- | Redirect to a another component.
+redirect :: (w -> w') -> Renderer w' -> Renderer w
+redirect f =
+	withReaderT (\ rc -> rc {rcState = f (rcState rc)})
 
 -- | Align elements vertically.
 alignVertically :: [DivisionHint Int Float (Renderer w)] -> Renderer w
