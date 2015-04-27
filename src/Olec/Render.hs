@@ -24,7 +24,6 @@ module Olec.Render (
 	-- * Drawing
 	emptyRenderer,
 	drawText,
-	drawText',
 	drawString,
 	fillChar,
 
@@ -38,7 +37,6 @@ import Control.Monad.State
 import Control.Monad.Reader
 
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 
 import Graphics.Vty hiding (Event, hideCursor)
 
@@ -95,12 +93,8 @@ emptyRenderer :: Renderer w
 emptyRenderer = return emptyImage
 
 -- | Produce an image containing the given "Text".
-drawText :: Attr -> TL.Text -> Renderer w
-drawText attr val = pure (text attr val)
-
--- | Produce an image containing the given "Text".
-drawText' :: Attr -> T.Text -> Renderer w
-drawText' attr val = pure (text' attr val)
+drawText :: Attr -> T.Text -> Renderer w
+drawText attr val = pure (text' attr val)
 
 -- | Produce an image containing the given "String".
 drawString :: Attr -> String -> Renderer w
@@ -116,12 +110,16 @@ fillChar attr val = do
 alignVertically :: [DivisionHint Int Float (Renderer w)] -> Renderer w
 alignVertically hints = do
 	(width, height) <- getCanvasSize
-	fmap vertCat (mapM (\ (h, r) -> withReaderT (\ rc -> rc {rcSize = (width, h)}) r)
+	fmap vertCat (mapM (\ (h, r) ->
+	                        fmap (resize width h)
+	                             (withReaderT (\ rc -> rc {rcSize = (width, h)}) r))
 	                    (divideMetric hints height))
 
 -- | Align elements horizontally.
 alignHorizontally :: [DivisionHint Int Float (Renderer w)] -> Renderer w
 alignHorizontally hints = do
 	(width, height) <- getCanvasSize
-	fmap horizCat (mapM (\ (w, r) -> withReaderT (\ rc -> rc {rcSize = (w, height)}) r)
+	fmap horizCat (mapM (\ (w, r) ->
+	                         fmap (resize w height)
+	                              (withReaderT (\ rc -> rc {rcSize = (w, height)}) r))
 	                    (divideMetric hints width))
