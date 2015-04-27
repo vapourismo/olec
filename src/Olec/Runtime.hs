@@ -63,16 +63,16 @@ data RuntimeEvent e
 	deriving (Show, Eq, Ord)
 
 -- | Evaluate the runtime action.
-evalRuntime :: Runtime w e a -> w -> Renderer w -> IO a
-evalRuntime m w r = do
+evalRuntime :: Runtime w e a -> Renderer w -> w -> IO a
+evalRuntime m r w = do
 	(chan, pts) <- makeInterface
 	display <- makeDisplay pts
 	evalStateT (runReaderT m (REnv chan display r)) (RenderContext (80, 24) w)
 
 -- | Evaluate the runtime action, but discard the actual value.
-evalRuntime_ :: Runtime w e a -> w -> Renderer w -> IO ()
-evalRuntime_ m w r =
-	void (evalRuntime m w r) `catch` \ BlockedIndefinitelyOnMVar -> return ()
+evalRuntime_ :: Runtime w e a -> Renderer w -> w -> IO ()
+evalRuntime_ m r w =
+	void (evalRuntime m r w) `catch` \ BlockedIndefinitelyOnMVar -> return ()
 
 -- | Grab the next event.
 fetchEvent :: Runtime w e (RuntimeEvent e)
