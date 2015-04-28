@@ -41,7 +41,7 @@ renderAppState :: Renderer AppState
 renderAppState =
 	alignVertically [
 		LeftOver (renderInfo (mkAttr 7 1)),
-		Absolute 1 (redirect asStatusBar renderStatusBar)
+		Absolute 1 (withRenderer asStatusBar renderStatusBar)
 	]
 
 -- |

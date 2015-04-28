@@ -9,6 +9,7 @@ module Olec.Render (
 	Renderer,
 	renderPicture,
 	renderImage,
+	withRenderer,
 
 	-- * Misc render functions
 	getCanvasSize,
@@ -26,7 +27,6 @@ module Olec.Render (
 	fillChar,
 
 	-- * Layouts
-	redirect,
 	DivisionHint (..),
 	alignVertically,
 	alignHorizontally,
@@ -71,6 +71,11 @@ renderPicture r c =
 renderImage :: Renderer w -> RenderContext w -> Image
 renderImage r c@(RenderContext (w, h) _) = resize w h (evalState (runReaderT r c) NoCursor)
 
+-- | Redirect to a another component.
+withRenderer :: (w -> w') -> Renderer w' -> Renderer w
+withRenderer f =
+	withReaderT (\ rc -> rc {rcState = f (rcState rc)})
+
 -- | Move the cursor to a certain location.
 putCursor :: Position -> RenderM w ()
 putCursor = put . uncurry Cursor
@@ -108,11 +113,6 @@ fillChar :: Attr -> Char -> Renderer w
 fillChar attr val = do
 	(w, h) <- getCanvasSize
 	fmap vertCat (replicateM h (drawString attr (replicate w val)))
-
--- | Redirect to a another component.
-redirect :: (w -> w') -> Renderer w' -> Renderer w
-redirect f =
-	withReaderT (\ rc -> rc {rcState = f (rcState rc)})
 
 -- | Align elements vertically.
 alignVertically :: [DivisionHint Int Float (Renderer w)] -> Renderer w
