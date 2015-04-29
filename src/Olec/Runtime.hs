@@ -67,7 +67,7 @@ instance MonadReader Event (Runtime s) where
 
 instance MonadState s (Runtime s) where
 	get = Runtime (readIORef . mfStateRef)
-	state f = Runtime (\ mf -> atomicModifyIORef (mfStateRef mf) (swap . f))
+	state f = Runtime (\ mf -> atomicModifyIORef' (mfStateRef mf) (swap . f))
 	put s = Runtime (\ mf -> writeIORef (mfStateRef mf) s)
 
 instance MonadIO (Runtime s) where
