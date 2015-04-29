@@ -1,3 +1,5 @@
+{-# LANGUAGE Rank2Types #-}
+
 module Olec.Render (
 	-- * Base types
 	Size,
@@ -38,6 +40,8 @@ module Olec.Render (
 import Control.Monad.State
 import Control.Monad.Reader
 
+import Control.Lens
+
 import Data.Word
 import qualified Data.Text as T
 
@@ -72,9 +76,9 @@ renderImage :: Renderer w -> RenderContext w -> Image
 renderImage r c@(RenderContext (w, h) _) = resize w h (evalState (runReaderT r c) NoCursor)
 
 -- | Redirect to a another component.
-withRenderer :: (w -> w') -> Renderer w' -> Renderer w
-withRenderer f =
-	withReaderT (\ rc -> rc {rcState = f (rcState rc)})
+withRenderer :: Lens' w t -> Renderer t -> Renderer w
+withRenderer b =
+	withReaderT (\ rc -> rc {rcState = view b (rcState rc)})
 
 -- | Move the cursor to a certain location.
 putCursor :: Position -> RenderM w ()
