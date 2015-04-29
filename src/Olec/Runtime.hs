@@ -1,9 +1,10 @@
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RecordWildCards #-}
+
 module Olec.Runtime (
 	-- * Runtime basics
 	Runtime,
-	RuntimeEvent (..),
-	evalRuntime,
-	evalRuntime_,
+	run,
+	forkRuntime,
 
 	-- * Events
 	fetchEvent,
@@ -12,115 +13,90 @@ module Olec.Runtime (
 	-- * Render
 	render,
 
-	-- * State
-	getState,
-	putState,
-	modifyState,
+	-- * Exports
+	ask,
+	get,
+	put,
+	modify,
+	liftIO,
 
-	-- * Modules
 	module Olec.Events,
-	module Olec.Render,
-	liftIO
+	module Olec.Render
 ) where
 
-import Control.Exception
 import Control.Concurrent
 
-import Control.Monad.Trans
 import Control.Monad.State
 import Control.Monad.Reader
 
-import Data.Word
+import Data.IORef
+import Data.Tuple
 
-import qualified Graphics.Vty as V
-import Graphics.UI.Gtk (mainQuit)
+import qualified Graphics.Vty as Vty
+import qualified Graphics.UI.Gtk as GTK
 
-import System.Posix.Types
-
-import Olec.Events
-import Olec.Interface
 import Olec.Render
+import Olec.Interface
+import Olec.Events
 
--- | Create a Vty instance.
-makeDisplay :: Fd -> IO V.Vty
-makeDisplay pts =
-	V.mkVty mempty {
-		V.inputFd = Just pts,
-		V.outputFd = Just pts
-	}
+-- |
+data Manifest s = Manifest {
+	mfChannel  :: Chan Event,
+	mfDisplay  :: MVar Vty.Vty,
+	mfSize     :: IO Size,
+	mfStateRef :: IORef s,
+	mfRenderer :: Renderer s
+}
 
--- | Information relevant to several runtime functions.
-data RuntimeEnvironment w e =
-	REnv (Chan (Event e)) V.Vty (Renderer w)
+-- |
+newtype Runtime s a = Runtime { evalRuntime :: Manifest s -> IO a }
 
--- | An action which represents the flow of the underlying program.
-type Runtime w e =
-	ReaderT (RuntimeEnvironment w e) (StateT (RenderContext w) IO)
+instance Functor (Runtime s) where
+	fmap f (Runtime g) = Runtime (fmap f . g)
 
--- | An event which occurs during runtime.
-data RuntimeEvent e
-	= RKeyPress Word32 Word32
-	| RUserEvent e
-	| RExitRequest
-	deriving (Show, Eq, Ord)
+instance Applicative (Runtime s) where
+	pure = Runtime . const . pure
+	Runtime f <*> Runtime g = Runtime (\ mf -> f mf <*> g mf)
 
--- | Evaluate the runtime action.
-evalRuntime :: Runtime w e a -> Renderer w -> w -> IO a
-evalRuntime m r w = do
-	(chan, pts) <- makeInterface
-	display <- makeDisplay pts
-	evalStateT (runReaderT m (REnv chan display r)) (RenderContext (80, 24) w)
+instance Monad (Runtime s) where
+	Runtime f >>= g = Runtime (\ mf -> f mf >>= \ x -> evalRuntime (g x) mf)
 
--- | Evaluate the runtime action, but discard the actual value.
-evalRuntime_ :: Runtime w e a -> Renderer w -> w -> IO ()
-evalRuntime_ m r w =
-	void (evalRuntime m r w) `catch` \ BlockedIndefinitelyOnMVar -> return ()
+instance MonadReader Event (Runtime s) where
+	ask = Runtime (readChan . mfChannel)
+	local _ = id
 
--- | Grab the next event.
-fetchEvent :: Runtime w e (RuntimeEvent e)
-fetchEvent = do
-	REnv chan _ _ <- ask
+instance MonadState s (Runtime s) where
+	get = Runtime (readIORef . mfStateRef)
+	state f = Runtime (\ mf -> atomicModifyIORef (mfStateRef mf) (swap . f))
+	put s = Runtime (\ mf -> writeIORef (mfStateRef mf) s)
 
-	let loop = do
-		ev <- liftIO (readChan chan)
-		case ev of
-			ExitRequest ->
-				return RExitRequest
+instance MonadIO (Runtime s) where
+	liftIO = Runtime . const
 
-			Resize width height -> do
-				modify (\ rs -> rs {rcSize = (width, height)})
-				render
-				loop
+-- |
+run :: Runtime s a -> Renderer s -> s -> IO a
+run runtime renderer initState = do
+	(events, display, size) <- makeInterface
+	stateRef <- newIORef initState
+	displayVar <- newMVar display
+	evalRuntime runtime (Manifest events displayVar size stateRef renderer)
 
-			KeyPress k m ->
-				return (RKeyPress k m)
+-- |
+forkRuntime :: Runtime s () -> Runtime s ThreadId
+forkRuntime (Runtime f) = Runtime (forkIO . f)
 
-			UserEvent e ->
-				return (RUserEvent e)
+-- |
+render :: Runtime s ()
+render =
+	Runtime $ \ Manifest {..} ->
+		renderPicture mfRenderer <$> (RenderContext <$> mfSize
+		                                            <*> readIORef mfStateRef)
+		                         >>= withMVar mfDisplay . flip Vty.update
 
-	loop
+-- |
+requestExit :: Runtime s ()
+requestExit = liftIO GTK.mainQuit
 
--- | Request the termination of this program. The program does not exit immediately,
---   instead you have to handle the "RExitRequest" event, which will be sent
---   when the main loop has exited.
-requestExit :: Runtime w e ()
-requestExit = liftIO mainQuit
-
--- | Render the current state to the screen.
-render :: Runtime w e ()
-render = do
-	ctx <- get
-	REnv _ display renderer <- ask
-	liftIO (V.update display (renderPicture renderer ctx))
-
--- | Get the user state.
-getState :: Runtime w e w
-getState = gets rcState
-
--- | Overwrite the user state.
-putState :: w -> Runtime w e ()
-putState w = modify (\ rc -> rc {rcState = w})
-
--- | Modify the user state.
-modifyState :: (w -> w) -> Runtime w e ()
-modifyState f = modify (\ rc -> rc {rcState = f (rcState rc)})
+-- |
+fetchEvent :: Runtime s Event
+fetchEvent = Runtime (\ mf -> readChan (mfChannel mf))

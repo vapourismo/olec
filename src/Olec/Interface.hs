@@ -5,7 +5,7 @@ module Olec.Interface (
 import Control.Exception
 import Control.Concurrent
 
---import qualified Data.Text as T
+import Graphics.Vty hiding (Event)
 
 import Graphics.UI.Gtk
 import Graphics.UI.Gtk.General.StyleContext
@@ -18,7 +18,7 @@ import Olec.Events
 import Olec.Terminal
 
 -- | Create the main user interface
-makeInterface :: IO (Chan (Event e), Fd)
+makeInterface :: IO (Chan Event, Vty, IO (Int, Int))
 makeInterface = do
 	initGUI
 	eventChan <- newChan
@@ -55,4 +55,10 @@ makeInterface = do
 	widgetShowAll win
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
-	return (eventChan, pts)
+	-- Setup Vty
+	vty <- mkVty mempty {
+		inputFd = Just pts,
+		outputFd = Just pts
+	}
+
+	return (eventChan, vty, terminalSize term)

@@ -25,11 +25,11 @@ import Graphics.UI.Gtk
 import Olec.Terminal
 
 -- | Application event
-data Event e
+data Event
 	= Resize Int Int
 	| KeyPress Word32 Word32
 	| ExitRequest
-	| UserEvent e
+	deriving (Show, Eq, Ord)
 
 -- | Check if the given key value is single modifier key stroke.
 isModifier :: KeyVal -> Bool
@@ -48,7 +48,7 @@ toKeyValue :: T.Text -> Word32
 toKeyValue = keyFromName
 
 -- | Forward key events to an event channel.
-forwardKeyPressEvents :: (WidgetClass widget) => widget -> Chan (Event e) -> IO ()
+forwardKeyPressEvents :: (WidgetClass w) => w -> Chan Event -> IO ()
 forwardKeyPressEvents widget chan =
 	void $ on widget keyPressEvent $ True <$ do
 		eval <- eventKeyVal
@@ -58,7 +58,7 @@ forwardKeyPressEvents widget chan =
 			writeChan chan (KeyPress (toModifierMask emod) eval)
 
 -- | Forward resize events to an event channel.
-forwardResizeEvents :: Terminal -> Chan (Event e) -> IO ()
+forwardResizeEvents :: Terminal -> Chan Event -> IO ()
 forwardResizeEvents term chan = do
 	dimRef <- newIORef (0, 0)
 	void $ on term sizeAllocate $ \ _ -> do

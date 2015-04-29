@@ -42,7 +42,7 @@ withTerminalPtr :: Terminal -> (Ptr Terminal -> IO a) -> IO a
 withTerminalPtr (Terminal ptr) f = withForeignPtr ptr f
 
 -- | Get the column and row count.
-terminalSize :: Terminal -> IO (CLong, CLong)
+terminalSize :: Terminal -> IO (Int, Int)
 terminalSize term =
 	withTerminalPtr term $ \ ptr ->
-		(,) <$> getColumnCount ptr <*> getRowCount ptr
+		(,) <$> fmap fromIntegral (getColumnCount ptr) <*> fmap fromIntegral (getRowCount ptr)
