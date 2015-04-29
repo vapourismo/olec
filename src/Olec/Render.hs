@@ -28,6 +28,10 @@ module Olec.Render (
 	drawString,
 	fillChar,
 
+	-- * Image
+	imageHeight,
+	imageWidth,
+
 	-- * Layouts
 	DivisionHint (..),
 	alignVertically,
