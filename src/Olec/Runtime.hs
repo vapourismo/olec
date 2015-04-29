@@ -39,7 +39,7 @@ import Olec.Render
 import Olec.Interface
 import Olec.Events
 
--- |
+-- | Runtime manifest
 data Manifest s = Manifest {
 	mfChannel  :: Chan Event,
 	mfDisplay  :: MVar Vty.Vty,
@@ -48,7 +48,7 @@ data Manifest s = Manifest {
 	mfRenderer :: Renderer s
 }
 
--- |
+-- | Cow
 newtype Runtime s a = Runtime { evalRuntime :: Manifest s -> IO a }
 
 instance Functor (Runtime s) where
@@ -73,7 +73,7 @@ instance MonadState s (Runtime s) where
 instance MonadIO (Runtime s) where
 	liftIO = Runtime . const
 
--- |
+-- | Execute runtime with a renderer and initial state.
 run :: Runtime s a -> Renderer s -> s -> IO a
 run runtime renderer initState = do
 	(events, display, size) <- makeInterface
@@ -81,11 +81,11 @@ run runtime renderer initState = do
 	displayVar <- newMVar display
 	evalRuntime runtime (Manifest events displayVar size stateRef renderer)
 
--- |
+-- | Fork a thread to run another runtime in.
 forkRuntime :: Runtime s () -> Runtime s ThreadId
 forkRuntime (Runtime f) = Runtime (forkIO . f)
 
--- |
+-- | Render the current state.
 render :: Runtime s ()
 render =
 	Runtime $ \ Manifest {..} ->
@@ -93,10 +93,10 @@ render =
 		                                            <*> readIORef mfStateRef)
 		                         >>= withMVar mfDisplay . flip Vty.update
 
--- |
+-- | Request the main loop to exit.
 requestExit :: Runtime s ()
 requestExit = liftIO GTK.mainQuit
 
--- |
+-- | Get an event from the main loop.
 fetchEvent :: Runtime s Event
 fetchEvent = Runtime (\ mf -> readChan (mfChannel mf))
