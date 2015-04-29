@@ -99,4 +99,4 @@ requestExit = liftIO GTK.mainQuit
 
 -- | Get an event from the main loop.
 fetchEvent :: Runtime s Event
-fetchEvent = Runtime (\ mf -> readChan (mfChannel mf))
+fetchEvent = Runtime (readChan . mfChannel)
