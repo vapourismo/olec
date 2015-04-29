@@ -13,19 +13,21 @@ module Olec.IOProxy (
 ) where
 
 import Control.Lens
+
 import Data.IORef
+import Data.Tuple
 
 -- | Proxy for an IORef
-data IOProxy s
-	= State (IORef s)
-	| forall a. Proxy (IOProxy a) (Lens' a s)
+data IOProxy t
+	= State (IORef t)
+	| forall s. Proxy (IOProxy s) (Lens' s t)
 
 -- | Create a new IOProxy.
 newIOProxy :: s -> IO (IOProxy s)
 newIOProxy = fmap State . newIORef
 
 -- | Create proxy for another proxy.
-proxyIOProxy :: IOProxy a -> Lens' a t -> IOProxy t
+proxyIOProxy :: IOProxy s -> Lens' s t -> IOProxy t
 proxyIOProxy = Proxy
 
 -- | Read underlying value using a lens.
@@ -57,15 +59,17 @@ writeIOProxy (Proxy proxy a) value =
 	writeIOProxyLens proxy a value
 
 -- | Modify the underlying value using a lens.
-modifyIOProxyLens :: IOProxy s -> Lens' s t -> (t -> t) -> IO ()
+modifyIOProxyLens :: IOProxy s -> Lens' s t -> (t -> (a, t)) -> IO a
 modifyIOProxyLens (State ref) b f =
-	atomicModifyIORef' ref (\ parent -> (over b f parent, ()))
+	atomicModifyIORef' ref $ \ parent ->
+		let (x, value') = f (view b parent)
+		in (set b value' parent, x)
 modifyIOProxyLens (Proxy proxy a) b f =
 	modifyIOProxyLens proxy (a . b) f
 
 -- | Modify the underlying value.
-modifyIOProxy :: IOProxy s -> (s -> s) -> IO ()
+modifyIOProxy :: IOProxy s -> (s -> (a, s)) -> IO a
 modifyIOProxy (State ref) f =
-	atomicModifyIORef' ref (\ parent -> (f parent, ()))
+	atomicModifyIORef' ref (\ parent -> swap (f parent))
 modifyIOProxy (Proxy proxy a) f =
 	modifyIOProxyLens proxy a f

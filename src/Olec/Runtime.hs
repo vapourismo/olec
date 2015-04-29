@@ -1,9 +1,14 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, RecordWildCards #-}
+{-# LANGUAGE ExistentialQuantification,
+             MultiParamTypeClasses,
+             FlexibleInstances,
+             RecordWildCards,
+             Rank2Types #-}
 
 module Olec.Runtime (
 	-- * Runtime basics
-	Runtime,
+	Runtime, Manifest (..),
 	run,
+	withRuntime,
 	forkRuntime,
 
 	-- * Events
@@ -29,23 +34,28 @@ import Control.Concurrent
 import Control.Monad.State
 import Control.Monad.Reader
 
-import Data.IORef
-import Data.Tuple
+import Control.Lens
 
 import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.Gtk as GTK
 
-import Olec.Render
 import Olec.Interface
+import Olec.IOProxy
+
+import Olec.Render
 import Olec.Events
+
+-- |
+data GlobalRenderer =
+	forall s. GlobalRenderer (IOProxy s) (Renderer s)
 
 -- | Runtime manifest
 data Manifest s = Manifest {
 	mfChannel  :: Chan Event,
 	mfDisplay  :: MVar Vty.Vty,
 	mfSize     :: IO Size,
-	mfStateRef :: IORef s,
-	mfRenderer :: Renderer s
+	mfStateRef :: IOProxy s,
+	mfRenderer :: GlobalRenderer
 }
 
 -- | Cow
@@ -66,9 +76,9 @@ instance MonadReader Event (Runtime s) where
 	local _ = id
 
 instance MonadState s (Runtime s) where
-	get = Runtime (readIORef . mfStateRef)
-	state f = Runtime (\ mf -> atomicModifyIORef' (mfStateRef mf) (swap . f))
-	put s = Runtime (\ mf -> writeIORef (mfStateRef mf) s)
+	get = Runtime (readIOProxy . mfStateRef)
+	state f = Runtime (\ mf -> modifyIOProxy (mfStateRef mf) f)
+	put s = Runtime (\ mf -> writeIOProxy (mfStateRef mf) s)
 
 instance MonadIO (Runtime s) where
 	liftIO = Runtime . const
@@ -77,9 +87,14 @@ instance MonadIO (Runtime s) where
 run :: Runtime s a -> Renderer s -> s -> IO a
 run runtime renderer initState = do
 	(events, display, size) <- makeInterface
-	stateRef <- newIORef initState
+	stateRef <- newIOProxy initState
 	displayVar <- newMVar display
-	evalRuntime runtime (Manifest events displayVar size stateRef renderer)
+	evalRuntime runtime (Manifest events displayVar size stateRef (GlobalRenderer stateRef renderer))
+
+-- | Delegate a runtime to a component of the original state.
+withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
+withRuntime b (Runtime rt) =
+	Runtime (\ mf -> rt (mf {mfStateRef = proxyIOProxy (mfStateRef mf) b}))
 
 -- | Fork a thread to run another runtime in.
 forkRuntime :: Runtime s () -> Runtime s ThreadId
@@ -89,9 +104,11 @@ forkRuntime (Runtime f) = Runtime (forkIO . f)
 render :: Runtime s ()
 render =
 	Runtime $ \ Manifest {..} ->
-		renderPicture mfRenderer <$> (RenderContext <$> mfSize
-		                                            <*> readIORef mfStateRef)
-		                         >>= withMVar mfDisplay . flip Vty.update
+		case mfRenderer of
+			GlobalRenderer p r ->
+				renderPicture r <$> (RenderContext <$> mfSize
+				                                   <*> readIOProxy p)
+				                >>= withMVar mfDisplay . flip Vty.update
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
