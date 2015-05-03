@@ -3,13 +3,20 @@
 module Main where
 
 import Control.Lens
+import Control.Monad
+import Control.Concurrent
 
 import qualified Data.Text as T
 
 import Olec.Runtime
 
 -- |
-data StatusBar = StatusBar T.Text T.Text T.Text
+data StatusBar = StatusBar {
+	_sbLeft   :: T.Text,
+	_sbRight :: Integer
+}
+
+$(makeLenses ''StatusBar)
 
 -- |
 data AppState = AppState {
@@ -25,28 +32,21 @@ justifyRight renderer = do
 	alignHorizontally [LeftOver emptyRenderer, Absolute (imageWidth img) (pure img)]
 
 -- |
-split3Way :: Renderer a -> Renderer a -> Renderer a -> Renderer a
-split3Way left center right = do
-	centerImage <- center
-	alignHorizontally
-		[
-			LeftOver left,
-			Absolute (imageWidth centerImage) (pure centerImage),
-			LeftOver (justifyRight right)
-		]
+split2Way :: Renderer a -> Renderer a -> Renderer a
+split2Way left right =
+	alignHorizontally [LeftOver left, LeftOver (justifyRight right)]
 
 -- |
 sbRender :: Renderer StatusBar
 sbRender = do
-	StatusBar left center right <- getRenderState
+	StatusBar left right <- getRenderState
 	alignHorizontally
 		[
 			Absolute 1 paddingRender,
 			LeftOver $
-				split3Way
+				split2Way
 					(drawText style left)
-					(drawText style center)
-					(drawText style right),
+					(drawString style (show right)),
 			Absolute 1 paddingRender
 		]
 	where
@@ -63,11 +63,15 @@ asRender =
 		]
 
 -- |
+sbRuntime :: Runtime StatusBar ()
+sbRuntime = forever $ do
+	liftIO (threadDelay 1)
+	sbRight %= (* 2)
+	render
+
+-- |
 asRuntime :: Runtime AppState ()
 asRuntime = do
-	withRuntime asStatusBar $
-		put (StatusBar "Left" "Center" "Right")
-
 	e <- fetchEvent
 	case e of
 		KeyPress m k
@@ -84,8 +88,9 @@ asRuntime = do
 		KeyPress _ _ ->
 			render >> asRuntime
 
-
 -- | Entry point
 main :: IO ()
 main =
-	run asRuntime asRender (AppState (StatusBar T.empty T.empty T.empty))
+	run (forkRuntime (withRuntime asStatusBar sbRuntime) >> asRuntime)
+	    asRender
+	    (AppState (StatusBar "Left" 2))
