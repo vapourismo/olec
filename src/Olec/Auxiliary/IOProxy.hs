@@ -1,6 +1,6 @@
 {-# LANGUAGE ExistentialQuantification, Rank2Types #-}
 
-module Olec.IOProxy (
+module Olec.Auxiliary.IOProxy (
 	-- * Base
 	IOProxy,
 	newIOProxy,

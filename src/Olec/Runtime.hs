@@ -41,7 +41,7 @@ import qualified Graphics.UI.Gtk as GTK
 
 import Olec.Interface
 import Olec.Interface.Events
-import Olec.IOProxy
+import Olec.Auxiliary.IOProxy
 import Olec.Render
 
 -- |

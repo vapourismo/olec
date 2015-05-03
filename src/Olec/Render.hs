@@ -51,7 +51,7 @@ import qualified Data.Text as T
 
 import Graphics.Vty hiding (Event, hideCursor)
 
-import Olec.Util
+import Olec.Auxiliary.Metrics
 
 type Size = (Int, Int)
 
