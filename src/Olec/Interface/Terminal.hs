@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Olec.Terminal (
+module Olec.Interface.Terminal (
 	Terminal,
 	newTerminal,
 	terminalSize

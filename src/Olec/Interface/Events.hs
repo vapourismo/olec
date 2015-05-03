@@ -1,4 +1,4 @@
-module Olec.Events (
+module Olec.Interface.Events (
 	Event (..),
 
 	forwardKeyPressEvents,
@@ -22,7 +22,7 @@ import qualified Data.Text as T
 
 import Graphics.UI.Gtk
 
-import Olec.Terminal
+import Olec.Interface.Terminal
 
 -- | Application event
 data Event
@@ -54,7 +54,7 @@ forwardKeyPressEvents widget chan =
 		eval <- eventKeyVal
 		emod <- eventModifier
 
-		unless (isModifier eval) . lift $ do
+		unless (isModifier eval) . lift $
 			writeChan chan (KeyPress (toModifierMask emod) eval)
 
 -- | Forward resize events to an event channel.

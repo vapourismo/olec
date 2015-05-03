@@ -1,5 +1,6 @@
 module Olec.Interface (
-	makeInterface
+	makeInterface,
+	module Olec.Interface.Events
 ) where
 
 import Control.Exception
@@ -14,8 +15,8 @@ import Graphics.UI.Gtk.General.CssProvider
 import System.Posix.Types
 import System.Posix.Terminal
 
-import Olec.Events
-import Olec.Terminal
+import Olec.Interface.Events
+import Olec.Interface.Terminal
 
 -- | Create the main user interface
 makeInterface :: IO (Chan Event, Vty, IO (Int, Int))

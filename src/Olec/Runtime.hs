@@ -6,7 +6,8 @@
 
 module Olec.Runtime (
 	-- * Runtime basics
-	Runtime, Manifest (..),
+	Runtime,
+	Manifest (..),
 	run,
 	withRuntime,
 	forkRuntime,
@@ -24,8 +25,7 @@ module Olec.Runtime (
 	put,
 	modify,
 	liftIO,
-
-	module Olec.Events,
+	module Olec.Interface.Events,
 	module Olec.Render
 ) where
 
@@ -40,10 +40,9 @@ import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.Gtk as GTK
 
 import Olec.Interface
+import Olec.Interface.Events
 import Olec.IOProxy
-
 import Olec.Render
-import Olec.Events
 
 -- |
 data GlobalRenderer =
