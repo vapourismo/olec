@@ -72,7 +72,7 @@ sbRuntime = forever $ do
 -- |
 asRuntime :: Runtime AppState ()
 asRuntime = do
-	e <- fetchEvent
+	e <- ask
 	case e of
 		KeyPress m k
 			| m == toModifierMask [Control] &&

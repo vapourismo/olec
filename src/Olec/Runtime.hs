@@ -5,7 +5,7 @@
              Rank2Types #-}
 
 module Olec.Runtime (
-	-- * Runtime basics
+	-- * Runtime
 	Runtime,
 	Manifest (..),
 	run,
@@ -13,17 +13,18 @@ module Olec.Runtime (
 	forkRuntime,
 
 	-- * Events
-	fetchEvent,
 	requestExit,
+	ask,
 
 	-- * Render
 	render,
 
-	-- * Exports
-	ask,
+	-- * State
 	get,
 	put,
 	modify,
+
+	-- * Re-exports
 	liftIO,
 	module Olec.Interface.Events,
 	module Olec.Render
@@ -112,7 +113,3 @@ render =
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
 requestExit = liftIO GTK.mainQuit
-
--- | Get an event from the main loop.
-fetchEvent :: Runtime s Event
-fetchEvent = Runtime (readChan . mfChannel)
