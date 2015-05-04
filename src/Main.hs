@@ -9,10 +9,11 @@ import Control.Concurrent
 import qualified Data.Text as T
 
 import Olec.Runtime
+import Olec.Components.Layouts
 
 -- |
 data StatusBar = StatusBar {
-	_sbLeft   :: T.Text,
+	_sbLeft  :: T.Text,
 	_sbRight :: Integer
 }
 
@@ -26,32 +27,22 @@ data AppState = AppState {
 $(makeLenses ''AppState)
 
 -- |
-justifyRight :: Renderer a -> Renderer a
-justifyRight renderer = do
-	img <- renderer
-	alignHorizontally [LeftOver emptyRenderer, Absolute (imageWidth img) (pure img)]
-
--- |
-split2Way :: Renderer a -> Renderer a -> Renderer a
-split2Way left right =
-	alignHorizontally [LeftOver left, LeftOver (justifyRight right)]
-
--- |
 sbRender :: Renderer StatusBar
 sbRender = do
 	StatusBar left right <- getRenderState
 	alignHorizontally
 		[
-			Absolute 1 paddingRender,
+			Absolute 1 space,
 			LeftOver $
-				split2Way
-					(drawText style left)
-					(drawString style (show right)),
-			Absolute 1 paddingRender
+				splitWeighted
+					(drawText (mkAttr 0 5) left)
+					space
+					(drawString (mkAttr 0 6) (show right)),
+			Absolute 1 space
 		]
 	where
 		style = mkAttr 0 7
-		paddingRender = fillChar style ' '
+		space = fillChar style ' '
 
 -- |
 asRender :: Renderer AppState
@@ -65,7 +56,7 @@ asRender =
 -- |
 sbRuntime :: Runtime StatusBar ()
 sbRuntime = forever $ do
-	liftIO (threadDelay 1)
+	liftIO (threadDelay 100000)
 	sbRight %= (* 2)
 	render
 
@@ -93,4 +84,4 @@ main :: IO ()
 main =
 	run (forkRuntime (withRuntime asStatusBar sbRuntime) >> asRuntime)
 	    asRender
-	    (AppState (StatusBar "Left" 2))
+	    (AppState (StatusBar "Left 桃" 2))
