@@ -39,7 +39,7 @@ divideMetric elems total =
 		(normValue, lastValue) = let (d, m) = divMod left' unassigned' in (d, d + m)
 
 		-- Traverse again to tag remaining "LeftOver" instances with
-		-- the previously calulcated value.
+		-- the previously calculated value.
 		(_, passedTwice) = mapAccumL stepTwo unassigned' (catMaybes passedOnce)
 
 		stepTwo acc (Left x) = (acc, Just x)
