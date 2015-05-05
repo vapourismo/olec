@@ -3,20 +3,20 @@
 #include <stdbool.h>
 
 extern
-VteTerminal* olec_make_vte(int ptm) {
+VteTerminal* olec_make_vte(int ptm, const char** color_palette) {
 	VteTerminal* term = VTE_TERMINAL(vte_terminal_new());
 
 	// Configure font
 	PangoFontDescription* font = pango_font_description_from_string("Inconsolata 10.5");
 	vte_terminal_set_font(term, font);
 
-	// // Configure colors
-	// GdkRGBA term_palette[num_colors];
+	// Configure colors
+	GdkRGBA term_palette[256];
 
-	// for (int i = 0; i < num_colors; i++)
-	//     gdk_rgba_parse(term_palette + i, color_palette[i] ? color_palette[i] : "#ffffff");
+	for (int i = 0; i < 256; i++)
+	    gdk_rgba_parse(term_palette + i, color_palette[i] ? color_palette[i] : "#ffffff");
 
-	// vte_terminal_set_colors(term, NULL, NULL, term_palette, num_colors);
+	vte_terminal_set_colors(term, NULL, NULL, term_palette, 256);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(term, true);

@@ -41,7 +41,7 @@ makeInterface = do
 
 	-- Terminal
 	(Fd ptm, pts) <- openPseudoTerminal
-	term <- newTerminal ptm
+	term <- newTerminal ptm []
 	boxPackStart box term PackGrow 0
 
 	-- Dispatch events

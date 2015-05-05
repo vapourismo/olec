@@ -6,8 +6,13 @@ module Olec.Interface.Terminal (
 	terminalSize
 ) where
 
+import Control.Exception
+
 import Foreign.C.Types
+import Foreign.C.String
+
 import Foreign.Ptr
+import Foreign.Marshal
 import Foreign.ForeignPtr
 
 import Graphics.UI.Gtk.Abstract.Object
@@ -16,7 +21,7 @@ import Graphics.UI.Gtk.Abstract.Widget
 import System.Glib.GObject
 
 foreign import ccall "olec_make_vte"
-	makeVTE :: CInt -> IO (Ptr Terminal)
+	makeVTE :: CInt -> Ptr CString -> IO (Ptr Terminal)
 
 foreign import ccall "vte_terminal_get_column_count"
 	getColumnCount :: Ptr Terminal -> IO CLong
@@ -34,8 +39,13 @@ instance GObjectClass Terminal where
 instance WidgetClass Terminal
 
 -- | Create a new VTE instance using a pseudo-terminal master file descriptor.
-newTerminal :: CInt -> IO Terminal
-newTerminal ptm = makeNewObject (Terminal, objectUnref) (makeVTE ptm)
+newTerminal :: CInt -> [String] -> IO Terminal
+newTerminal ptm colors = do
+	colorPalette <- mapM newCString colors
+	makeNewObject (Terminal, objectUnref)
+	              (withArray (colorPalette ++ replicate (256 - length colorPalette) nullPtr)
+	                         (makeVTE ptm))
+		`finally` mapM_ free colorPalette
 
 -- | Do something with the underlying raw pointer.
 withTerminalPtr :: Terminal -> (Ptr Terminal -> IO a) -> IO a
