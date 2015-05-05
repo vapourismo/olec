@@ -28,13 +28,9 @@ splitWeighted left space right = do
 	if imageWidth imgLeft + imageWidth imgLeft >= w then do
 		let leftWidth = fromIntegral (imageWidth imgLeft)
 		              / fromIntegral (imageWidth imgLeft + imageWidth imgRight)
-
-		trace (show (imageWidth imgLeft, imageWidth imgRight, leftWidth)) (return ())
-
 		alignHorizontally
 			[
 				Relative leftWidth left,
-				LeftOver space,
 				Relative (1 - leftWidth) right
 			]
 	else
