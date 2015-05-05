@@ -38,6 +38,7 @@ module Olec.Render (
 	alignHorizontally,
 
 	-- * Attributes
+	Attr,
 	mkAttr
 ) where
 
