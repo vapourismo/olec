@@ -29,15 +29,13 @@ $(makeLenses ''AppState)
 -- |
 sbRender :: Renderer StatusBar
 sbRender = do
-	StatusBar left right <- getRenderState
+	StatusBar _ right <- getRenderState
 	alignHorizontally
 		[
 			Absolute 1 space,
-			LeftOver $
-				splitWeighted
-					(drawText (mkAttr 0 5) left)
-					space
-					(drawString (mkAttr 0 6) (show right)),
+			LeftOver (justifyLeft space (drawString (mkAttr 0 6) (show right))),
+			Absolute 1 space,
+			LeftOver (justifyRight space (drawString (mkAttr 0 6) (show right))),
 			Absolute 1 space
 		]
 	where
