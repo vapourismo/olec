@@ -6,7 +6,7 @@ module Olec.Components.Layouts (
 import Debug.Trace
 import Olec.Runtime
 
--- |
+-- | Justify to the right.
 justifyRight :: Renderer a -- ^ Spacer
              -> Renderer a -- ^ Right
              -> Renderer a
