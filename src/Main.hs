@@ -3,21 +3,9 @@
 module Main where
 
 import Control.Lens
-import Control.Monad
-import Control.Concurrent
-
-import qualified Data.Text as T
 
 import Olec.Runtime
-import Olec.Components.Layouts
-
--- |
-data StatusBar = StatusBar {
-	_sbLeft  :: T.Text,
-	_sbRight :: Integer
-}
-
-$(makeLenses ''StatusBar)
+import Olec.Components.StatusBar
 
 -- |
 data AppState = AppState {
@@ -27,36 +15,13 @@ data AppState = AppState {
 $(makeLenses ''AppState)
 
 -- |
-sbRender :: Renderer StatusBar
-sbRender = do
-	StatusBar _ right <- getRenderState
-	alignHorizontally
-		[
-			Absolute 1 space,
-			LeftOver (justifyLeft space (drawString (mkAttr 0 6) (show right))),
-			Absolute 1 space,
-			LeftOver (justifyRight space (drawString (mkAttr 0 6) (show right))),
-			Absolute 1 space
-		]
-	where
-		style = mkAttr 0 7
-		space = fillChar style ' '
-
--- |
 asRender :: Renderer AppState
 asRender =
 	alignVertically
 		[
 			LeftOver emptyRenderer,
-			Absolute 1 (withRenderer asStatusBar sbRender)
+			Absolute 1 (withRenderer asStatusBar renderStatusBar)
 		]
-
--- |
-sbRuntime :: Runtime StatusBar ()
-sbRuntime = forever $ do
-	liftIO (threadDelay 100000)
-	sbRight %= (* 2)
-	render
 
 -- |
 asRuntime :: Runtime AppState ()
@@ -80,6 +45,5 @@ asRuntime = do
 -- | Entry point
 main :: IO ()
 main =
-	run (forkRuntime (withRuntime asStatusBar sbRuntime) >> asRuntime)
-	    asRender
-	    (AppState (StatusBar "Left 桃" 2))
+	run asRuntime asRender
+	    (AppState (StatusBar "Left 桃" "Right 桃" (mkAttr 0 7)))
