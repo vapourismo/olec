@@ -96,8 +96,13 @@ withRuntime b (Runtime rt) =
 	Runtime (\ mf -> rt (mf {mfStateRef = proxyIOProxy (mfStateRef mf) b}))
 
 -- | Fork a thread to run another runtime in.
-forkRuntime :: Runtime s () -> Runtime s ThreadId
-forkRuntime (Runtime f) = Runtime (forkIO . f)
+forkRuntime :: Runtime s () -> Runtime s (Manifest s, ThreadId)
+forkRuntime (Runtime rt) =
+	Runtime $ \ mf -> do
+		sepChan <- newChan
+		let mf' = mf {mfChannel = sepChan}
+		tid <- forkIO (rt mf)
+		pure (mf', tid)
 
 -- | Render the current state.
 render :: Runtime s ()
