@@ -15,6 +15,7 @@ module Olec.Runtime (
 	-- * Events
 	requestExit,
 	ask,
+	forwardEvent,
 
 	-- * Render
 	render,
@@ -103,6 +104,11 @@ forkRuntime (Runtime rt) =
 		let mf' = mf {mfChannel = sepChan}
 		tid <- forkIO (rt mf)
 		pure (mf', tid)
+
+-- | Forward an event to a seperate forked "Manifest".
+forwardEvent :: Event -> Manifest a -> Runtime s ()
+forwardEvent ev Manifest {..} =
+	liftIO (writeChan mfChannel ev)
 
 -- | Render the current state.
 render :: Runtime s ()
