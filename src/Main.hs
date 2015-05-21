@@ -12,7 +12,7 @@ data AppState = AppState {
 	_asStatusBar :: StatusBar
 }
 
-$(makeLenses ''AppState)
+makeLenses ''AppState
 
 -- |
 asRender :: Renderer AppState
