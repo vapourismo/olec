@@ -48,12 +48,11 @@ import Olec.Render
 
 -- | Responsible for rendering the main stage.
 data GlobalRenderer =
-	forall s. GlobalRenderer (IO Size) (IOProxy s) (Renderer s)
+	forall s. GlobalRenderer (IO Size) (MVar Vty.Vty) (IOProxy s) (Renderer s)
 
 -- | Runtime manifest
 data Manifest s = Manifest {
 	mfChannel  :: Chan Event,
-	mfDisplay  :: MVar Vty.Vty,
 	mfStateRef :: IOProxy s,
 	mfRenderer :: GlobalRenderer
 }
@@ -89,7 +88,7 @@ run runtime renderer initState = do
 	(events, display, size) <- makeInterface
 	stateRef <- newIOProxy initState
 	displayVar <- newMVar display
-	evalRuntime runtime (Manifest events displayVar stateRef (GlobalRenderer size stateRef renderer))
+	evalRuntime runtime (Manifest events stateRef (GlobalRenderer size displayVar stateRef renderer))
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
@@ -113,10 +112,9 @@ forwardEvent ev Manifest {..} =
 -- | Render the current state.
 render :: Runtime s ()
 render =
-	Runtime $ \ Manifest {mfRenderer = GlobalRenderer s p r, ..} ->
-		renderPicture r <$> (RenderContext <$> s
-		                                   <*> readIOProxy p)
-		                >>= withMVar mfDisplay . flip Vty.update
+	Runtime $ \ Manifest {mfRenderer = GlobalRenderer s d p r} ->
+		renderPicture r <$> (RenderContext <$> s <*> readIOProxy p)
+		                >>= withMVar d . flip Vty.update
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
