@@ -8,7 +8,7 @@ import Control.Concurrent
 
 import Graphics.Vty hiding (Event)
 
-import Graphics.UI.Gtk
+import Graphics.UI.Gtk hiding (Size)
 import Graphics.UI.Gtk.General.StyleContext
 import Graphics.UI.Gtk.General.CssProvider
 
@@ -18,8 +18,10 @@ import System.Posix.Terminal
 import Olec.Interface.Events
 import Olec.Interface.Terminal
 
+import Olec.Render
+
 -- | Create the main user interface
-makeInterface :: IO (Chan Event, Vty, IO (Int, Int))
+makeInterface :: IO (Chan Event, Vty, IO Size)
 makeInterface = do
 	initGUI
 	eventChan <- newChan
