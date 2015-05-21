@@ -12,7 +12,10 @@ data DivisionHint i f a
 	| LeftOver a
 
 -- | Divide a list of items across a metric using the given hints.
-divideMetric :: (Integral i, RealFrac f) => [DivisionHint i f a] -> i -> [(i, a)]
+divideMetric :: (Integral i, RealFrac f)
+             => [DivisionHint i f a] -- ^ Items to distribute
+             -> i                    -- ^ Metric to divide
+             -> [(i, a)]
 divideMetric elems total =
 	filter (\ (n, _) -> n > 0) (catMaybes passedTwice)
 	where
