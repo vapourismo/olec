@@ -7,6 +7,7 @@
 module Olec.Runtime (
 	-- * Runtime
 	Runtime,
+	RemoteRuntime (..),
 	Manifest (..),
 	run,
 	withRuntime,
@@ -57,6 +58,9 @@ data Manifest s = Manifest {
 	mfRenderer :: GlobalRenderer
 }
 
+-- | A forked runtime.
+data RemoteRuntime = RemoteRuntime (Chan Event) ThreadId
+
 -- | Cow
 newtype Runtime s a = Runtime { evalRuntime :: Manifest s -> IO a }
 
@@ -96,18 +100,17 @@ withRuntime b (Runtime rt) =
 	Runtime (\ mf -> rt (mf {mfStateRef = proxyIOProxy (mfStateRef mf) b}))
 
 -- | Fork a thread to run another runtime in.
-forkRuntime :: Runtime s () -> Runtime s (Manifest s, ThreadId)
+forkRuntime :: Runtime s () -> Runtime s RemoteRuntime
 forkRuntime (Runtime rt) =
 	Runtime $ \ mf -> do
 		sepChan <- newChan
-		let mf' = mf {mfChannel = sepChan}
-		tid <- forkIO (rt mf')
-		pure (mf', tid)
+		tid <- forkIO (rt mf {mfChannel = sepChan})
+		pure (RemoteRuntime sepChan tid)
 
 -- | Forward an event to a seperate forked "Manifest".
-forwardEvent :: Event -> Manifest a -> Runtime s ()
-forwardEvent ev Manifest {..} =
-	liftIO (writeChan mfChannel ev)
+forwardEvent :: Event -> RemoteRuntime -> Runtime s ()
+forwardEvent ev (RemoteRuntime chan _) =
+	liftIO (writeChan chan ev)
 
 -- | Render the current state.
 render :: Runtime s ()

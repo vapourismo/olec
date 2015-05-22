@@ -3,6 +3,7 @@
 module Main where
 
 import Control.Lens
+import Control.Monad
 
 import Olec.Runtime
 import Olec.Components.StatusBar
@@ -24,8 +25,8 @@ asRender =
 		]
 
 -- |
-asRuntime :: Runtime AppState ()
-asRuntime = do
+asRuntime :: RemoteRuntime -> Runtime AppState ()
+asRuntime mf = do
 	e <- ask
 	case e of
 		KeyPress m k
@@ -36,14 +37,21 @@ asRuntime = do
 		ExitRequest ->
 			return ()
 
-		Resize _ _ ->
-			render >> asRuntime
+		Resize _ _ -> do
+			render
+			asRuntime mf
 
-		KeyPress _ _ ->
-			render >> asRuntime
+		_ -> do
+			forwardEvent e mf
+			asRuntime mf
 
 -- | Entry point
 main :: IO ()
 main =
-	run asRuntime asRender
+	run runtime asRender
 	    (AppState (StatusBar "Left 桃" "Right 桃" (mkAttr 0 7)))
+	where
+		runtime = do
+			mf <- forkRuntime (forever (ask >>= liftIO . print))
+			asRuntime mf
+
