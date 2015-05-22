@@ -101,7 +101,7 @@ forkRuntime (Runtime rt) =
 	Runtime $ \ mf -> do
 		sepChan <- newChan
 		let mf' = mf {mfChannel = sepChan}
-		tid <- forkIO (rt mf)
+		tid <- forkIO (rt mf')
 		pure (mf', tid)
 
 -- | Forward an event to a seperate forked "Manifest".
