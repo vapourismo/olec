@@ -3,10 +3,13 @@
 module Olec.Components.StatusBar (
 	StatusBar (..),
 	sbLeftText, sbRightText, sbStyle,
-	renderStatusBar
+	renderStatusBar,
+	runStatusBar
 ) where
 
 import Control.Lens
+import Control.Monad
+import Control.Concurrent
 
 import qualified Data.Text as T
 
@@ -35,3 +38,14 @@ renderStatusBar = do
 			LeftOver (justifyRight space (drawText style right)),
 			Absolute 1 space
 		]
+
+-- |
+runStatusBar :: Runtime StatusBar ()
+runStatusBar = forever $ do
+	liftIO (threadDelay 500000)
+	sbLeftText %= \ txt ->
+		if T.null txt then
+			T.empty
+		else
+			T.tail txt `T.snoc` T.head txt
+	render

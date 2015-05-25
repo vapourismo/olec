@@ -52,6 +52,7 @@ main =
 	    (AppState (StatusBar "Left 桃" "Right 桃" (mkAttr 0 7)))
 	where
 		runtime = do
+			forkRuntime (withRuntime asStatusBar runStatusBar)
 			mf <- forkRuntime (forever (ask >>= liftIO . print))
 			asRuntime mf
 
