@@ -12,6 +12,7 @@ module Olec.Runtime (
 	run,
 	withRuntime,
 	forkRuntime,
+	terminateRemoteRuntime,
 
 	-- * Events
 	requestExit,
@@ -32,6 +33,7 @@ module Olec.Runtime (
 	module Olec.Render
 ) where
 
+import Control.Exception
 import Control.Concurrent
 
 import Control.Monad.State
@@ -110,6 +112,11 @@ forkRuntime (Runtime rt) =
 		sepChan <- newChan
 		tid <- forkIO (rt mf {mfChannel = sepChan})
 		pure (RemoteRuntime sepChan tid)
+
+-- | Kill a remote runtime.
+terminateRemoteRuntime :: RemoteRuntime -> Runtime s ()
+terminateRemoteRuntime (RemoteRuntime _ tid) =
+	liftIO (throwTo tid ThreadKilled)
 
 -- | Forward an event to a seperate forked "Manifest".
 forwardEvent :: Event -> RemoteRuntime -> Runtime s ()
