@@ -48,8 +48,12 @@ import Olec.Auxiliary.IOProxy
 import Olec.Render
 
 -- | Responsible for rendering the main stage.
-data GlobalRenderer =
-	forall s. GlobalRenderer (IO Size) (MVar Vty.Vty) (IOProxy s) (Renderer s)
+data GlobalRenderer = forall s. GlobalRenderer {
+	grSize     :: IO Size,
+	grDisplay  :: MVar Vty.Vty,
+	grState    :: IOProxy s,
+	grRenderer :: Renderer s
+}
 
 -- | Runtime manifest
 data Manifest s = Manifest {
@@ -115,9 +119,10 @@ forwardEvent ev (RemoteRuntime chan _) =
 -- | Render the current state.
 render :: Runtime s ()
 render =
-	Runtime $ \ Manifest {mfRenderer = GlobalRenderer s d p r} ->
-		renderPicture r <$> (RenderContext <$> s <*> readIOProxy p)
-		                >>= withMVar d . flip Vty.update
+	Runtime $ \ Manifest {mfRenderer = GlobalRenderer {..}} ->
+		renderPicture grRenderer
+			<$> (RenderContext <$> grSize <*> readIOProxy grState)
+			>>= withMVar grDisplay . flip Vty.update
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
