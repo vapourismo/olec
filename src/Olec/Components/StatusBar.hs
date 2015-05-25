@@ -42,10 +42,6 @@ renderStatusBar = do
 -- |
 runStatusBar :: Runtime StatusBar ()
 runStatusBar = forever $ do
-	liftIO (threadDelay 500000)
-	sbLeftText %= \ txt ->
-		if T.null txt then
-			T.empty
-		else
-			T.tail txt `T.snoc` T.head txt
+	liftIO (threadDelay 250000)
+	sbLeftText %= maybe T.empty (uncurry (flip T.snoc)) . T.uncons
 	render
