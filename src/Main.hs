@@ -37,8 +37,7 @@ asRuntime mf = do
 		ExitRequest ->
 			return ()
 
-		Resize _ _ -> do
-			render
+		Resize _ _ ->
 			asRuntime mf
 
 		_ -> do

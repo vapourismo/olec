@@ -19,8 +19,8 @@ module Olec.Runtime (
 	ask,
 	forwardEvent,
 
-	-- * Render
-	render,
+	-- -- * Render
+	-- render,
 
 	-- * State
 	get,
@@ -87,8 +87,8 @@ instance MonadReader Event (Runtime s) where
 
 instance MonadState s (Runtime s) where
 	get = Runtime (readIOProxy . mfStateRef)
-	state f = Runtime (\ mf -> modifyIOProxy (mfStateRef mf) f)
-	put s = Runtime (\ mf -> writeIOProxy (mfStateRef mf) s)
+	state f = Runtime (\ mf -> modifyIOProxy (mfStateRef mf) f) <* render
+	put s = Runtime (\ mf -> writeIOProxy (mfStateRef mf) s) <* render
 
 instance MonadIO (Runtime s) where
 	liftIO = Runtime . const
