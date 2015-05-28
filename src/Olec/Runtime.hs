@@ -54,6 +54,7 @@ data GlobalRenderer = forall s. GlobalRenderer {
 	grSize     :: IO Size,
 	grDisplay  :: MVar Vty.Vty,
 	grState    :: IOProxy s,
+	grRequests :: MVar Word,
 	grRenderer :: Renderer s
 }
 
@@ -97,8 +98,13 @@ run :: Runtime s a -> Renderer s -> s -> IO a
 run runtime renderer initState = do
 	(events, display, size) <- makeInterface
 	stateRef <- newIOProxy initState
+
 	displayVar <- newMVar display
-	evalRuntime runtime (Manifest events stateRef (GlobalRenderer size displayVar stateRef renderer))
+	requestsVar <- newMVar 0
+
+	evalRuntime runtime (Manifest events stateRef
+	                              (GlobalRenderer size displayVar stateRef
+	                                              requestsVar renderer))
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
@@ -123,13 +129,17 @@ forwardEvent :: Event -> RemoteRuntime -> Runtime s ()
 forwardEvent ev (RemoteRuntime chan _) =
 	liftIO (writeChan chan ev)
 
+-- TODO: Validate this function.
 -- | Render the current state.
 render :: Runtime s ()
 render =
-	Runtime $ \ Manifest {mfRenderer = GlobalRenderer {..}} ->
-		renderPicture grRenderer
-			<$> (RenderContext <$> grSize <*> readIOProxy grState)
-			>>= withMVar grDisplay . flip Vty.update
+	Runtime $ \ Manifest {mfRenderer = GlobalRenderer {..}} -> do
+		modifyMVar_ grRequests (\ counter -> pure (counter + 1))
+		withMVar grDisplay $ \ display -> do
+			t <- modifyMVar grRequests (\ counter -> pure (0, counter > 0))
+			when t $ renderPicture grRenderer
+				<$> (RenderContext <$> grSize <*> readIOProxy grState)
+				>>= Vty.update display
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
