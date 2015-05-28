@@ -35,6 +35,7 @@ module Olec.Runtime (
 
 import Control.Exception
 import Control.Concurrent
+import Control.Concurrent.STM
 
 import Control.Monad.State
 import Control.Monad.Reader
@@ -54,7 +55,7 @@ data GlobalRenderer = forall s. GlobalRenderer {
 	grSize     :: IO Size,
 	grDisplay  :: MVar Vty.Vty,
 	grState    :: IOProxy s,
-	grRequests :: MVar Word,
+	grRequests :: TVar Word,
 	grRenderer :: Renderer s
 }
 
@@ -97,10 +98,10 @@ instance MonadIO (Runtime s) where
 run :: Runtime s a -> Renderer s -> s -> IO a
 run runtime renderer initState = do
 	(events, display, size) <- makeInterface
-	stateRef <- newIOProxy initState
+	stateRef <- newIOProxy $! initState
 
-	displayVar <- newMVar display
-	requestsVar <- newMVar 0
+	displayVar <- newMVar $! display
+	requestsVar <- newTVarIO 0
 
 	evalRuntime runtime (Manifest events stateRef
 	                              (GlobalRenderer size displayVar stateRef
@@ -134,10 +135,10 @@ forwardEvent ev (RemoteRuntime chan _) =
 render :: Runtime s ()
 render =
 	Runtime $ \ Manifest {mfRenderer = GlobalRenderer {..}} -> do
-		modifyMVar_ grRequests (\ counter -> pure (counter + 1))
+		atomically (modifyTVar' grRequests (+ 1))
 		withMVar grDisplay $ \ display -> do
-			t <- modifyMVar grRequests (\ counter -> pure (0, counter > 0))
-			when t $ renderPicture grRenderer
+			counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
+			when (counter > 0) $ renderPicture grRenderer
 				<$> (RenderContext <$> grSize <*> readIOProxy grState)
 				>>= Vty.update display
 
