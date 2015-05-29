@@ -50,15 +50,6 @@ import Olec.Interface
 import Olec.Interface.Events
 import Olec.Render
 
--- | Responsible for rendering the main stage.
-data GlobalRenderer s = GlobalRenderer {
-	grSize     :: IO Size,
-	grDisplay  :: MVar Vty.Vty,
-	grState    :: IO s,
-	grRequests :: TVar Word,
-	grRenderer :: Renderer s
-}
-
 -- | Runtime manifest
 data Manifest s = Manifest {
 	mfChannel  :: Chan Event,
@@ -112,11 +103,11 @@ run runtime renderer initState = do
 
 	evalRuntime runtime (Manifest events
 	                              stateRef
-	                              (renderIO (GlobalRenderer size
-	                                                        displayVar
-	                                                        (readTFocusIO stateRef)
-	                                                        requestsVar
-	                                                        renderer)))
+	                              (renderIO size
+	                                        displayVar
+	                                        (readTFocusIO stateRef)
+	                                        requestsVar
+	                                        renderer))
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
@@ -142,8 +133,13 @@ forwardEvent ev (RemoteRuntime chan _) =
 	liftIO (writeChan chan ev)
 
 -- | Render IO action
-renderIO :: GlobalRenderer s -> IO ()
-renderIO GlobalRenderer {..} = do
+renderIO :: IO Size
+         -> MVar Vty.Vty
+         -> IO s
+         -> TVar Word
+         -> Renderer s
+         -> IO ()
+renderIO grSize grDisplay grState grRequests grRenderer = do
 	atomically (modifyTVar' grRequests (+ 1))
 	withMVar grDisplay $ \ display -> do
 		counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
