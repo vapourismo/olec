@@ -70,6 +70,6 @@ modifyIOProxyLens (Proxy proxy a) b f =
 -- | Modify the underlying value.
 modifyIOProxy :: IOProxy s -> (s -> (a, s)) -> IO a
 modifyIOProxy (State ref) f =
-	atomicModifyIORef' ref (\ parent -> swap (f parent))
+	atomicModifyIORef' ref (swap . f)
 modifyIOProxy (Proxy proxy a) f =
 	modifyIOProxyLens proxy a f
