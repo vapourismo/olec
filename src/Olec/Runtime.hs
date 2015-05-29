@@ -19,9 +19,6 @@ module Olec.Runtime (
 	ask,
 	forwardEvent,
 
-	-- -- * Render
-	-- render,
-
 	-- * State
 	get,
 	put,
@@ -43,7 +40,6 @@ import Control.Monad.Reader
 
 import Control.Lens
 
-import qualified Graphics.Vty as Vty
 import qualified Graphics.UI.Gtk as GTK
 
 import Olec.Interface
@@ -121,23 +117,6 @@ terminateRemoteRuntime (RemoteRuntime _ tid) =
 forwardEvent :: Event -> RemoteRuntime -> Runtime s ()
 forwardEvent ev (RemoteRuntime chan _) =
 	liftIO (writeChan chan ev)
-
--- | Render IO action
-renderIO :: IO Size
-         -> MVar Vty.Vty
-         -> IO s
-         -> TVar Word
-         -> Renderer s
-         -> IO ()
-renderIO grSize grDisplay grState grRequests grRenderer = do
-	atomically (modifyTVar' grRequests (+ 1))
-	withMVar grDisplay $ \ display -> do
-		counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
-		when (counter > 0) $
-			RenderContext <$> grSize
-			              <*> grState
-			              >>= Vty.update display . renderPicture grRenderer
-
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
