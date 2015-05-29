@@ -5,6 +5,8 @@ module Main where
 import Control.Lens
 import Control.Monad
 
+import Data.Default
+
 import Olec.Runtime
 import Olec.Components.StatusBar
 
@@ -48,7 +50,7 @@ asRuntime mf = do
 main :: IO ()
 main =
 	run runtime asRender
-	    (AppState (StatusBar "Left 桃" "Right 桃" (mkAttr 0 7)))
+	    (AppState def)
 	where
 		runtime = do
 			forkRuntime (withRuntime asStatusBar runStatusBar)
