@@ -54,7 +54,7 @@ import Olec.Render
 data GlobalRenderer s = GlobalRenderer {
 	grSize     :: IO Size,
 	grDisplay  :: MVar Vty.Vty,
-	grState    :: IOProxy s,
+	grState    :: IO s,
 	grRequests :: TVar Word,
 	grRenderer :: Renderer s
 }
@@ -103,8 +103,13 @@ run runtime renderer initState = do
 	displayVar <- newMVar $! display
 	requestsVar <- newTVarIO 0
 
-	evalRuntime runtime (Manifest events stateRef
-	                              (renderIO (GlobalRenderer size displayVar stateRef requestsVar renderer)))
+	evalRuntime runtime (Manifest events
+	                              stateRef
+	                              (renderIO (GlobalRenderer size
+	                                                        displayVar
+	                                                        (readIOProxy stateRef)
+	                                                        requestsVar
+	                                                        renderer)))
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
@@ -137,7 +142,7 @@ renderIO GlobalRenderer {..} = do
 		counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
 		when (counter > 0) $
 			RenderContext <$> grSize
-			              <*> readIOProxy grState
+			              <*> grState
 			              >>= Vty.update display . renderPicture grRenderer
 
 
