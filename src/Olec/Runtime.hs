@@ -36,8 +36,9 @@ module Olec.Runtime (
 import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.STM
+import Control.Concurrent.STM.TFocus
 
-import Control.Monad.State
+import Control.Monad.State.Strict
 import Control.Monad.Reader
 
 import Control.Lens
@@ -47,7 +48,6 @@ import qualified Graphics.UI.Gtk as GTK
 
 import Olec.Interface
 import Olec.Interface.Events
-import Olec.Auxiliary.IOProxy
 import Olec.Render
 
 -- | Responsible for rendering the main stage.
@@ -62,7 +62,7 @@ data GlobalRenderer s = GlobalRenderer {
 -- | Runtime manifest
 data Manifest s = Manifest {
 	mfChannel  :: Chan Event,
-	mfStateRef :: IOProxy s,
+	mfStateRef :: TFocus s,
 	mfRenderer :: IO ()
 }
 
@@ -87,9 +87,16 @@ instance MonadReader Event (Runtime s) where
 	local _ = id
 
 instance MonadState s (Runtime s) where
-	get = Runtime (readIOProxy . mfStateRef)
-	state f = Runtime (\ Manifest {..} -> modifyIOProxy mfStateRef f <* mfRenderer)
-	put s = Runtime (\ Manifest {..} -> writeIOProxy mfStateRef s <* mfRenderer)
+	get = Runtime (readTFocusIO . mfStateRef)
+	state f = Runtime $ \ Manifest {..} -> do
+		r <- atomically $ do
+			v <- readTFocus mfStateRef
+			let (r, v') = f v
+			writeTFocus mfStateRef v'
+			pure r
+		mfRenderer
+		pure r
+	put s = Runtime (\ Manifest {..} -> atomically (writeTFocus mfStateRef s) <* mfRenderer)
 
 instance MonadIO (Runtime s) where
 	liftIO = Runtime . const
@@ -98,7 +105,7 @@ instance MonadIO (Runtime s) where
 run :: Runtime s a -> Renderer s -> s -> IO a
 run runtime renderer initState = do
 	(events, display, size) <- makeInterface
-	stateRef <- newIOProxy $! initState
+	stateRef <- newTFocusIO $! initState
 
 	displayVar <- newMVar $! display
 	requestsVar <- newTVarIO 0
@@ -107,14 +114,14 @@ run runtime renderer initState = do
 	                              stateRef
 	                              (renderIO (GlobalRenderer size
 	                                                        displayVar
-	                                                        (readIOProxy stateRef)
+	                                                        (readTFocusIO stateRef)
 	                                                        requestsVar
 	                                                        renderer)))
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
 withRuntime b (Runtime rt) =
-	Runtime (\ mf -> rt (mf {mfStateRef = proxyIOProxy (mfStateRef mf) b}))
+	Runtime (\ mf -> rt (mf {mfStateRef = moveTFocus (mfStateRef mf) b}))
 
 -- | Fork a thread to run another runtime in.
 forkRuntime :: Runtime s () -> Runtime s RemoteRuntime
