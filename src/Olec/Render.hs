@@ -1,4 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Olec.Render (
 	-- * Base types
@@ -39,7 +40,11 @@ module Olec.Render (
 
 	-- * Attributes
 	Attr,
-	mkAttr
+	mkAttr,
+
+	-- * Visuals
+	Visual (..),
+	withVisual
 ) where
 
 import Control.Monad.State
@@ -151,3 +156,20 @@ rawColor n
 mkAttr :: Word8 -> Word8 -> Attr
 mkAttr fg bg =
 	Attr Default (SetTo (rawColor fg)) (SetTo (rawColor bg))
+
+-- | Types which have a visual representation shall implement this type class.
+class Visual a where
+	mkRenderer :: Renderer a
+
+instance Visual () where
+	mkRenderer = emptyRenderer
+
+instance Visual [Char] where
+	mkRenderer = getRenderState >>= drawString mempty
+
+instance Visual T.Text where
+	mkRenderer = getRenderState >>= drawText mempty
+
+-- | An alternative for "withRenderer".
+withVisual :: (Visual t) => Lens' s t -> Renderer s
+withVisual l = withRenderer l mkRenderer
