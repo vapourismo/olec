@@ -7,7 +7,8 @@ module Control.Concurrent.MFocus (
 	moveMFocus,
 	readMFocus,
 	writeMFocus,
-	modifyMFocus
+	modifyMFocus,
+	modifyMFocus_
 ) where
 
 import Control.Lens
@@ -38,5 +39,12 @@ writeMFocus :: MFocus t -> t -> IO ()
 writeMFocus (MFocus ref a) v = modifyMVar_ ref (pure . set a v)
 
 -- | Modify the focused item.
-modifyMFocus :: MFocus t -> (t -> t) -> IO ()
-modifyMFocus (MFocus ref a) f = modifyMVar_ ref (pure . over a f)
+modifyMFocus :: MFocus t -> (t -> (a, t)) -> IO a
+modifyMFocus (MFocus ref a) f =
+	modifyMVar ref $ \ x ->
+		let (r, t) = f (view a x)
+		in pure (set a t x, r)
+
+-- | Modify the focused item.
+modifyMFocus_ :: MFocus t -> (t -> t) -> IO ()
+modifyMFocus_ (MFocus ref a) f = modifyMVar_ ref (pure . over a f)
