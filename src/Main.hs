@@ -2,7 +2,6 @@
 
 module Main where
 
-import Control.Concurrent.MFocus
 import Olec.Runtime
 
 -- | Entry point
