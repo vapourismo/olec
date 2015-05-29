@@ -51,7 +51,7 @@ import Olec.Auxiliary.IOProxy
 import Olec.Render
 
 -- | Responsible for rendering the main stage.
-data GlobalRenderer = forall s. GlobalRenderer {
+data GlobalRenderer s = GlobalRenderer {
 	grSize     :: IO Size,
 	grDisplay  :: MVar Vty.Vty,
 	grState    :: IOProxy s,
@@ -63,7 +63,7 @@ data GlobalRenderer = forall s. GlobalRenderer {
 data Manifest s = Manifest {
 	mfChannel  :: Chan Event,
 	mfStateRef :: IOProxy s,
-	mfRenderer :: GlobalRenderer
+	mfRenderer :: IO ()
 }
 
 -- | A forked runtime.
@@ -88,8 +88,8 @@ instance MonadReader Event (Runtime s) where
 
 instance MonadState s (Runtime s) where
 	get = Runtime (readIOProxy . mfStateRef)
-	state f = Runtime (\ mf -> modifyIOProxy (mfStateRef mf) f) <* render
-	put s = Runtime (\ mf -> writeIOProxy (mfStateRef mf) s) <* render
+	state f = Runtime (\ Manifest {..} -> modifyIOProxy mfStateRef f <* mfRenderer)
+	put s = Runtime (\ Manifest {..} -> writeIOProxy mfStateRef s <* mfRenderer)
 
 instance MonadIO (Runtime s) where
 	liftIO = Runtime . const
@@ -104,8 +104,7 @@ run runtime renderer initState = do
 	requestsVar <- newTVarIO 0
 
 	evalRuntime runtime (Manifest events stateRef
-	                              (GlobalRenderer size displayVar stateRef
-	                                              requestsVar renderer))
+	                              (renderIO (GlobalRenderer size displayVar stateRef requestsVar renderer)))
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
@@ -130,18 +129,17 @@ forwardEvent :: Event -> RemoteRuntime -> Runtime s ()
 forwardEvent ev (RemoteRuntime chan _) =
 	liftIO (writeChan chan ev)
 
--- TODO: Validate this function.
--- | Render the current state.
-render :: Runtime s ()
-render =
-	Runtime $ \ Manifest {mfRenderer = GlobalRenderer {..}} -> do
-		atomically (modifyTVar' grRequests (+ 1))
-		withMVar grDisplay $ \ display -> do
-			counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
-			when (counter > 0) $
-				RenderContext <$> grSize
-				              <*> readIOProxy grState
-				              >>= Vty.update display . renderPicture grRenderer
+-- | Render IO action
+renderIO :: GlobalRenderer s -> IO ()
+renderIO GlobalRenderer {..} = do
+	atomically (modifyTVar' grRequests (+ 1))
+	withMVar grDisplay $ \ display -> do
+		counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
+		when (counter > 0) $
+			RenderContext <$> grSize
+			              <*> readIOProxy grState
+			              >>= Vty.update display . renderPicture grRenderer
+
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
