@@ -138,9 +138,10 @@ render =
 		atomically (modifyTVar' grRequests (+ 1))
 		withMVar grDisplay $ \ display -> do
 			counter <- atomically (readTVar grRequests <* writeTVar grRequests 0)
-			when (counter > 0) $ renderPicture grRenderer
-				<$> (RenderContext <$> grSize <*> readIOProxy grState)
-				>>= Vty.update display
+			when (counter > 0) $
+				RenderContext <$> grSize
+				              <*> readIOProxy grState
+				              >>= Vty.update display . renderPicture grRenderer
 
 -- | Request the main loop to exit.
 requestExit :: Runtime s ()
