@@ -7,6 +7,7 @@ module Control.Concurrent.STM.TFocus (
 	toTFocus,
 	moveTFocus,
 	readTFocus,
+	readTFocusIO,
 	writeTFocus,
 	modifyTFocus
 ) where
@@ -38,6 +39,10 @@ moveTFocus (TFocus ref a) b = TFocus ref (a . b)
 -- | Retrieve the focused item.
 readTFocus :: TFocus s t -> STM t
 readTFocus (TFocus ref a) = view a <$> readTVar ref
+
+-- | Retrieve the focused item.
+readTFocusIO :: TFocus s t -> IO t
+readTFocusIO (TFocus ref a) = view a <$> readTVarIO ref
 
 -- | Replace the focused item.
 writeTFocus :: TFocus s t -> t -> STM ()
