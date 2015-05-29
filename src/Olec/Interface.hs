@@ -3,10 +3,11 @@ module Olec.Interface (
 	module Olec.Interface.Events
 ) where
 
+import Control.Monad
 import Control.Exception
 import Control.Concurrent
 
-import Graphics.Vty hiding (Event)
+import qualified Graphics.Vty as V
 
 import Graphics.UI.Gtk hiding (Size)
 import Graphics.UI.Gtk.General.StyleContext
@@ -20,9 +21,9 @@ import Olec.Interface.Terminal
 
 import Olec.Render
 
--- | Create the main user interface
-makeInterface :: IO (Chan Event, Vty, IO Size)
-makeInterface = do
+-- | Create the main user interface.
+makeInterface :: (Visual v) => IO v -> IO (Chan Event, IO ())
+makeInterface stateReader = do
 	initGUI
 	eventChan <- newChan
 
@@ -59,9 +60,21 @@ makeInterface = do
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
 	-- Setup Vty
-	vty <- mkVty mempty {
-		inputFd = Just pts,
-		outputFd = Just pts
+	displayMVar <- newMVar =<< V.mkVty mempty {
+		V.inputFd = Just pts,
+		V.outputFd = Just pts
 	}
 
-	return (eventChan, vty, terminalSize term)
+	requestsMVar <- newMVar 0 :: IO (MVar Word)
+
+	-- An IO action which updates the display
+	let updateAction = do
+		modifyMVar_ requestsMVar (\ x -> pure $! x + 1)
+		withMVar displayMVar $ \ display -> do
+			counter <- modifyMVar requestsMVar (\ x -> pure (0, x))
+			when (counter > 0) $
+				RenderContext <$> terminalSize term
+				              <*> stateReader
+				              >>= V.update display . renderPicture mkRenderer
+
+	return (eventChan, updateAction)

@@ -93,21 +93,11 @@ instance MonadIO (Runtime s) where
 	liftIO = Runtime . const
 
 -- | Execute runtime with a renderer and initial state.
-run :: Runtime s a -> Renderer s -> s -> IO a
-run runtime renderer initState = do
-	(events, display, size) <- makeInterface
+run :: (Visual s) => Runtime s a -> s -> IO a
+run runtime initState = do
 	stateRef <- newTFocusIO $! initState
-
-	displayVar <- newMVar $! display
-	requestsVar <- newTVarIO 0
-
-	evalRuntime runtime (Manifest events
-	                              stateRef
-	                              (renderIO size
-	                                        displayVar
-	                                        (readTFocusIO stateRef)
-	                                        requestsVar
-	                                        renderer))
+	(events, updateDisplay) <- makeInterface (readTFocusIO stateRef)
+	evalRuntime runtime (Manifest events stateRef updateDisplay)
 
 -- | Delegate a runtime to a component of the original state.
 withRuntime :: Lens' s t -> Runtime t a -> Runtime s a
