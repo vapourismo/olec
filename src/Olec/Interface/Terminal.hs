@@ -49,7 +49,7 @@ newTerminal ptm colors = do
 
 -- | Do something with the underlying raw pointer.
 withTerminalPtr :: Terminal -> (Ptr Terminal -> IO a) -> IO a
-withTerminalPtr (Terminal ptr) f = withForeignPtr ptr f
+withTerminalPtr (Terminal ptr) = withForeignPtr ptr
 
 -- | Get the column and row count.
 terminalSize :: Terminal -> IO (Int, Int)
