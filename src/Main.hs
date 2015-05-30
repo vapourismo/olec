@@ -26,3 +26,5 @@ main = do
 			setForegroundColor (Color 255 255 255)
 			setBackgroundColor (Color 255 0 0)
 			drawString "Werld"
+
+			flush

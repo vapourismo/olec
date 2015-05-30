@@ -11,6 +11,7 @@ module Olec.Interface.Renderer (
 
 	-- * Utilities
 	constrainRenderer,
+	flush,
 	getSize,
 	resetCursor,
 	moveCursor,
@@ -148,6 +149,12 @@ constrainRenderer (x, y) (rw, rh) renderer =
 				        min (h - min (h - 1) (max 0 y)) rh)
 			in
 				Info out origin size
+
+-- | Render actions immediately.
+flush :: Renderer ()
+flush = do
+	Info out _ _ <- ask
+	liftIO (hFlush out)
 
 -- | Get the size of the current drawing area.
 getSize :: Renderer Size
