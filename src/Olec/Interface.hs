@@ -22,12 +22,9 @@ import Olec.Interface.Terminal
 
 import Olec.Render
 
--- | Create the main user interface.
-makeInterface :: (Visual v) => IO v -> IO (Chan Event, IO ())
-makeInterface stateReader = do
-	initGUI
-	eventChan <- newChan
-
+-- | Launch user interface.
+launcUI :: Chan Event -> IO (Fd, IO Size)
+launcUI eventChan = do
 	-- Remove style classes
 	mbScreen <- screenGetDefault
 	flip (maybe (return ())) mbScreen $ \ screen -> do
@@ -59,6 +56,14 @@ makeInterface stateReader = do
 	-- Show interface
 	widgetShowAll win
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
+
+	pure (pts, terminalSize term)
+
+-- | Create the main user interface.
+makeInterface :: (Visual v) => IO v -> IO (Chan Event, IO ())
+makeInterface stateReader = do
+	eventChan <- newChan
+	(pts, sizeAction) <- launcUI eventChan
 
 	-- Setup Vty
 	displayMVar <- newMVar =<< V.mkVty mempty {
@@ -74,48 +79,15 @@ makeInterface stateReader = do
 		withMVar displayMVar $ \ display -> do
 			counter <- modifyMVar requestsMVar (\ x -> pure (0, x))
 			when (counter > 0) $
-				RenderContext <$> terminalSize term
+				RenderContext <$> sizeAction
 				              <*> stateReader
 				              >>= V.update display . renderPicture mkRenderer
 
 	return (eventChan, updateAction)
 
 -- | Create the main user interface.
-makeRawInterface :: IO (Chan Event, Fd)
+makeRawInterface :: IO (Chan Event, Fd, IO Size)
 makeRawInterface = do
-	initGUI
 	eventChan <- newChan
-
-	-- Remove style classes
-	mbScreen <- screenGetDefault
-	flip (maybe (return ())) mbScreen $ \ screen -> do
-		cssProvider <- cssProviderNew
-		cssProviderLoadFromString cssProvider "VteTerminal { padding: 6px; }"
-		styleContextAddProviderForScreen screen cssProvider 800
-
-	-- Main window
-	win <- windowNew
-	set win [windowTitle := "Olec Text Editor"]
-
-	-- Box
-	box <- vBoxNew False 0
-	containerAdd win box
-
-	-- Terminal
-	(Fd ptm, pts) <- openPseudoTerminal
-	term <- newTerminal ptm ["#111111"]
-	boxPackStart box term PackGrow 0
-
-	-- Dispatch events
-	forwardKeyPressEvents win eventChan
-	forwardResizeEvents term eventChan
-
-	on win objectDestroy mainQuit
-	on term buttonPressEvent (return True)
-	on term buttonReleaseEvent (return True)
-
-	-- Show interface
-	widgetShowAll win
-	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
-
-	pure (eventChan, pts)
+	(pts, sizeAction) <- launcUI eventChan
+	pure (eventChan, pts, sizeAction)
