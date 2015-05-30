@@ -121,7 +121,7 @@ drawString str = do
 -- | Entry point
 main :: IO ()
 main = do
-	(_, handle, sizeIO) <- makeRawInterface
+	(_, handle, sizeIO) <- makeInterface
 
 	size <- sizeIO
 	runRenderer render handle size

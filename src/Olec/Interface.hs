@@ -3,7 +3,6 @@
 module Olec.Interface (
 	-- * Initializers
 	makeInterface,
-	makeRawInterface,
 
 	-- * Interaction
 	writeCursorPosition,
@@ -17,7 +16,6 @@ module Olec.Interface (
 	module Olec.Interface.Types
 ) where
 
-import Control.Monad
 import Control.Exception
 import Control.Concurrent
 
@@ -27,8 +25,6 @@ import qualified Data.ByteString as B
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-
-import qualified Graphics.Vty as V
 
 import Graphics.UI.Gtk hiding (Size)
 import Graphics.UI.Gtk.General.StyleContext
@@ -43,8 +39,6 @@ import System.Posix.Terminal
 import Olec.Interface.Events
 import Olec.Interface.Terminal
 import Olec.Interface.Types
-
-import Olec.Render
 
 -- | Launch user interface.
 launchUI :: Chan Event -> IO (Fd, IO Size)
@@ -86,34 +80,8 @@ launchUI eventChan = do
 	pure (pts, terminalSize term)
 
 -- | Create the main user interface.
-makeInterface :: (Visual v) => IO v -> IO (Chan Event, IO ())
-makeInterface stateReader = do
-	eventChan <- newChan
-	(pts, sizeAction) <- launchUI eventChan
-
-	-- Setup Vty
-	displayMVar <- newMVar =<< V.mkVty mempty {
-		V.inputFd = Just pts,
-		V.outputFd = Just pts
-	}
-
-	requestsMVar <- newMVar 0 :: IO (MVar Word)
-
-	-- An IO action which updates the display
-	let updateAction = do
-		modifyMVar_ requestsMVar (\ x -> pure $! x + 1)
-		withMVar displayMVar $ \ display -> do
-			counter <- modifyMVar requestsMVar (\ x -> pure (0, x))
-			when (counter > 0) $
-				RenderContext <$> sizeAction
-				              <*> stateReader
-				              >>= V.update display . renderPicture mkRenderer
-
-	return (eventChan, updateAction)
-
--- | Create the main user interface.
-makeRawInterface :: IO (Chan Event, Handle, IO Size)
-makeRawInterface = do
+makeInterface :: IO (Chan Event, Handle, IO Size)
+makeInterface = do
 	eventChan <- newChan
 	(pts, sizeAction) <- launchUI eventChan
 	output <- fdToHandle pts
