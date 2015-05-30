@@ -136,4 +136,5 @@ main = do
 	where
 		render = do
 			moveCursor 1 1
-			drawString "桃桃桃桃桃桃"
+			size <- getSize
+			drawString (show size)
