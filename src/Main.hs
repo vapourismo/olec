@@ -18,12 +18,6 @@ import Olec.Interface
 import System.IO
 
 -- |
-type Position = (,) Int Int
-
--- |
-type Size = (,) Int Int
-
--- |
 data Info = Info {
 	infoOutput :: Handle,
 	infoOrigin :: Position,

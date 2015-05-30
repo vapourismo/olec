@@ -14,6 +14,7 @@ module Olec.Interface (
 
 	-- * Re-exports
 	module Olec.Interface.Events,
+	module Olec.Interface.Types
 ) where
 
 import Control.Monad
