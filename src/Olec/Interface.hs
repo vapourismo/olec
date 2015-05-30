@@ -23,8 +23,10 @@ import Olec.Interface.Terminal
 import Olec.Render
 
 -- | Launch user interface.
-launcUI :: Chan Event -> IO (Fd, IO Size)
-launcUI eventChan = do
+launchUI :: Chan Event -> IO (Fd, IO Size)
+launchUI eventChan = do
+	initGUI
+
 	-- Remove style classes
 	mbScreen <- screenGetDefault
 	flip (maybe (return ())) mbScreen $ \ screen -> do
@@ -63,7 +65,7 @@ launcUI eventChan = do
 makeInterface :: (Visual v) => IO v -> IO (Chan Event, IO ())
 makeInterface stateReader = do
 	eventChan <- newChan
-	(pts, sizeAction) <- launcUI eventChan
+	(pts, sizeAction) <- launchUI eventChan
 
 	-- Setup Vty
 	displayMVar <- newMVar =<< V.mkVty mempty {
@@ -89,5 +91,5 @@ makeInterface stateReader = do
 makeRawInterface :: IO (Chan Event, Fd, IO Size)
 makeRawInterface = do
 	eventChan <- newChan
-	(pts, sizeAction) <- launcUI eventChan
+	(pts, sizeAction) <- launchUI eventChan
 	pure (eventChan, pts, sizeAction)
