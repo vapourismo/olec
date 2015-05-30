@@ -1,6 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Olec.Interface.Renderer where
+module Olec.Interface.Renderer (
+	-- * Type-related utilities
+	textWidth,
+	stringWidth,
+
+	-- * Renderer
+	Renderer,
+	runRenderer,
+
+	-- * Utilities
+	resetCursor,
+	constrainRenderer,
+	getSize,
+	moveCursor,
+	drawText,
+	drawString
+) where
 
 import Control.Monad.Reader
 import Control.Monad.State.Strict
@@ -17,6 +33,14 @@ import Graphics.Text.Width
 import System.IO
 
 import Olec.Interface.Types
+
+-- | Get the number of columns needed to display the given "Text".
+textWidth :: T.Text -> Int
+textWidth = T.foldl' (\ n c -> n + safeWcwidth c) 0
+
+-- | Get the number of columns needed to display the given "String".
+stringWidth :: String -> Int
+stringWidth = wcswidth
 
 -- | Set the cursor position.
 writeCursorPosition :: Handle -> Int -> Int -> IO ()
@@ -58,22 +82,10 @@ writeText h t = B.hPut h (T.encodeUtf8 t)
 writeString :: Handle -> String -> IO ()
 writeString = hPutStr
 
--- |
-data Info = Info {
-	infoOutput :: Handle,
-	infoOrigin :: Position,
-	infoSize   :: Size
-}
+-- | Info for rendering purposes
+data Info = Info Handle Position Size
 
--- |
-textWidth :: T.Text -> Int
-textWidth = T.foldl' (\ n c -> n + safeWcwidth c) 0
-
--- |
-stringWidth :: String -> Int
-stringWidth = wcswidth
-
--- |
+-- | Shorten the given "Text" to fit in a number of columns.
 fitText :: Int -> T.Text -> T.Text
 fitText n txt =
 	snd (T.foldl' runner (n, T.empty) txt)
@@ -82,7 +94,7 @@ fitText n txt =
 			| safeWcwidth c <= m = (m - safeWcwidth c, T.snoc acc c)
 			| otherwise = (m, acc)
 
--- |
+-- | Shorten the given "String" to fit in a number of columns.
 fitString :: Int -> String -> String
 fitString n str =
 	snd (foldl' runner (n, []) str)
@@ -91,25 +103,25 @@ fitString n str =
 			| safeWcwidth c <= m = (m - safeWcwidth c, acc ++ [c])
 			| otherwise = (m, acc)
 
--- |
+-- | Render something in a constrained area.
 type Renderer = ReaderT Info (StateT Position IO)
 
--- |
+-- | Execute the rendering actions.
 runRenderer :: Renderer a -> Handle -> Size -> IO a
 runRenderer renderer out size = do
 	writeCursorPosition out 0 0
 	evalStateT (runReaderT renderer (Info out (0, 0) size)) (0, 0)
 
--- |
+-- | Reset the cursor position to its origin.
 resetCursor :: Renderer ()
 resetCursor = do
 	Info out origin@(x0, y0) _ <- ask
 	liftIO (writeCursorPosition out x0 y0)
 	put origin
 
--- |
-bindRenderer :: Position -> Size -> Renderer a -> Renderer a
-bindRenderer (x, y) (rw, rh) renderer =
+-- | Constrain a "Renderer" to an area.
+constrainRenderer :: Position -> Size -> Renderer a -> Renderer a
+constrainRenderer (x, y) (rw, rh) renderer =
 	withReaderT transform (resetCursor >> renderer)
 	where
 		transform (Info out (x0, y0) (w, h)) =
@@ -121,11 +133,11 @@ bindRenderer (x, y) (rw, rh) renderer =
 			in
 				Info out origin size
 
--- |
+-- | Get the size of the current drawing area.
 getSize :: Renderer Size
-getSize = asks infoSize
+getSize = asks (\ (Info _ _ size) -> size)
 
--- |
+-- | Move the cursor.
 moveCursor :: Int -> Int -> Renderer ()
 moveCursor x y = do
 	-- Acquire information
@@ -141,20 +153,18 @@ moveCursor x y = do
 		liftIO (writeCursorPosition out absX absY)
 		put newPos
 
--- |
+-- | Draw a "Text" at the current position.
 drawText :: T.Text -> Renderer ()
 drawText txt = do
 	Info out (x0, _) (w, _) <- ask
 	(x, _) <- get
 
-	liftIO $
-		writeText out (fitText (w - (x - x0)) txt)
+	liftIO (writeText out (fitText (w - (x - x0)) txt))
 
--- |
+-- | Draw a "String" at the current position.
 drawString :: String -> Renderer ()
 drawString str = do
 	Info out (x0, _) (w, _) <- ask
 	(x, _) <- get
 
-	liftIO $
-		writeString out (fitString (w - (x - x0)) str)
+	liftIO (writeString out (fitString (w - (x - x0)) str))
