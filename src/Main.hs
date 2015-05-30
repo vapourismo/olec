@@ -17,5 +17,12 @@ main = do
 
 	where
 		render = do
-			moveCursor 1 1
-			drawString "Herro Werld"
+			moveCursor 10 10
+			setForegroundColor (Color 255 0 0)
+			setBackgroundColor (Color 255 255 255)
+			drawString "Herro"
+
+			moveCursor 10 11
+			setForegroundColor (Color 255 255 255)
+			setBackgroundColor (Color 255 0 0)
+			drawString "Werld"

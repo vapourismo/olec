@@ -10,16 +10,29 @@ module Olec.Interface.Renderer (
 	runRenderer,
 
 	-- * Utilities
-	resetCursor,
 	constrainRenderer,
 	getSize,
+	resetCursor,
 	moveCursor,
+
+	-- * Text
 	drawText,
-	drawString
+	drawString,
+
+	-- * Colors
+	Color (..),
+	setForegroundColor,
+	resetForegroundColor,
+	setBackgroundColor,
+	resetBackgroundColor,
+
+	-- * Attributes
 ) where
 
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+
+import Numeric
 
 import Data.List
 import Data.Word
@@ -60,12 +73,22 @@ writeRGB h r g b = do
 	B.hPut h ";"
 	hPutStr h (show b)
 
+-- | Reset the foreground color.
+writeResetForegroundColor :: Handle -> IO ()
+writeResetForegroundColor h =
+	B.hPut h "\ESC[30m"
+
 -- | Set the foreground color.
 writeForegroundColor :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
 writeForegroundColor h r g b = do
 	B.hPut h "\ESC[38;2;"
 	writeRGB h r g b
 	B.hPut h "m"
+
+-- | Reset the background color.
+writeResetBackgroundColor :: Handle -> IO ()
+writeResetBackgroundColor h =
+	B.hPut h "\ESC[40m"
 
 -- | Set the background color.
 writeBackgroundColor :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
@@ -112,13 +135,6 @@ runRenderer renderer out size = do
 	writeCursorPosition out 0 0
 	evalStateT (runReaderT renderer (Info out (0, 0) size)) (0, 0)
 
--- | Reset the cursor position to its origin.
-resetCursor :: Renderer ()
-resetCursor = do
-	Info out origin@(x0, y0) _ <- ask
-	liftIO (writeCursorPosition out x0 y0)
-	put origin
-
 -- | Constrain a "Renderer" to an area.
 constrainRenderer :: Position -> Size -> Renderer a -> Renderer a
 constrainRenderer (x, y) (rw, rh) renderer =
@@ -136,6 +152,13 @@ constrainRenderer (x, y) (rw, rh) renderer =
 -- | Get the size of the current drawing area.
 getSize :: Renderer Size
 getSize = asks (\ (Info _ _ size) -> size)
+
+-- | Reset the cursor position to its origin.
+resetCursor :: Renderer ()
+resetCursor = do
+	Info out origin@(x0, y0) _ <- ask
+	liftIO (writeCursorPosition out x0 y0)
+	put origin
 
 -- | Move the cursor.
 moveCursor :: Int -> Int -> Renderer ()
@@ -168,3 +191,40 @@ drawString str = do
 	(x, _) <- get
 
 	liftIO (writeString out (fitString (w - (x - x0)) str))
+
+-- | RGB Color
+data Color = Color Word8 Word8 Word8
+	deriving (Eq, Ord)
+
+instance Show Color where
+	show (Color r g b) =
+		"#" ++ extendTo2 (showHex r [])
+		    ++ extendTo2 (showHex g [])
+		    ++ extendTo2 (showHex b [])
+		where
+			extendTo2 [x] = '0' : [x]
+			extendTo2 xs = xs
+
+-- | Adjust the foreground color.
+setForegroundColor :: Color -> Renderer ()
+setForegroundColor (Color r g b) = do
+	Info out _ _ <- ask
+	liftIO (writeForegroundColor out r g b)
+
+-- | Reset the current foreground color.
+resetForegroundColor :: Renderer ()
+resetForegroundColor = do
+	Info out _ _ <- ask
+	liftIO (writeResetForegroundColor out)
+
+-- | Adjust the background color.
+setBackgroundColor :: Color -> Renderer ()
+setBackgroundColor (Color r g b) = do
+	Info out _ _ <- ask
+	liftIO (writeBackgroundColor out r g b)
+
+-- | Reset the current background color.
+resetBackgroundColor :: Renderer ()
+resetBackgroundColor = do
+	Info out _ _ <- ask
+	liftIO (writeResetBackgroundColor out)
