@@ -4,27 +4,16 @@ module Olec.Interface (
 	-- * Initializers
 	makeInterface,
 
-	-- * Interaction
-	writeCursorPosition,
-	writeForegroundColor,
-	writeBackgroundColor,
-	writeText,
-	writeString,
-
 	-- * Re-exports
+	module Olec.Interface.Types,
 	module Olec.Interface.Events,
-	module Olec.Interface.Types
+	module Olec.Interface.Renderer
 ) where
 
 import Control.Exception
 import Control.Concurrent
 
-import Data.Word
-
-import qualified Data.ByteString as B
-
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 
 import Graphics.UI.Gtk hiding (Size)
 import Graphics.UI.Gtk.General.StyleContext
@@ -36,9 +25,10 @@ import System.Posix.IO
 import System.Posix.Types
 import System.Posix.Terminal
 
+import Olec.Interface.Types
 import Olec.Interface.Events
 import Olec.Interface.Terminal
-import Olec.Interface.Types
+import Olec.Interface.Renderer
 
 -- | Launch user interface.
 launchUI :: Chan Event -> IO (Fd, IO Size)
@@ -87,43 +77,3 @@ makeInterface = do
 	output <- fdToHandle pts
 
 	pure (eventChan, output, sizeAction)
-
--- | Set the cursor position.
-writeCursorPosition :: Handle -> Int -> Int -> IO ()
-writeCursorPosition h x y = do
-	B.hPut h "\ESC["
-	hPutStr h (show (y + 1))
-	B.hPut h ";"
-	hPutStr h (show (x + 1))
-	B.hPut h "H"
-
--- | Write a RGB triple.
-writeRGB :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
-writeRGB h r g b = do
-	hPutStr h (show r)
-	B.hPut h ";"
-	hPutStr h (show g)
-	B.hPut h ";"
-	hPutStr h (show b)
-
--- | Set the foreground color.
-writeForegroundColor :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
-writeForegroundColor h r g b = do
-	B.hPut h "\ESC[38;2;"
-	writeRGB h r g b
-	B.hPut h "m"
-
--- | Set the background color.
-writeBackgroundColor :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
-writeBackgroundColor h r g b = do
-	B.hPut h "\ESC[48;2;"
-	writeRGB h r g b
-	B.hPut h "m"
-
--- | Write Text.
-writeText :: Handle -> T.Text -> IO ()
-writeText h t = B.hPut h (T.encodeUtf8 t)
-
--- | Write String.
-writeString :: Handle -> String -> IO ()
-writeString = hPutStr
