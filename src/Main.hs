@@ -7,6 +7,8 @@ import Control.Concurrent
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 
+import Data.List
+
 import qualified Data.Text as T
 
 import Graphics.Text.Width
@@ -33,12 +35,25 @@ textWidth :: T.Text -> Int
 textWidth = T.foldl' (\ n c -> n + safeWcwidth c) 0
 
 -- |
+stringWidth :: String -> Int
+stringWidth = wcswidth
+
+-- |
 fitText :: Int -> T.Text -> T.Text
 fitText n txt =
 	snd (T.foldl' runner (n, T.empty) txt)
 	where
 		runner (m, acc) c
 			| safeWcwidth c <= m = (m - safeWcwidth c, T.snoc acc c)
+			| otherwise = (m, acc)
+
+-- |
+fitString :: Int -> String -> String
+fitString n str =
+	snd (foldl' runner (n, []) str)
+	where
+		runner (m, acc) c
+			| safeWcwidth c <= m = (m - safeWcwidth c, acc ++ [c])
 			| otherwise = (m, acc)
 
 -- |
@@ -100,15 +115,25 @@ drawText txt = do
 	liftIO $
 		writeText out (fitText (w - (x - x0)) txt)
 
+-- |
+drawString :: String -> Renderer ()
+drawString str = do
+	Info out (x0, _) (w, _) <- ask
+	(x, _) <- get
+
+	liftIO $
+		writeString out (fitString (w - (x - x0)) str)
+
 -- | Entry point
 main :: IO ()
 main = do
-	(_, handle, _) <- makeRawInterface
+	(_, handle, sizeIO) <- makeRawInterface
 
-	runRenderer render handle (10, 10)
+	size <- sizeIO
+	runRenderer render handle size
 	threadDelay 2000000
 
 	where
 		render = do
 			moveCursor 1 1
-			drawText "桃桃桃桃桃桃"
+			drawString "桃桃桃桃桃桃"
