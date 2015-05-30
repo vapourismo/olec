@@ -5,9 +5,7 @@ module Olec.Interface (
 	makeInterface,
 
 	-- * Re-exports
-	module Olec.Interface.Types,
-	module Olec.Interface.Events,
-	module Olec.Interface.Renderer
+	module ReExport,
 ) where
 
 import Control.Exception
@@ -25,10 +23,10 @@ import System.Posix.IO
 import System.Posix.Types
 import System.Posix.Terminal
 
-import Olec.Interface.Types
-import Olec.Interface.Events
 import Olec.Interface.Terminal
-import Olec.Interface.Renderer
+import Olec.Interface.Types as ReExport
+import Olec.Interface.Events as ReExport
+import Olec.Interface.Renderer as ReExport
 
 -- | Launch user interface.
 launchUI :: Chan Event -> IO (Fd, IO Size)
