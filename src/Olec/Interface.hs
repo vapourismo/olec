@@ -41,6 +41,7 @@ import System.Posix.Terminal
 
 import Olec.Interface.Events
 import Olec.Interface.Terminal
+import Olec.Interface.Types
 
 import Olec.Render
 

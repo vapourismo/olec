@@ -57,11 +57,8 @@ import qualified Data.Text as T
 
 import Graphics.Vty hiding (Event, hideCursor)
 
+import Olec.Interface.Types
 import Olec.Auxiliary.Metrics
-
-type Size = (Int, Int)
-
-type Position = (Int, Int)
 
 -- | Render context
 data RenderContext w = RenderContext {
