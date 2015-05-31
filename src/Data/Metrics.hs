@@ -1,4 +1,4 @@
-module Olec.Auxiliary.Metrics (
+module Data.Metrics (
 	DivisionHint (..),
 	divideMetric
 ) where
