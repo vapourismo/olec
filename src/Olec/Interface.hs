@@ -19,9 +19,6 @@ import Graphics.UI.Gtk hiding (Size, Display)
 import Graphics.UI.Gtk.General.StyleContext
 import Graphics.UI.Gtk.General.CssProvider
 
-import System.Posix.Types
-import System.Posix.Terminal
-
 import Olec.Interface.Terminal
 import Olec.Interface.Types as ReExport
 import Olec.Interface.Events as ReExport
@@ -59,8 +56,7 @@ launchUI eventChan = do
 	containerAdd win box
 
 	-- Terminal
-	(Fd ptm, _) <- openPseudoTerminal
-	term <- newTerminal ptm ["#111111"]
+	term <- newTerminal
 	boxPackStart box term PackGrow 0
 
 	-- Dispatch events

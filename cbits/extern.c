@@ -3,20 +3,12 @@
 #include <stdbool.h>
 
 extern
-VteTerminal* olec_make_vte(int ptm, const char** color_palette) {
+VteTerminal* olec_make_vte() {
 	VteTerminal* term = VTE_TERMINAL(vte_terminal_new());
 
 	// Configure font
 	PangoFontDescription* font = pango_font_description_from_string("Inconsolata 10.5");
 	vte_terminal_set_font(term, font);
-
-	// Configure colors
-	// GdkRGBA term_palette[256];
-
-	// for (int i = 0; i < 256; i++)
-	//     gdk_rgba_parse(term_palette + i, color_palette[i] ? color_palette[i] : "#ffffff");
-
-	// vte_terminal_set_colors(term, NULL, NULL, term_palette, 256);
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(term, true);
@@ -25,10 +17,6 @@ VteTerminal* olec_make_vte(int ptm, const char** color_palette) {
 	vte_terminal_set_cursor_shape(term, VTE_CURSOR_SHAPE_IBEAM);
 	vte_terminal_set_cursor_blink_mode(term, VTE_CURSOR_BLINK_OFF);
 	vte_terminal_set_scrollback_lines(term, 0);
-
-	// Set PTY target
-	VtePty* pty = vte_pty_new_foreign_sync(ptm, NULL, NULL);
-	vte_terminal_set_pty(term, pty);
 
 	return term;
 }
