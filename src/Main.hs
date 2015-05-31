@@ -91,32 +91,54 @@ instance Component Rainbow where
 -- | Entry point
 main :: IO ()
 main = do
+	--(events, output, sizeIO) <- makeInterface
+
+	--size <- sizeIO
+	--rb <- newComponent (0, 0) size SetupRainbow
+	--requestRedraw rb output
+
+	--let loop = do
+	--	e <- readChan events
+	--	case e of
+	--		Resize width height -> do
+	--			requestResize rb (0, 0) (width, height)
+	--			requestRedraw rb output
+	--			loop
+
+	--		_ -> pure ()
+
+	--loop
+
 	(events, output, sizeIO) <- makeInterface
 
-	size <- sizeIO
-	rb <- newComponent (0, 0) size SetupRainbow
-	requestRedraw rb output
+	forever $ do
+		_ <- readChan events
+		size <- sizeIO
+		runRenderer renderer1 output (0, 0) size
 
-	let loop = do
-		e <- readChan events
-		case e of
-			Resize width height -> do
-				requestResize rb (0, 0) (width, height)
-				requestRedraw rb output
-				loop
+	where
+		renderer2 = do
+			(width, height) <- getSize
+			forM_ [0 .. height - 1] $ \ y -> do
+				moveCursor 0 y
+				forM_ [0 .. width - 1] $ \ _ -> do
+					fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+					bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
 
-			_ -> pure ()
+					setForegroundColor fg
+					setBackgroundColor bg
 
-	loop
+					c <- liftIO (randomRIO ('A', 'Z'))
+					drawString [c]
+			flush
 
-	--where
-	--	renderer = do
-	--		moveCursor 10 10
-	--		setForegroundColor (Color 255 0 0)
-	--		setBackgroundColor (Color 255 255 255)
-	--		drawString "Herro"
+		renderer1 = do
+			moveCursor 10 10
+			setForegroundColor (Color 255 0 0)
+			setBackgroundColor (Color 255 255 255)
+			drawString "Herro"
 
-	--		moveCursor 10 11
-	--		setForegroundColor (Color 255 255 255)
-	--		setBackgroundColor (Color 255 0 0)
-	--		drawString "Werld"
+			moveCursor 10 11
+			setForegroundColor (Color 255 255 255)
+			setBackgroundColor (Color 255 0 0)
+			drawString "Werld"
