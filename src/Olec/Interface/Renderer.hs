@@ -140,9 +140,9 @@ getSize = asks (\ (Info _ size) -> size)
 -- | Reset the cursor position to its origin.
 resetCursor :: Renderer ()
 resetCursor = do
-	Info origin@(x0, y0) _ <- ask
+	Info (x0, y0) _ <- ask
 	writeCursorPosition x0 y0
-	put origin
+	put (0, 0)
 
 -- | Move the cursor.
 moveCursor :: Int -> Int -> Renderer ()
