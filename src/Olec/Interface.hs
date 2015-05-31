@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Olec.Interface (
-	-- * Interface
+	-- * Display
 	Display,
+	clearDisplay,
+
+	-- * Interface
 	makeInterface,
 
 	-- * Re-exports
@@ -34,6 +37,11 @@ instance Canvas Display where
 
 	feedCanvas (Display lock feedIO _) buf =
 		bracket_ (waitQSem lock) (signalQSem lock) (feedIO buf)
+
+-- | Clear the entire display.
+clearDisplay :: Display -> IO ()
+clearDisplay (Display lock feedIO _) =
+	bracket_ (waitQSem lock) (signalQSem lock) (feedIO "\ESC[m\ESC[2J")
 
 -- | Launch user interface.
 launchUI :: Chan Event -> IO Display
