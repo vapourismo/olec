@@ -24,37 +24,36 @@ class Component a where
 
 	newComponent :: (Canvas c) => c -> Setup a -> IO a
 
-	paintComponent :: (Canvas c) => a -> c -> IO ()
+	render :: a -> Renderer ()
 
-	updateComponent :: (Canvas c) => a -> c -> IO ()
+	layout :: a -> Layout ()
 
----- |
---type Layout c = ReaderT c IO
+-- |
+data LayoutContext = LayoutContext Position Size
 
----- |
---runLayout :: (Canvas c) => Layout c a -> c -> IO a
---runLayout = runReaderT
+-- |
+type Layout = ReaderT LayoutContext IO
 
----- |
---fitComponent :: (Component a, Canvas c) => a -> Layout c ()
---fitComponent com =
---	ask >>= liftIO . updateComponent com
+-- |
+runLayout :: (Canvas c) => Layout a -> c -> IO a
+runLayout lay canvas =
+	LayoutContext <$> canvasOrigin canvas
+	              <*> canvasSize canvas
+	              >>= runReaderT lay
 
----- |
---divideHoriz :: (Canvas c) => [DivisionHint Int Float (Layout c ())] -> Layout c ()
---divideHoriz hints = do
---	canvas <- ask
---	(w, _) <- liftIO (canvasSize canvas)
---	make 0 (divideMetric hints w)
+-- |
+divideHoriz :: [DivisionHint Int Float (Layout ())] -> Layout ()
+divideHoriz hints = do
+	LayoutContext _ (w, _) <- ask
+	make 0 (divideMetric hints w)
 
---	where
---		make _ [] = pure ()
---		make offset ((elemWidth, ReaderT layout) : xs) = do
---			ReaderT $ \ canvas -> do
---				(_, y) <- canvasOrigin canvas
---				(_, h) <- canvasSize canvas
---				layout ()
---			make (offset + elemWidth) xs
+	where
+		make _ [] = pure ()
+		make offset ((elemWidth, lay) : xs) = do
+			withReaderT (\ (LayoutContext (_, y) (_, h)) ->
+			                 LayoutContext (offset, y) (elemWidth, h))
+			            lay
+			make (offset + elemWidth) xs
 
 -- |
 data Rainbow = Rainbow
@@ -64,24 +63,21 @@ instance Component Rainbow where
 
 	newComponent _ _ = pure Rainbow
 
-	paintComponent _ canvas =
-		runRenderer renderer canvas
-		where
-			renderer = do
-				(width, height) <- getSize
-				forM_ [0 .. height - 1] $ \ y -> do
-					moveCursor 0 y
-					forM_ [0 .. width - 1] $ \ _ -> do
-						fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-						bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+	render _ = do
+		(width, height) <- getSize
+		forM_ [0 .. height - 1] $ \ y -> do
+			moveCursor 0 y
+			forM_ [0 .. width - 1] $ \ _ -> do
+				fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+				bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
 
-						setForegroundColor fg
-						setBackgroundColor bg
+				setForegroundColor fg
+				setBackgroundColor bg
 
-						c <- liftIO (randomRIO ('A', 'Z'))
-						drawString [c]
+				c <- liftIO (randomRIO ('A', 'Z'))
+				drawString [c]
 
-	updateComponent _ _ = pure ()
+	layout _ = pure ()
 
 -- | Entry point
 main :: IO ()
@@ -89,14 +85,14 @@ main = do
 	(events, display) <- makeInterface
 
 	rb <- newComponent display SetupRainbow
-	paintComponent rb display
+	runRenderer (render rb) display
 
 	let loop = do
 		e <- readChan events
 		case e of
 			Resize _ _ -> do
-				updateComponent rb display
-				paintComponent rb display
+				runLayout (layout rb) display
+				runRenderer (render rb) display
 				loop
 
 			_ -> pure ()
