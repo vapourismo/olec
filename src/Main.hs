@@ -9,14 +9,12 @@ import Olec.Interface
 -- | Entry point
 main :: IO ()
 main = do
-	(_, handle, sizeIO) <- makeInterface
-
-	size <- sizeIO
-	runRenderer render handle size
+	(_, output, sizeIO) <- makeInterface
+	sizeIO >>= runRenderer renderer output
 	threadDelay 2000000
 
 	where
-		render = do
+		renderer = do
 			moveCursor 10 10
 			setForegroundColor (Color 255 0 0)
 			setBackgroundColor (Color 255 255 255)
@@ -26,5 +24,3 @@ main = do
 			setForegroundColor (Color 255 255 255)
 			setBackgroundColor (Color 255 0 0)
 			drawString "Werld"
-
-			flush
