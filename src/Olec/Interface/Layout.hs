@@ -6,19 +6,24 @@ module Olec.Interface.Layout (
 	-- * Layout
 	Layout,
 	runLayout,
-
 	layoutOrigin,
 	layoutSize,
+	divideHoriz,
 
-	divideHoriz
+	-- * Delegate
+	LayoutDelegate,
+	toDisplayDelegate,
+	delegateLayout
 ) where
 
 import Control.Monad.Reader
 
+import Data.IORef
 import Data.Metrics
 
 import Olec.Interface.Types
 import Olec.Interface.Renderer
+import Olec.Interface.Display
 
 -- | Captures layout restrictions
 data LayoutContext = LayoutContext {
@@ -27,6 +32,7 @@ data LayoutContext = LayoutContext {
 }
 
 -- | Construct a "LayoutContext" using a "Canvas" snapshot.
+--   The layout context targets the entire "Canvas" area, initially.
 toLayoutContext :: (Canvas c) => c -> IO LayoutContext
 toLayoutContext canvas =
 	LayoutContext <$> canvasOrigin canvas <*> canvasSize canvas
@@ -62,3 +68,27 @@ divideHoriz hints = do
 			                 LayoutContext (offset, y) (elemWidth, h))
 			            lay
 			make (offset + elemWidth) xs
+
+-- | A "Canvas" used as a restricted proxy to the main "Display"
+data LayoutDelegate = LayoutDelegate Display (IORef LayoutContext)
+
+instance Canvas LayoutDelegate where
+	canvasSize (LayoutDelegate _ ref) =
+		lcSize <$> readIORef ref
+
+	canvasOrigin (LayoutDelegate _ ref) =
+		lcOrigin <$> readIORef ref
+
+	feedCanvas (LayoutDelegate display _) =
+		feedCanvas display
+
+-- | Construct a "LayoutDelege" using a "Display".
+--   The delegate targets the entire "Canvas" area, initially.
+toDisplayDelegate :: Display -> IO LayoutDelegate
+toDisplayDelegate display =
+	LayoutDelegate display <$> (newIORef =<< toLayoutContext display)
+
+-- | Submit the received "LayoutContext" to the delegate.
+delegateLayout :: LayoutDelegate -> Layout ()
+delegateLayout (LayoutDelegate _ ref) =
+	ask >>= liftIO . writeIORef ref

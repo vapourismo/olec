@@ -1,10 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 module Olec.Interface.Terminal (
+	-- * Terminal
 	Terminal,
 	newTerminal,
 	terminalSize,
-	terminalFeed
+	terminalFeed,
 ) where
 
 import Foreign.C.Types

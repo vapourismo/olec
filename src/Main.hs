@@ -7,13 +7,11 @@ module Main where
 import Control.Concurrent
 import Control.Monad.Reader
 
-import Data.IORef
 import Data.Metrics
 
 import System.Random
 
 import Olec.Interface
-import Olec.Interface.Layout
 
 -- |
 class Widget a where
@@ -22,30 +20,7 @@ class Widget a where
 	layout :: a -> Layout ()
 
 -- |
-data DisplayDelegate = DisplayDelegate Display (IORef LayoutContext)
-
--- |
-toDisplayDelegate :: Display -> IO DisplayDelegate
-toDisplayDelegate display =
-	DisplayDelegate display <$> (newIORef =<< toLayoutContext display)
-
-instance Canvas DisplayDelegate where
-	canvasSize (DisplayDelegate _ ref) =
-		lcSize <$> readIORef ref
-
-	canvasOrigin (DisplayDelegate _ ref) =
-		lcOrigin <$> readIORef ref
-
-	feedCanvas (DisplayDelegate display _) =
-		feedCanvas display
-
--- |
-delegateLayout :: DisplayDelegate -> Layout ()
-delegateLayout (DisplayDelegate _ ref) =
-	ask >>= liftIO . writeIORef ref
-
--- |
-data Rainbow = Rainbow DisplayDelegate
+data Rainbow = Rainbow LayoutDelegate
 
 -- |
 newRainBow :: Display -> IO Rainbow
@@ -73,7 +48,7 @@ instance Widget Rainbow where
 	layout (Rainbow del) = delegateLayout del
 
 -- |
-data StaticWidget = StaticWidget DisplayDelegate (Renderer ())
+data StaticWidget = StaticWidget LayoutDelegate (Renderer ())
 
 -- |
 newStaticWidget :: Display -> Renderer () -> IO StaticWidget

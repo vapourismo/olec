@@ -1,10 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Olec.Interface (
-	-- * Display
-	Display,
-	clearDisplay,
-
 	-- * Interface
 	makeInterface,
 
@@ -16,9 +12,8 @@ import Control.Exception
 import Control.Concurrent
 
 import qualified Data.Text as T
-import qualified Data.ByteString as B
 
-import Graphics.UI.Gtk hiding (Size, Display)
+import Graphics.UI.Gtk hiding (Size, Display, Layout)
 import Graphics.UI.Gtk.General.StyleContext
 import Graphics.UI.Gtk.General.CssProvider
 
@@ -26,22 +21,8 @@ import Olec.Interface.Terminal
 import Olec.Interface.Types as ReExport
 import Olec.Interface.Events as ReExport
 import Olec.Interface.Renderer as ReExport
-
--- | Display
-data Display = Display QSem (B.ByteString -> IO ()) (IO Size)
-
-instance Canvas Display where
-	canvasSize (Display _ _ sizeIO) = sizeIO
-
-	canvasOrigin _ = pure (0, 0)
-
-	feedCanvas (Display lock feedIO _) buf =
-		bracket_ (waitQSem lock) (signalQSem lock) (feedIO buf)
-
--- | Clear the entire display.
-clearDisplay :: Display -> IO ()
-clearDisplay (Display lock feedIO _) =
-	bracket_ (waitQSem lock) (signalQSem lock) (feedIO "\ESC[m\ESC[2J")
+import Olec.Interface.Layout as ReExport
+import Olec.Interface.Display as ReExport
 
 -- | Launch user interface.
 launchUI :: Chan Event -> IO Display
@@ -79,8 +60,7 @@ launchUI eventChan = do
 	widgetShowAll win
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
-	lock <- newQSem 1
-	pure (Display lock (terminalFeed term) (terminalSize term))
+	newDisplay term
 
 -- | Create the main user interface.
 makeInterface :: IO (Chan Event, Display)
