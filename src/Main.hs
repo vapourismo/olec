@@ -127,11 +127,13 @@ main = do
 	(events, display) <- makeInterface
 
 	rb <- newRainBow display
-	fillA <- newStaticWidget display (fillDrawingArea 'A')
-	fillB <- newStaticWidget display (fillDrawingArea 'B')
+	fillA <- newStaticWidget display (resetStyle >> fillDrawingArea 'A')
+	fillB <- newStaticWidget display (resetStyle >> fillDrawingArea 'B')
 
 	let globalLayout = divideHoriz [Absolute 10 (layout fillA),
+	                                Absolute 1 (pure ()),
 	                                LeftOver (layout rb),
+	                                Absolute 1 (pure ()),
 	                                Absolute 10 (layout fillB)]
 	runLayout globalLayout display
 

@@ -25,6 +25,7 @@ module Olec.Interface.Renderer (
 
 	-- * Auxiliary
 	fillDrawingArea,
+	resetStyle,
 
 	-- * Colors
 	Color (..),
@@ -196,6 +197,10 @@ fillDrawingArea c =
 		forM_ [0 .. h - 1] $ \ y -> do
 			moveCursor 0 y
 			drawString line
+
+-- | Reset all colors and attributes.
+resetStyle :: Renderer ()
+resetStyle = tell "\ESC[m"
 
 -- | RGB Color
 data Color = Color Word8 Word8 Word8
