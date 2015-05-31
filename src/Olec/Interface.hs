@@ -12,6 +12,7 @@ import Control.Exception
 import Control.Concurrent
 
 import qualified Data.Text as T
+import qualified Data.ByteString as B
 
 import Graphics.UI.Gtk hiding (Size)
 import Graphics.UI.Gtk.General.StyleContext
@@ -29,7 +30,7 @@ import Olec.Interface.Events as ReExport
 import Olec.Interface.Renderer as ReExport
 
 -- | Launch user interface.
-launchUI :: Chan Event -> IO (Fd, IO Size)
+launchUI :: Chan Event -> IO (B.ByteString -> IO (), IO Size)
 launchUI eventChan = do
 	initGUI
 
@@ -65,13 +66,11 @@ launchUI eventChan = do
 	widgetShowAll win
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
-	pure (pts, terminalSize term)
+	pure (terminalFeed term, terminalSize term)
 
 -- | Create the main user interface.
-makeInterface :: IO (Chan Event, Handle, IO Size)
+makeInterface :: IO (Chan Event, B.ByteString -> IO (), IO Size)
 makeInterface = do
 	eventChan <- newChan
-	(pts, sizeAction) <- launchUI eventChan
-	output <- fdToHandle pts
-
-	pure (eventChan, output, sizeAction)
+	(feedAction, sizeAction) <- launchUI eventChan
+	pure (eventChan, feedAction, sizeAction)

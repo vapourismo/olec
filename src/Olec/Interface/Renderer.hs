@@ -131,13 +131,15 @@ fitString n str =
 type Renderer = RWST Info B.ByteString Position IO
 
 -- | Execute the rendering actions.
-runRenderer :: Renderer a -> Handle -> Position -> Size -> IO a
+runRenderer :: Renderer a -> (B.ByteString -> IO ()) -> Position -> Size -> IO a
 runRenderer renderer out origin size = do
 	(result, _, msg) <- runRWST (uncurry writeCursorPosition origin >> renderer)
 	                            (Info origin size) (0, 0)
 
-	B.hPut out msg
-	hFlush out
+	out msg
+
+	--B.hPut out msg
+	--hFlush out
 
 	pure result
 

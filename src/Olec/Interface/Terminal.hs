@@ -3,7 +3,8 @@
 module Olec.Interface.Terminal (
 	Terminal,
 	newTerminal,
-	terminalSize
+	terminalSize,
+	terminalFeed
 ) where
 
 import Control.Exception
@@ -15,10 +16,13 @@ import Foreign.Ptr
 import Foreign.Marshal
 import Foreign.ForeignPtr
 
+import qualified Data.ByteString as B
+
 import Graphics.UI.Gtk.Abstract.Object
 import Graphics.UI.Gtk.Abstract.Widget
 
 import System.Glib.GObject
+import System.Posix.Types
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: CInt -> Ptr CString -> IO (Ptr Terminal)
@@ -28,6 +32,9 @@ foreign import ccall "vte_terminal_get_column_count"
 
 foreign import ccall "vte_terminal_get_row_count"
 	getRowCount :: Ptr Terminal -> IO CLong
+
+foreign import ccall "vte_terminal_feed"
+	feedData :: Ptr Terminal -> CString -> CSsize -> IO ()
 
 -- | Terminal Widget
 newtype Terminal = Terminal (ForeignPtr Terminal)
@@ -56,3 +63,10 @@ terminalSize :: Terminal -> IO (Int, Int)
 terminalSize term =
 	withTerminalPtr term $ \ ptr ->
 		(,) <$> fmap fromIntegral (getColumnCount ptr) <*> fmap fromIntegral (getRowCount ptr)
+
+-- | Feed the terminal emulator some data.
+terminalFeed :: Terminal -> B.ByteString -> IO ()
+terminalFeed term bs =
+	withTerminalPtr term $ \ ptr ->
+		B.useAsCStringLen bs $ \ (str, len) ->
+			feedData ptr str (fromIntegral len)
