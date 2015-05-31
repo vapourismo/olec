@@ -23,6 +23,9 @@ module Olec.Interface.Renderer (
 	drawText,
 	drawString,
 
+	-- * Auxiliary
+	fillDrawingArea,
+
 	-- * Colors
 	Color (..),
 	setForegroundColor,
@@ -33,6 +36,7 @@ module Olec.Interface.Renderer (
 	-- * Attributes
 ) where
 
+import Control.Monad
 import Control.Monad.RWS.Strict
 
 import Numeric
@@ -175,6 +179,23 @@ drawString str = do
 	(x, _) <- get
 
 	tell (UB.fromString (fitString (w - (x - x0)) str))
+
+-- | Fill the area with a given character.
+fillDrawingArea :: Char -> Renderer ()
+fillDrawingArea c =
+	when (safeWcwidth c > 0) $ do
+		(w, h) <- getSize
+
+		let lineWidth = div w (safeWcwidth c)
+		let line =
+			if lineWidth < w then
+				replicate lineWidth c ++ replicate (w - lineWidth) ' '
+			else
+				replicate lineWidth c
+
+		forM_ [0 .. h - 1] $ \ y -> do
+			moveCursor 0 y
+			drawString line
 
 -- | RGB Color
 data Color = Color Word8 Word8 Word8

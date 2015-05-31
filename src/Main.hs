@@ -106,54 +106,53 @@ instance Widget Rainbow where
 
 	layout (Rainbow del) = delegateLayout del
 
+-- |
+data StaticWidget = StaticWidget DisplayDelegate (Renderer ())
+
+-- |
+newStaticWidget :: Display -> Renderer () -> IO StaticWidget
+newStaticWidget display renderer =
+	StaticWidget <$> toDisplayDelegate display <*> pure renderer
+
+instance Widget StaticWidget where
+	render (StaticWidget del renderer) =
+		runRenderer renderer del
+
+	layout (StaticWidget del _) =
+		delegateLayout del
+
 -- | Entry point
 main :: IO ()
 main = do
 	(events, display) <- makeInterface
 
 	rb <- newRainBow display
+	fillA <- newStaticWidget display (fillDrawingArea 'A')
+	fillB <- newStaticWidget display (fillDrawingArea 'B')
 
-	let globalLayout = divideHoriz [Absolute 10 (pure ()),
-	                                LeftOver (layout rb)]
-
+	let globalLayout = divideHoriz [Absolute 10 (layout fillA),
+	                                LeftOver (layout rb),
+	                                Absolute 10 (layout fillB)]
 	runLayout globalLayout display
+
 	render rb
+	render fillA
+	render fillB
 
 	let loop = do
 		e <- readChan events
 		case e of
 			Resize _ _ -> do
 				clearDisplay display
+
 				runLayout globalLayout display
+
 				render rb
+				render fillA
+				render fillB
+
 				loop
 
 			_ -> pure ()
 
 	loop
-
-	--where
-		--renderer1 = do
-		--	moveCursor 10 10
-		--	setForegroundColor (Color 255 0 0)
-		--	setBackgroundColor (Color 255 255 255)
-		--	drawString "Herro"
-
-		--	moveCursor 10 11
-		--	setForegroundColor (Color 255 255 255)
-		--	setBackgroundColor (Color 255 0 0)
-		--	drawString "Werld"
-
-		--renderer2 = do
-		--	(width, height) <- getSize
-		--	forM_ [0 .. height - 1] $ \ y -> do
-		--		moveCursor 0 y
-		--		forM_ [0 .. width - 1] $ \ _ -> do
-		--			fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-		--			bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-
-		--			setForegroundColor fg
-		--			setBackgroundColor bg
-
-		--			c <- liftIO (randomRIO ('A', 'Z'))
-		--			drawString [c]
