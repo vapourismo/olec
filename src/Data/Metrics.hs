@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor #-}
+
 module Data.Metrics (
 	DivisionHint (..),
 	divideMetric
@@ -10,6 +12,7 @@ data DivisionHint i f a
 	= Absolute i a
 	| Relative f a
 	| LeftOver a
+	deriving (Functor)
 
 -- | Divide a list of items across a metric using the given hints.
 divideMetric :: (Integral i, RealFrac f)
