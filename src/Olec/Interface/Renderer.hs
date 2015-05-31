@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Olec.Interface.Renderer (
 	-- * Type-related utilities
@@ -11,7 +12,6 @@ module Olec.Interface.Renderer (
 
 	-- * Utilities
 	constrainRenderer,
-	flush,
 	getSize,
 	resetCursor,
 	moveCursor,
@@ -30,8 +30,7 @@ module Olec.Interface.Renderer (
 	-- * Attributes
 ) where
 
-import Control.Monad.Reader
-import Control.Monad.State.Strict
+import Control.Monad.RWS.Strict
 
 import Numeric
 
@@ -41,6 +40,7 @@ import Data.Word
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as B
+import qualified Data.ByteString.UTF8 as UB
 
 import Graphics.Text.Width
 
@@ -57,57 +57,57 @@ stringWidth :: String -> Int
 stringWidth = wcswidth
 
 -- | Set the cursor position.
-writeCursorPosition :: Handle -> Int -> Int -> IO ()
-writeCursorPosition h x y = do
-	B.hPut h "\ESC["
-	hPutStr h (show (y + 1))
-	B.hPut h ";"
-	hPutStr h (show (x + 1))
-	B.hPut h "H"
+writeCursorPosition :: Int -> Int -> Renderer ()
+writeCursorPosition x y = do
+	tell "\ESC["
+	tell (UB.fromString (show (y + 1)))
+	tell ";"
+	tell (UB.fromString (show (x + 1)))
+	tell "H"
 
 -- | Write a RGB triple.
-writeRGB :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
-writeRGB h r g b = do
-	hPutStr h (show r)
-	B.hPut h ";"
-	hPutStr h (show g)
-	B.hPut h ";"
-	hPutStr h (show b)
+writeRGB :: Word8 -> Word8 -> Word8 -> Renderer ()
+writeRGB r g b = do
+	tell (UB.fromString (show r))
+	tell ";"
+	tell (UB.fromString (show g))
+	tell ";"
+	tell (UB.fromString (show b))
 
 -- | Reset the foreground color.
-writeResetForegroundColor :: Handle -> IO ()
-writeResetForegroundColor h =
-	B.hPut h "\ESC[30m"
+writeResetForegroundColor :: Renderer ()
+writeResetForegroundColor =
+	tell "\ESC[30m"
 
 -- | Set the foreground color.
-writeForegroundColor :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
-writeForegroundColor h r g b = do
-	B.hPut h "\ESC[38;2;"
-	writeRGB h r g b
-	B.hPut h "m"
+writeForegroundColor :: Word8 -> Word8 -> Word8 -> Renderer ()
+writeForegroundColor r g b = do
+	tell "\ESC[38;2;"
+	writeRGB r g b
+	tell "m"
 
 -- | Reset the background color.
-writeResetBackgroundColor :: Handle -> IO ()
-writeResetBackgroundColor h =
-	B.hPut h "\ESC[40m"
+writeResetBackgroundColor :: Renderer ()
+writeResetBackgroundColor =
+	tell "\ESC[40m"
 
 -- | Set the background color.
-writeBackgroundColor :: Handle -> Word8 -> Word8 -> Word8 -> IO ()
-writeBackgroundColor h r g b = do
-	B.hPut h "\ESC[48;2;"
-	writeRGB h r g b
-	B.hPut h "m"
+writeBackgroundColor :: Word8 -> Word8 -> Word8 -> Renderer ()
+writeBackgroundColor r g b = do
+	tell "\ESC[48;2;"
+	writeRGB r g b
+	tell "m"
 
 -- | Write Text.
-writeText :: Handle -> T.Text -> IO ()
-writeText h t = B.hPut h (T.encodeUtf8 t)
+writeText :: T.Text -> Renderer ()
+writeText t = tell (T.encodeUtf8 t)
 
 -- | Write String.
-writeString :: Handle -> String -> IO ()
-writeString = hPutStr
+writeString :: String -> Renderer ()
+writeString = tell . UB.fromString
 
 -- | Info for rendering purposes
-data Info = Info Handle Position Size
+data Info = Info Position Size
 
 -- | Shorten the given "Text" to fit in a number of columns.
 fitText :: Int -> T.Text -> T.Text
@@ -128,50 +128,49 @@ fitString n str =
 			| otherwise = (m, acc)
 
 -- | Render something in a constrained area.
-type Renderer = ReaderT Info (StateT Position IO)
+type Renderer = RWST Info B.ByteString Position IO
 
 -- | Execute the rendering actions.
 runRenderer :: Renderer a -> Handle -> Position -> Size -> IO a
 runRenderer renderer out origin size = do
-	uncurry (writeCursorPosition out) origin
-	evalStateT (runReaderT renderer (Info out origin size)) (0, 0)
+	(result, _, msg) <- runRWST (uncurry writeCursorPosition origin >> renderer)
+	                            (Info origin size) (0, 0)
+
+	B.hPut out msg
+	hFlush out
+
+	pure result
 
 -- | Constrain a "Renderer" to an area.
 constrainRenderer :: Position -> Size -> Renderer a -> Renderer a
 constrainRenderer (x, y) (rw, rh) renderer =
-	withReaderT transform (resetCursor >> renderer)
+	withRWST transform (resetCursor >> renderer)
 	where
-		transform (Info out (x0, y0) (w, h)) =
+		transform (Info (x0, y0) (w, h)) s =
 			let
 				origin = (x0 + min (w - 1) (max 0 x),
 				          y0 + min (h - 1) (max 0 y))
 				size = (min (w - min (w - 1) (max 0 x)) rw,
 				        min (h - min (h - 1) (max 0 y)) rh)
 			in
-				Info out origin size
-
--- | Render actions immediately.
-flush :: Renderer ()
-flush = do
-	Info out _ _ <- ask
-	liftIO (hFlush out)
+				(Info origin size, s)
 
 -- | Get the size of the current drawing area.
 getSize :: Renderer Size
-getSize = asks (\ (Info _ _ size) -> size)
+getSize = asks (\ (Info _ size) -> size)
 
 -- | Reset the cursor position to its origin.
 resetCursor :: Renderer ()
 resetCursor = do
-	Info out origin@(x0, y0) _ <- ask
-	liftIO (writeCursorPosition out x0 y0)
+	Info origin@(x0, y0) _ <- ask
+	writeCursorPosition x0 y0
 	put origin
 
 -- | Move the cursor.
 moveCursor :: Int -> Int -> Renderer ()
 moveCursor x y = do
 	-- Acquire information
-	Info out (x0, y0) (w, h) <- ask
+	Info (x0, y0) (w, h) <- ask
 	pos <- get
 
 	-- Calculate new cursor position
@@ -180,24 +179,24 @@ moveCursor x y = do
 
 	-- Move cursor if new position differs from old one
 	when (newPos /= pos) $ do
-		liftIO (writeCursorPosition out absX absY)
+		writeCursorPosition absX absY
 		put newPos
 
 -- | Draw a "Text" at the current position.
 drawText :: T.Text -> Renderer ()
 drawText txt = do
-	Info out (x0, _) (w, _) <- ask
+	Info (x0, _) (w, _) <- ask
 	(x, _) <- get
 
-	liftIO (writeText out (fitText (w - (x - x0)) txt))
+	writeText (fitText (w - (x - x0)) txt)
 
 -- | Draw a "String" at the current position.
 drawString :: String -> Renderer ()
 drawString str = do
-	Info out (x0, _) (w, _) <- ask
+	Info (x0, _) (w, _) <- ask
 	(x, _) <- get
 
-	liftIO (writeString out (fitString (w - (x - x0)) str))
+	writeString (fitString (w - (x - x0)) str)
 
 -- | RGB Color
 data Color = Color Word8 Word8 Word8
@@ -215,23 +214,20 @@ instance Show Color where
 -- | Adjust the foreground color.
 setForegroundColor :: Color -> Renderer ()
 setForegroundColor (Color r g b) = do
-	Info out _ _ <- ask
-	liftIO (writeForegroundColor out r g b)
+	Info _ _ <- ask
+	writeForegroundColor r g b
 
 -- | Reset the current foreground color.
 resetForegroundColor :: Renderer ()
-resetForegroundColor = do
-	Info out _ _ <- ask
-	liftIO (writeResetForegroundColor out)
+resetForegroundColor =
+	writeResetForegroundColor
 
 -- | Adjust the background color.
 setBackgroundColor :: Color -> Renderer ()
-setBackgroundColor (Color r g b) = do
-	Info out _ _ <- ask
-	liftIO (writeBackgroundColor out r g b)
+setBackgroundColor (Color r g b) =
+	writeBackgroundColor r g b
 
 -- | Reset the current background color.
 resetBackgroundColor :: Renderer ()
-resetBackgroundColor = do
-	Info out _ _ <- ask
-	liftIO (writeResetBackgroundColor out)
+resetBackgroundColor =
+	writeResetBackgroundColor

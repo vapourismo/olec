@@ -159,8 +159,6 @@ main = do
 			setBackgroundColor (Color 255 0 0)
 			drawString "Werld"
 
-			flush
-
 		renderer2 = do
 			(width, height) <- getSize
 			forM_ [0 .. height - 1] $ \ y -> do
@@ -174,4 +172,3 @@ main = do
 
 					c <- liftIO (randomRIO ('A', 'Z'))
 					drawString [c]
-			flush
