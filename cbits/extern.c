@@ -12,6 +12,7 @@ VteTerminal* olec_make_vte() {
 
 	// Configure miscellaneous settings
 	vte_terminal_set_allow_bold(term, true);
+	vte_terminal_set_rewrap_on_resize(term, false);
 	vte_terminal_set_encoding(term, "UTF-8", NULL);
 	vte_terminal_set_cjk_ambiguous_width(term, 1);
 	vte_terminal_set_cursor_shape(term, VTE_CURSOR_SHAPE_IBEAM);
