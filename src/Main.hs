@@ -6,87 +6,91 @@ module Main where
 import Control.Concurrent
 import Control.Monad.Reader
 
-import Data.List
-import Data.IORef
-import Data.Metrics
+--import Data.List
+--import Data.IORef
+--import Data.Metrics
+import Data.Word
 
-import System.IO
+import qualified Graphics.Vty as V
+
+import System.Posix.IO
+--import System.IO
 import System.Random
 
 import Olec.Interface
 
--- |
-class Component a where
-	data Setup a
+---- |
+--class Component a where
+--	data Setup a
 
-	newComponent :: Position -> Size -> Setup a -> IO a
+--	newComponent :: Position -> Size -> Setup a -> IO a
 
-	requestRedraw :: a -> Handle -> IO ()
+--	requestRedraw :: a -> Handle -> IO ()
 
-	requestResize :: a -> Position -> Size -> IO ()
+--	requestResize :: a -> Position -> Size -> IO ()
 
--- |
-data VisualConstraint = VisualConstraint {
-	visOrigin :: Position,
-	visSize   :: Size
-}
+---- |
+--data VisualConstraint = VisualConstraint {
+--	visOrigin :: Position,
+--	visSize   :: Size
+--}
 
--- |
-type Layout = ReaderT VisualConstraint IO
+---- |
+--type Layout = ReaderT VisualConstraint IO
 
--- |
-runLayout :: Layout a -> Position -> Size -> IO a
-runLayout l p s = runReaderT l (VisualConstraint p s)
+---- |
+--runLayout :: Layout a -> Position -> Size -> IO a
+--runLayout l p s = runReaderT l (VisualConstraint p s)
 
--- |
-fitComponent :: (Component a) => a -> Layout ()
-fitComponent com = do
-	VisualConstraint origin size <- ask
-	liftIO (requestResize com origin size)
+---- |
+--fitComponent :: (Component a) => a -> Layout ()
+--fitComponent com = do
+--	VisualConstraint origin size <- ask
+--	liftIO (requestResize com origin size)
 
--- |
-divideHoriz :: [DivisionHint Int Float (Layout ())] -> Layout ()
-divideHoriz hints = do
-	VisualConstraint _ (w, _) <- ask
-	sequence_ (snd (mapAccumL mapper 0 (divideMetric hints w)))
+---- |
+--divideHoriz :: [DivisionHint Int Float (Layout ())] -> Layout ()
+--divideHoriz hints = do
+--	VisualConstraint _ (w, _) <- ask
+--	sequence_ (snd (mapAccumL mapper 0 (divideMetric hints w)))
 
-	where
-		moveLayout offset elemWidth (VisualConstraint (x0, y0) (_, h)) =
-			VisualConstraint (x0 + offset, y0) (elemWidth, h)
+--	where
+--		moveLayout offset elemWidth (VisualConstraint (x0, y0) (_, h)) =
+--			VisualConstraint (x0 + offset, y0) (elemWidth, h)
 
-		mapper offset (elemWidth, layout) =
-			(offset + elemWidth, withReaderT (moveLayout offset elemWidth) layout)
+--		mapper offset (elemWidth, layout) =
+--			(offset + elemWidth, withReaderT (moveLayout offset elemWidth) layout)
 
--- |
-data Rainbow = Rainbow (IORef (Size, Position))
+---- |
+--data Rainbow = Rainbow (IORef (Size, Position))
 
-instance Component Rainbow where
-	data Setup Rainbow = SetupRainbow
+--instance Component Rainbow where
+--	data Setup Rainbow = SetupRainbow
 
-	newComponent origin size _ =
-		Rainbow <$> newIORef (origin, size)
+--	newComponent origin size _ =
+--		Rainbow <$> newIORef (origin, size)
 
-	requestRedraw (Rainbow ref) output = do
-		(origin, size) <- readIORef ref
-		runRenderer renderer output origin size
-		where
-			renderer = do
-				(width, height) <- getSize
-				forM_ [0 .. height - 1] $ \ y -> do
-					moveCursor 0 y
-					forM_ [0 .. width - 1] $ \ _ -> do
-						fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-						bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+--	requestRedraw (Rainbow ref) output = do
+--		(origin, size) <- readIORef ref
+--		runRenderer renderer output origin size
+--		where
+--			renderer = do
+--				(width, height) <- getSize
+--				forM_ [0 .. height - 1] $ \ y -> do
+--					moveCursor 0 y
+--					forM_ [0 .. width - 1] $ \ _ -> do
+--						fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+--						bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
 
-						setForegroundColor fg
-						setBackgroundColor bg
+--						setForegroundColor fg
+--						setBackgroundColor bg
 
-						c <- liftIO (randomRIO ('A', 'Z'))
-						drawString [c]
-				flush
+--						c <- liftIO (randomRIO ('A', 'Z'))
+--						drawString [c]
+--				flush
 
-	requestResize (Rainbow ref) origin size =
-		writeIORef ref (origin, size)
+--	requestResize (Rainbow ref) origin size =
+--		writeIORef ref (origin, size)
 
 -- | Entry point
 main :: IO ()
@@ -111,12 +115,52 @@ main = do
 
 	(events, output, sizeIO) <- makeInterface
 
+	--outputFd <- handleToFd output
+
+	--vty <- V.mkVty mempty {
+	--	V.inputFd = Just outputFd,
+	--	V.outputFd = Just outputFd
+	--}
+
 	forever $ do
 		_ <- readChan events
-		size <- sizeIO
-		runRenderer renderer1 output (0, 0) size
+
+		(w, h) <- sizeIO
+
+		--img <- vtyLayer w h
+		--V.update vty (V.Picture V.NoCursor [img] V.ClearBackground)
+
+		runRenderer renderer2 output (0, 0) (w, h)
 
 	where
+		randomWord8 = randomIO :: IO Word8
+
+		vtyElem = do
+			c <- randomRIO ('A', 'Z')
+			fg <- V.rgbColor <$> randomWord8 <*> randomWord8 <*> randomWord8
+			bg <- V.rgbColor <$> randomWord8 <*> randomWord8 <*> randomWord8
+
+			pure (V.char (V.withForeColor (V.withBackColor mempty bg) fg) c)
+
+		vtyLine w =
+			fmap V.horizCat (replicateM w vtyElem)
+
+		vtyLayer w h =
+			fmap V.vertCat (replicateM h (vtyLine w))
+
+		renderer1 = do
+			moveCursor 10 10
+			setForegroundColor (Color 255 0 0)
+			setBackgroundColor (Color 255 255 255)
+			drawString "Herro"
+
+			moveCursor 10 11
+			setForegroundColor (Color 255 255 255)
+			setBackgroundColor (Color 255 0 0)
+			drawString "Werld"
+
+			flush
+
 		renderer2 = do
 			(width, height) <- getSize
 			forM_ [0 .. height - 1] $ \ y -> do
@@ -131,14 +175,3 @@ main = do
 					c <- liftIO (randomRIO ('A', 'Z'))
 					drawString [c]
 			flush
-
-		renderer1 = do
-			moveCursor 10 10
-			setForegroundColor (Color 255 0 0)
-			setBackgroundColor (Color 255 255 255)
-			drawString "Herro"
-
-			moveCursor 10 11
-			setForegroundColor (Color 255 255 255)
-			setBackgroundColor (Color 255 0 0)
-			drawString "Werld"
