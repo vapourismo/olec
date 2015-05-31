@@ -1,6 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Olec.Interface (
+	-- * Display
+	Display,
+	displayLock,
+	displayFeed,
+	displaySize,
+	renderOnDisplay,
+
 	-- * Initializers
 	makeInterface,
 
@@ -14,13 +21,10 @@ import Control.Concurrent
 import qualified Data.Text as T
 import qualified Data.ByteString as B
 
-import Graphics.UI.Gtk hiding (Size)
+import Graphics.UI.Gtk hiding (Size, Display)
 import Graphics.UI.Gtk.General.StyleContext
 import Graphics.UI.Gtk.General.CssProvider
 
-import System.IO
-
-import System.Posix.IO
 import System.Posix.Types
 import System.Posix.Terminal
 
@@ -29,8 +33,23 @@ import Olec.Interface.Types as ReExport
 import Olec.Interface.Events as ReExport
 import Olec.Interface.Renderer as ReExport
 
+-- | Display
+data Display = Display {
+	displayLock :: QSem,
+	displayFeed :: B.ByteString -> IO (),
+	displaySize :: IO Size
+}
+
+-- | Render something to the screen.
+renderOnDisplay :: Display -> Renderer a -> IO a
+renderOnDisplay (Display lock feedIO sizeIO) renderer =
+	bracket_ (waitQSem lock)
+	         (signalQSem lock)
+	         (sizeIO >>= runRenderer renderer feedIO (0, 0))
+
+
 -- | Launch user interface.
-launchUI :: Chan Event -> IO (B.ByteString -> IO (), IO Size)
+launchUI :: Chan Event -> IO Display
 launchUI eventChan = do
 	initGUI
 
@@ -66,11 +85,12 @@ launchUI eventChan = do
 	widgetShowAll win
 	forkOS (finally mainGUI (writeChan eventChan ExitRequest))
 
-	pure (terminalFeed term, terminalSize term)
+	lock <- newQSem 1
+	pure (Display lock (terminalFeed term) (terminalSize term))
 
 -- | Create the main user interface.
-makeInterface :: IO (Chan Event, B.ByteString -> IO (), IO Size)
+makeInterface :: IO (Chan Event, Display)
 makeInterface = do
 	eventChan <- newChan
-	(feedAction, sizeAction) <- launchUI eventChan
-	pure (eventChan, feedAction, sizeAction)
+	display <- launchUI eventChan
+	pure (eventChan, display)
