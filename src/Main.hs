@@ -123,6 +123,7 @@ main = do
 		e <- readChan events
 		case e of
 			Resize _ _ -> do
+				clearDisplay display
 				runLayout globalLayout display
 				render rb
 				loop
