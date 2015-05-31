@@ -13,47 +13,13 @@ import Data.Metrics
 import System.Random
 
 import Olec.Interface
+import Olec.Interface.Layout
 
 -- |
 class Widget a where
 	render :: a -> IO ()
 
 	layout :: a -> Layout ()
-
--- |
-data LayoutContext = LayoutContext {
-	lcOrigin :: Position,
-	lcSize   :: Size
-}
-
--- |
-toLayoutContext :: (Canvas c) => c -> IO LayoutContext
-toLayoutContext canvas =
-	LayoutContext <$> canvasOrigin canvas <*> canvasSize canvas
-
--- |
-type Layout = ReaderT LayoutContext IO
-
--- |
-runLayout :: (Canvas c) => Layout a -> c -> IO a
-runLayout lay canvas =
-	LayoutContext <$> canvasOrigin canvas
-	              <*> canvasSize canvas
-	              >>= runReaderT lay
-
--- |
-divideHoriz :: [DivisionHint Int Float (Layout ())] -> Layout ()
-divideHoriz hints = do
-	LayoutContext _ (w, _) <- ask
-	make 0 (divideMetric hints w)
-
-	where
-		make _ [] = pure ()
-		make offset ((elemWidth, lay) : xs) = do
-			withReaderT (\ (LayoutContext (_, y) (_, h)) ->
-			                 LayoutContext (offset, y) (elemWidth, h))
-			            lay
-			make (offset + elemWidth) xs
 
 -- |
 data DisplayDelegate = DisplayDelegate Display (IORef LayoutContext)
