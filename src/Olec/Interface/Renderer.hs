@@ -2,6 +2,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Olec.Interface.Renderer (
+	-- * Canvas
+	Canvas (..),
+
 	-- * Type-related utilities
 	textWidth,
 	stringWidth,
@@ -43,8 +46,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UB
 
 import Graphics.Text.Width
-
-import System.IO
 
 import Olec.Interface.Types
 
@@ -130,17 +131,24 @@ fitString n str =
 -- | Render something in a constrained area.
 type Renderer = RWST Info B.ByteString Position IO
 
+-- | Canvas
+class Canvas a where
+	canvasSize   :: a -> IO Size
+
+	canvasOrigin :: a -> IO Position
+
+	feedCanvas   :: a -> B.ByteString -> IO ()
+
 -- | Execute the rendering actions.
-runRenderer :: Renderer a -> (B.ByteString -> IO ()) -> Position -> Size -> IO a
-runRenderer renderer out origin size = do
+runRenderer :: (Canvas c) => Renderer a -> c -> IO a
+runRenderer renderer canvas = do
+	origin <- canvasOrigin canvas
+	size <- canvasSize canvas
+
 	(result, _, msg) <- runRWST (uncurry writeCursorPosition origin >> renderer)
 	                            (Info origin size) (0, 0)
 
-	out msg
-
-	--B.hPut out msg
-	--hFlush out
-
+	feedCanvas canvas msg
 	pure result
 
 -- | Constrain a "Renderer" to an area.

@@ -1,14 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Olec.Interface (
-	-- * Display
+	-- * Interface
 	Display,
-	displayLock,
-	displayFeed,
-	displaySize,
-	renderOnDisplay,
-
-	-- * Initializers
 	makeInterface,
 
 	-- * Re-exports
@@ -34,19 +28,15 @@ import Olec.Interface.Events as ReExport
 import Olec.Interface.Renderer as ReExport
 
 -- | Display
-data Display = Display {
-	displayLock :: QSem,
-	displayFeed :: B.ByteString -> IO (),
-	displaySize :: IO Size
-}
+data Display = Display QSem (B.ByteString -> IO ()) (IO Size)
 
--- | Render something to the screen.
-renderOnDisplay :: Display -> Renderer a -> IO a
-renderOnDisplay (Display lock feedIO sizeIO) renderer =
-	bracket_ (waitQSem lock)
-	         (signalQSem lock)
-	         (sizeIO >>= runRenderer renderer feedIO (0, 0))
+instance Canvas Display where
+	canvasSize (Display _ _ sizeIO) = sizeIO
 
+	canvasOrigin _ = pure (0, 0)
+
+	feedCanvas (Display lock feedIO _) buf =
+		bracket_ (waitQSem lock) (signalQSem lock) (feedIO buf)
 
 -- | Launch user interface.
 launchUI :: Chan Event -> IO Display
@@ -69,7 +59,7 @@ launchUI eventChan = do
 	containerAdd win box
 
 	-- Terminal
-	(Fd ptm, pts) <- openPseudoTerminal
+	(Fd ptm, _) <- openPseudoTerminal
 	term <- newTerminal ptm ["#111111"]
 	boxPackStart box term PackGrow 0
 

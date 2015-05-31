@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Main where
 
@@ -21,56 +22,50 @@ import Olec.Interface
 class Component a where
 	data Setup a
 
-	newComponent :: Position -> Size -> Setup a -> IO a
+	newComponent :: (Canvas c) => c -> Setup a -> IO a
 
-	requestRedraw :: a -> (B.ByteString -> IO ()) -> IO ()
+	paintComponent :: (Canvas c) => a -> c -> IO ()
 
-	requestResize :: a -> Position -> Size -> IO ()
+	updateComponent :: (Canvas c) => a -> c -> IO ()
 
--- |
-data VisualConstraint = VisualConstraint {
-	visOrigin :: Position,
-	visSize   :: Size
-}
+---- |
+--type Layout c = ReaderT c IO
 
--- |
-type Layout = ReaderT VisualConstraint IO
+---- |
+--runLayout :: (Canvas c) => Layout c a -> c -> IO a
+--runLayout = runReaderT
 
--- |
-runLayout :: Layout a -> Position -> Size -> IO a
-runLayout l p s = runReaderT l (VisualConstraint p s)
+---- |
+--fitComponent :: (Component a, Canvas c) => a -> Layout c ()
+--fitComponent com =
+--	ask >>= liftIO . updateComponent com
 
--- |
-fitComponent :: (Component a) => a -> Layout ()
-fitComponent com = do
-	VisualConstraint origin size <- ask
-	liftIO (requestResize com origin size)
+---- |
+--divideHoriz :: (Canvas c) => [DivisionHint Int Float (Layout c ())] -> Layout c ()
+--divideHoriz hints = do
+--	canvas <- ask
+--	(w, _) <- liftIO (canvasSize canvas)
+--	make 0 (divideMetric hints w)
 
--- |
-divideHoriz :: [DivisionHint Int Float (Layout ())] -> Layout ()
-divideHoriz hints = do
-	VisualConstraint _ (w, _) <- ask
-	sequence_ (snd (mapAccumL mapper 0 (divideMetric hints w)))
-
-	where
-		moveLayout offset elemWidth (VisualConstraint (x0, y0) (_, h)) =
-			VisualConstraint (x0 + offset, y0) (elemWidth, h)
-
-		mapper offset (elemWidth, layout) =
-			(offset + elemWidth, withReaderT (moveLayout offset elemWidth) layout)
+--	where
+--		make _ [] = pure ()
+--		make offset ((elemWidth, ReaderT layout) : xs) = do
+--			ReaderT $ \ canvas -> do
+--				(_, y) <- canvasOrigin canvas
+--				(_, h) <- canvasSize canvas
+--				layout ()
+--			make (offset + elemWidth) xs
 
 -- |
-data Rainbow = Rainbow (IORef (Size, Position))
+data Rainbow = Rainbow
 
 instance Component Rainbow where
 	data Setup Rainbow = SetupRainbow
 
-	newComponent origin size _ =
-		Rainbow <$> newIORef (origin, size)
+	newComponent _ _ = pure Rainbow
 
-	requestRedraw (Rainbow ref) output = do
-		(origin, size) <- readIORef ref
-		runRenderer renderer output origin size
+	paintComponent _ canvas = do
+		runRenderer renderer canvas
 		where
 			renderer = do
 				(width, height) <- getSize
@@ -86,24 +81,22 @@ instance Component Rainbow where
 						c <- liftIO (randomRIO ('A', 'Z'))
 						drawString [c]
 
-	requestResize (Rainbow ref) origin size =
-		writeIORef ref (origin, size)
+	updateComponent _ _ = pure ()
 
 -- | Entry point
 main :: IO ()
 main = do
-	(events, feedIO, sizeIO) <- makeInterface
+	(events, display) <- makeInterface
 
-	size <- sizeIO
-	rb <- newComponent (0, 0) size SetupRainbow
-	requestRedraw rb feedIO
+	rb <- newComponent display SetupRainbow
+	paintComponent rb display
 
 	let loop = do
 		e <- readChan events
 		case e of
-			Resize width height -> do
-				requestResize rb (0, 0) (width, height)
-				requestRedraw rb feedIO
+			Resize _ _ -> do
+				updateComponent rb display
+				paintComponent rb display
 				loop
 
 			_ -> pure ()
