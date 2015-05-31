@@ -75,38 +75,6 @@ writeRGB r g b = do
 	tell ";"
 	tell (UB.fromString (show b))
 
--- | Reset the foreground color.
-writeResetForegroundColor :: Renderer ()
-writeResetForegroundColor =
-	tell "\ESC[30m"
-
--- | Set the foreground color.
-writeForegroundColor :: Word8 -> Word8 -> Word8 -> Renderer ()
-writeForegroundColor r g b = do
-	tell "\ESC[38;2;"
-	writeRGB r g b
-	tell "m"
-
--- | Reset the background color.
-writeResetBackgroundColor :: Renderer ()
-writeResetBackgroundColor =
-	tell "\ESC[40m"
-
--- | Set the background color.
-writeBackgroundColor :: Word8 -> Word8 -> Word8 -> Renderer ()
-writeBackgroundColor r g b = do
-	tell "\ESC[48;2;"
-	writeRGB r g b
-	tell "m"
-
--- | Write Text.
-writeText :: T.Text -> Renderer ()
-writeText t = tell (T.encodeUtf8 t)
-
--- | Write String.
-writeString :: String -> Renderer ()
-writeString = tell . UB.fromString
-
 -- | Info for rendering purposes
 data Info = Info Position Size
 
@@ -198,7 +166,7 @@ drawText txt = do
 	Info (x0, _) (w, _) <- ask
 	(x, _) <- get
 
-	writeText (fitText (w - (x - x0)) txt)
+	tell (T.encodeUtf8 (fitText (w - (x - x0)) txt))
 
 -- | Draw a "String" at the current position.
 drawString :: String -> Renderer ()
@@ -206,7 +174,7 @@ drawString str = do
 	Info (x0, _) (w, _) <- ask
 	(x, _) <- get
 
-	writeString (fitString (w - (x - x0)) str)
+	tell (UB.fromString (fitString (w - (x - x0)) str))
 
 -- | RGB Color
 data Color = Color Word8 Word8 Word8
@@ -224,20 +192,23 @@ instance Show Color where
 -- | Adjust the foreground color.
 setForegroundColor :: Color -> Renderer ()
 setForegroundColor (Color r g b) = do
-	Info _ _ <- ask
-	writeForegroundColor r g b
+	tell "\ESC[38;2;"
+	writeRGB r g b
+	tell "m"
 
 -- | Reset the current foreground color.
 resetForegroundColor :: Renderer ()
 resetForegroundColor =
-	writeResetForegroundColor
+	tell "\ESC[30m"
 
 -- | Adjust the background color.
 setBackgroundColor :: Color -> Renderer ()
-setBackgroundColor (Color r g b) =
-	writeBackgroundColor r g b
+setBackgroundColor (Color r g b) = do
+	tell "\ESC[48;2;"
+	writeRGB r g b
+	tell "m"
 
 -- | Reset the current background color.
 resetBackgroundColor :: Renderer ()
 resetBackgroundColor =
-	writeResetBackgroundColor
+	tell "\ESC[40m"
