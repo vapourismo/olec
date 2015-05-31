@@ -131,10 +131,10 @@ fitString n str =
 type Renderer = ReaderT Info (StateT Position IO)
 
 -- | Execute the rendering actions.
-runRenderer :: Renderer a -> Handle -> Size -> IO a
-runRenderer renderer out size = do
-	writeCursorPosition out 0 0
-	evalStateT (runReaderT renderer (Info out (0, 0) size)) (0, 0)
+runRenderer :: Renderer a -> Handle -> Position -> Size -> IO a
+runRenderer renderer out origin size = do
+	uncurry (writeCursorPosition out) origin
+	evalStateT (runReaderT renderer (Info out origin size)) (0, 0)
 
 -- | Constrain a "Renderer" to an area.
 constrainRenderer :: Position -> Size -> Renderer a -> Renderer a
