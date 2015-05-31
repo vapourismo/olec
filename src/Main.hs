@@ -7,29 +7,29 @@ module Main where
 import Control.Concurrent
 import Control.Monad.Reader
 
-import Data.List
 import Data.IORef
 import Data.Metrics
 
-import qualified Data.ByteString as B
-
-import System.IO
 import System.Random
 
 import Olec.Interface
 
 -- |
-class Component a where
-	data Setup a
-
-	newComponent :: (Canvas c) => c -> Setup a -> IO a
-
-	render :: a -> Renderer ()
+class Widget a where
+	render :: a -> IO ()
 
 	layout :: a -> Layout ()
 
 -- |
-data LayoutContext = LayoutContext Position Size
+data LayoutContext = LayoutContext {
+	lcOrigin :: Position,
+	lcSize   :: Size
+}
+
+-- |
+toLayoutContext :: (Canvas c) => c -> IO LayoutContext
+toLayoutContext canvas =
+	LayoutContext <$> canvasOrigin canvas <*> canvasSize canvas
 
 -- |
 type Layout = ReaderT LayoutContext IO
@@ -56,50 +56,82 @@ divideHoriz hints = do
 			make (offset + elemWidth) xs
 
 -- |
-data Rainbow = Rainbow
+data DisplayDelegate = DisplayDelegate Display (IORef LayoutContext)
 
-instance Component Rainbow where
-	data Setup Rainbow = SetupRainbow
+-- |
+toDisplayDelegate :: Display -> IO DisplayDelegate
+toDisplayDelegate display =
+	DisplayDelegate display <$> (newIORef =<< toLayoutContext display)
 
-	newComponent _ _ = pure Rainbow
+instance Canvas DisplayDelegate where
+	canvasSize (DisplayDelegate _ ref) =
+		lcSize <$> readIORef ref
 
-	render _ = do
-		(width, height) <- getSize
-		forM_ [0 .. height - 1] $ \ y -> do
-			moveCursor 0 y
-			forM_ [0 .. width - 1] $ \ _ -> do
-				fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-				bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+	canvasOrigin (DisplayDelegate _ ref) =
+		lcOrigin <$> readIORef ref
 
-				setForegroundColor fg
-				setBackgroundColor bg
+	feedCanvas (DisplayDelegate display _) =
+		feedCanvas display
 
-				c <- liftIO (randomRIO ('A', 'Z'))
-				drawString [c]
+-- |
+delegateLayout :: DisplayDelegate -> Layout ()
+delegateLayout (DisplayDelegate _ ref) =
+	ask >>= liftIO . writeIORef ref
 
-	layout _ = pure ()
+-- |
+data Rainbow = Rainbow DisplayDelegate
+
+-- |
+newRainBow :: Display -> IO Rainbow
+newRainBow display =
+	Rainbow <$> toDisplayDelegate display
+
+instance Widget Rainbow where
+	render (Rainbow del) =
+		runRenderer renderer del
+		where
+			renderer = do
+				(width, height) <- getSize
+				forM_ [0 .. height - 1] $ \ y -> do
+					moveCursor 0 y
+					forM_ [0 .. width - 1] $ \ _ -> do
+						fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+						bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+
+						setForegroundColor fg
+						setBackgroundColor bg
+
+						c <- liftIO (randomRIO ('A', 'Z'))
+						drawString [c]
+
+	layout (Rainbow del) = delegateLayout del
 
 -- | Entry point
 main :: IO ()
 main = do
 	(events, display) <- makeInterface
 
-	rb <- newComponent display SetupRainbow
-	runRenderer (render rb) display
+	rb <- newRainBow display
+
+	let globalLayout = divideHoriz [Absolute 10 (pure ()),
+	                                LeftOver (layout rb)]
+
+	runLayout globalLayout display
+	render rb
 
 	let loop = do
 		e <- readChan events
 		case e of
 			Resize _ _ -> do
-				runLayout (layout rb) display
-				runRenderer (render rb) display
+				runLayout globalLayout display
+				render rb
 				loop
 
 			_ -> pure ()
 
 	loop
 
-	where
+	--where
 		--renderer1 = do
 		--	moveCursor 10 10
 		--	setForegroundColor (Color 255 0 0)
