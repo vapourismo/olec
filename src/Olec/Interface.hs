@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Olec.Interface (
 	-- * Interface
 	makeInterface,
@@ -10,8 +8,6 @@ module Olec.Interface (
 
 import Control.Exception
 import Control.Concurrent
-
-import qualified Data.Text as T
 
 import Graphics.UI.Gtk hiding (Size, Display, Layout)
 import Graphics.UI.Gtk.General.StyleContext
@@ -33,12 +29,12 @@ launchUI eventChan = do
 	mbScreen <- screenGetDefault
 	flip (maybe (return ())) mbScreen $ \ screen -> do
 		cssProvider <- cssProviderNew
-		cssProviderLoadFromString cssProvider ("VteTerminal { padding: 6px; }" :: T.Text)
+		cssProviderLoadFromString cssProvider "VteTerminal { padding: 6px; }"
 		styleContextAddProviderForScreen screen cssProvider 800
 
 	-- Main window
 	win <- windowNew
-	set win [windowTitle := ("Olec Text Editor" :: T.Text)]
+	set win [windowTitle := "Olec Text Editor"]
 
 	-- Box
 	box <- vBoxNew False 0
