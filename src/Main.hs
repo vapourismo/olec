@@ -64,7 +64,7 @@ instance Component Rainbow where
 
 	newComponent _ _ = pure Rainbow
 
-	paintComponent _ canvas = do
+	paintComponent _ canvas =
 		runRenderer renderer canvas
 		where
 			renderer = do
