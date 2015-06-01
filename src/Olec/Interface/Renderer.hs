@@ -11,6 +11,7 @@ module Olec.Interface.Renderer (
 
 	-- * Renderer
 	Renderer,
+	Visual (..),
 	runRenderer,
 
 	-- * Utilities
@@ -101,16 +102,20 @@ fitString n str =
 			| safeWcwidth c <= m = (m - safeWcwidth c, acc ++ [c])
 			| otherwise = (m, acc)
 
--- | Render something in a constrained area.
-type Renderer = RWST Info B.ByteString Position IO
-
--- | Canvas
+-- | Types which can be drawn upon
 class Canvas a where
 	canvasSize   :: a -> IO Size
 
 	canvasOrigin :: a -> IO Position
 
 	feedCanvas   :: a -> B.ByteString -> IO ()
+
+-- | Render something in a constrained area.
+type Renderer = RWST Info B.ByteString Position IO
+
+-- | Types which have a visual representation
+class Visual a where
+	visualize :: a -> Renderer ()
 
 -- | Execute the rendering actions.
 runRenderer :: (Canvas c) => Renderer a -> c -> IO a
