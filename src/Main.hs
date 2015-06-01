@@ -17,7 +17,7 @@ class Visual a where
 class Container a where
 	layout :: a -> Layout ()
 
-class (Container a, Visual a) => Widget a where
+class Widget a where
 	paint :: a -> IO ()
 
 -- |
@@ -74,22 +74,16 @@ instance Visual Rainbow where
 -- | Entry point
 main :: IO ()
 main = do
-	(events, display) <- makeInterface
+	(eventChan, resizeVar, display) <- makeInterface
 
 	rb <- newWidget display Rainbow
 
 	update rb display
 
-	let loop = do
-		e <- readChan events
-		case e of
-			Resize _ _ -> do
-				clearDisplay display
+	forkIO $ forever $ do
+		takeMVar resizeVar
+		clearDisplay display
+		update rb display
 
-				update rb display
-
-				loop
-
-			_ -> pure ()
-
-	loop
+	readChan eventChan
+	pure ()
