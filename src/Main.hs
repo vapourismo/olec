@@ -7,6 +7,9 @@ module Main where
 import Control.Concurrent
 import Control.Monad.Reader
 
+import Data.Time
+import Data.Metrics
+
 import System.Random
 
 import Olec.Interface
@@ -14,44 +17,34 @@ import Olec.Interface
 class Visual a where
 	visualize :: a -> Renderer ()
 
-class Container a where
-	layout :: a -> Layout ()
-
 class Widget a where
+	layout :: a -> Layout ()
 	paint :: a -> IO ()
 
 -- |
-update :: (Container a, Widget a, Canvas c) => a -> c -> IO ()
+update :: (Widget a, Canvas c) => a -> c -> IO ()
 update w c = do
 	runLayout (layout w) c
 	paint w
 
 -- |
-data Handle a where
-	Handle    :: a -> LayoutDelegate -> Handle a
-	ContainerHandle :: (Container a) => a -> LayoutDelegate -> Handle a
+data Handle a =	Handle a LayoutDelegate
 
 -- |
 newWidget :: Display -> a -> IO (Handle a)
 newWidget d w =
 	Handle w <$> toLayoutDelegate d
 
--- |
-newContainer :: (Container a) => Display -> a -> IO (Handle a)
-newContainer d w =
-	ContainerHandle w <$> toLayoutDelegate d
-
-instance Container (Handle a) where
-	layout (Handle _ del) = delegateLayout del
-	layout (ContainerHandle w del) = delegateLayout del >> layout w
-
 instance (Visual a) => Visual (Handle a) where
-	visualize (Handle w _) = visualize w
-	visualize (ContainerHandle w _) = visualize w
+	visualize (Handle w _) =
+		visualize w
 
 instance (Visual a) => Widget (Handle a) where
-	paint (Handle w del) = runRenderer (visualize w) del
-	paint (ContainerHandle w del) = runRenderer (visualize w) del
+	layout (Handle _ del) =
+		delegateLayout del
+
+	paint (Handle w del) =
+		runRenderer (visualize w) del
 
 -- |
 data Rainbow = Rainbow
@@ -71,12 +64,46 @@ instance Visual Rainbow where
 				c <- liftIO (randomRIO ('A', 'Z'))
 				drawString [c]
 
+-- |
+data Clock = Clock
+
+instance Visual Clock where
+	visualize _ =
+		formatTime defaultTimeLocale "%T"
+			<$> liftIO getCurrentTime
+			>>= drawString
+
+-- |
+newClock :: Display -> IO (Handle Clock)
+newClock d = do
+	clock <- newWidget d Clock
+	forkIO $ forever $ do
+		threadDelay 1000000
+		paint clock
+	pure clock
+
+-- |
+data RootWidget = RootWidget (Handle Rainbow) (Handle Clock)
+
+instance Widget RootWidget where
+	layout (RootWidget rb clock) =
+		divideVert [LeftOver (layout rb), Absolute 1 (layout clock)]
+
+	paint (RootWidget rb clock) = do
+		paint rb
+		paint clock
+
+-- |
+newRootWidget :: Display -> IO RootWidget
+newRootWidget d =
+	RootWidget <$> newWidget d Rainbow <*> newClock d
+
 -- | Entry point
 main :: IO ()
 main = do
 	(eventChan, resizeVar, display) <- makeInterface
 
-	rb <- newWidget display Rainbow
+	rb <- newRootWidget display
 
 	update rb display
 
