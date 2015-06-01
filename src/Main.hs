@@ -8,79 +8,78 @@ import Control.Concurrent
 import Control.Monad.Reader
 
 import Data.Metrics
+import Data.IORef
 
 import System.Random
 
 import Olec.Interface
 
--- |
-class Widget a where
-	render :: a -> IO ()
+class Visual a where
+	visualize :: a -> Renderer ()
 
+class Container a where
 	layout :: a -> Layout ()
 
--- |
-data Rainbow = Rainbow LayoutDelegate
+data Widget a = Widget a LayoutDelegate
 
 -- |
-newRainBow :: Display -> IO Rainbow
-newRainBow display =
-	Rainbow <$> toDisplayDelegate display
-
-instance Widget Rainbow where
-	render (Rainbow del) =
-		runRenderer renderer del
-		where
-			renderer = do
-				(width, height) <- getSize
-				forM_ [0 .. height - 1] $ \ y -> do
-					moveCursor 0 y
-					forM_ [0 .. width - 1] $ \ _ -> do
-						fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-						bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
-
-						setForegroundColor fg
-						setBackgroundColor bg
-
-						c <- liftIO (randomRIO ('A', 'Z'))
-						drawString [c]
-
-	layout (Rainbow del) = delegateLayout del
+newWidget :: Display -> a -> IO (Widget a)
+newWidget d w =
+	Widget w <$> toLayoutDelegate d
 
 -- |
-data StaticWidget = StaticWidget LayoutDelegate (Renderer ())
+useContainer :: (Container a) => Widget a -> Layout ()
+useContainer (Widget w del) = do
+	delegateLayout del
+	layout w
 
 -- |
-newStaticWidget :: Display -> Renderer () -> IO StaticWidget
-newStaticWidget display renderer =
-	StaticWidget <$> toDisplayDelegate display <*> pure renderer
+useWidget :: Widget a -> Layout ()
+useWidget (Widget _ del) =
+	delegateLayout del
 
-instance Widget StaticWidget where
-	render (StaticWidget del renderer) =
-		runRenderer renderer del
+-- |
+updateContainer :: (Container a, Canvas c) => Widget a -> c -> IO ()
+updateContainer cont =
+	runLayout (useContainer cont)
 
-	layout (StaticWidget del _) =
-		delegateLayout del
+-- |
+updateWidget :: (Canvas c) => Widget a -> c -> IO ()
+updateWidget widget =
+	runLayout (useWidget widget)
+
+-- |
+paintWidget :: (Visual a) => Widget a -> IO ()
+paintWidget (Widget w del) =
+	runRenderer (visualize w) del
+
+-- |
+data Rainbow = Rainbow
+
+instance Visual Rainbow where
+	visualize _ = do
+		(width, height) <- getSize
+		forM_ [0 .. height - 1] $ \ y -> do
+			moveCursor 0 y
+			forM_ [0 .. width - 1] $ \ _ -> do
+				fg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+				bg <- liftIO (Color <$> randomIO <*> randomIO <*> randomIO)
+
+				setForegroundColor fg
+				setBackgroundColor bg
+
+				c <- liftIO (randomRIO ('A', 'Z'))
+				drawString [c]
 
 -- | Entry point
 main :: IO ()
 main = do
 	(events, display) <- makeInterface
 
-	rb <- newRainBow display
-	fillA <- newStaticWidget display (resetStyle >> fillDrawingArea 'A')
-	fillB <- newStaticWidget display (resetStyle >> fillDrawingArea 'B')
+	rb <- newWidget display Rainbow
 
-	let globalLayout = divideHoriz [Absolute 10 (layout fillA),
-	                                Absolute 1 (pure ()),
-	                                LeftOver (layout rb),
-	                                Absolute 1 (pure ()),
-	                                Absolute 10 (layout fillB)]
-	runLayout globalLayout display
-
-	render rb
-	render fillA
-	render fillB
+	updateWidget rb display
+	paintWidget rb
 
 	let loop = do
 		e <- readChan events
@@ -88,11 +87,8 @@ main = do
 			Resize _ _ -> do
 				clearDisplay display
 
-				runLayout globalLayout display
-
-				render rb
-				render fillA
-				render fillB
+				updateWidget rb display
+				paintWidget rb
 
 				loop
 
