@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 module Olec.Interface.Widget (
 	-- * Widgets
 	Widget (..),
