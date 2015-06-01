@@ -1,14 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs #-}
 
 module Main where
 
 import Control.Concurrent
 import Control.Monad.Reader
-
-import Data.Metrics
-import Data.IORef
 
 import System.Random
 
@@ -20,38 +17,41 @@ class Visual a where
 class Container a where
 	layout :: a -> Layout ()
 
-data Widget a = Widget a LayoutDelegate
+class (Container a, Visual a) => Widget a where
+	paint :: a -> IO ()
 
 -- |
-newWidget :: Display -> a -> IO (Widget a)
+update :: (Container a, Widget a, Canvas c) => a -> c -> IO ()
+update w c = do
+	runLayout (layout w) c
+	paint w
+
+-- |
+data Handle a where
+	Handle    :: a -> LayoutDelegate -> Handle a
+	ContainerHandle :: (Container a) => a -> LayoutDelegate -> Handle a
+
+-- |
+newWidget :: Display -> a -> IO (Handle a)
 newWidget d w =
-	Widget w <$> toLayoutDelegate d
+	Handle w <$> toLayoutDelegate d
 
 -- |
-useContainer :: (Container a) => Widget a -> Layout ()
-useContainer (Widget w del) = do
-	delegateLayout del
-	layout w
+newContainer :: (Container a) => Display -> a -> IO (Handle a)
+newContainer d w =
+	ContainerHandle w <$> toLayoutDelegate d
 
--- |
-useWidget :: Widget a -> Layout ()
-useWidget (Widget _ del) =
-	delegateLayout del
+instance Container (Handle a) where
+	layout (Handle _ del) = delegateLayout del
+	layout (ContainerHandle w del) = delegateLayout del >> layout w
 
--- |
-updateContainer :: (Container a, Canvas c) => Widget a -> c -> IO ()
-updateContainer cont =
-	runLayout (useContainer cont)
+instance (Visual a) => Visual (Handle a) where
+	visualize (Handle w _) = visualize w
+	visualize (ContainerHandle w _) = visualize w
 
--- |
-updateWidget :: (Canvas c) => Widget a -> c -> IO ()
-updateWidget widget =
-	runLayout (useWidget widget)
-
--- |
-paintWidget :: (Visual a) => Widget a -> IO ()
-paintWidget (Widget w del) =
-	runRenderer (visualize w) del
+instance (Visual a) => Widget (Handle a) where
+	paint (Handle w del) = runRenderer (visualize w) del
+	paint (ContainerHandle w del) = runRenderer (visualize w) del
 
 -- |
 data Rainbow = Rainbow
@@ -78,8 +78,7 @@ main = do
 
 	rb <- newWidget display Rainbow
 
-	updateWidget rb display
-	paintWidget rb
+	update rb display
 
 	let loop = do
 		e <- readChan events
@@ -87,8 +86,7 @@ main = do
 			Resize _ _ -> do
 				clearDisplay display
 
-				updateWidget rb display
-				paintWidget rb
+				update rb display
 
 				loop
 
