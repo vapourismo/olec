@@ -9,6 +9,7 @@ module Olec.Interface.Layout (
 	layoutOrigin,
 	layoutSize,
 	divideHoriz,
+	divideVert,
 
 	-- * Delegate
 	LayoutDelegate,
@@ -68,6 +69,20 @@ divideHoriz hints = do
 			                 LayoutContext (offset, y) (elemWidth, h))
 			            lay
 			make (offset + elemWidth) xs
+
+-- | Divide the layout vertically. For more information look at "divideMetric".
+divideVert :: [DivisionHint Int Float (Layout ())] -> Layout ()
+divideVert hints = do
+	LayoutContext _ (_, h) <- ask
+	make 0 (divideMetric hints h)
+
+	where
+		make _ [] = pure ()
+		make offset ((elemHeight, lay) : xs) = do
+			withReaderT (\ (LayoutContext (x, _) (w, _)) ->
+			                 LayoutContext (x, offset) (w, elemHeight))
+			            lay
+			make (offset + elemHeight) xs
 
 -- | A "Canvas" used as a restricted proxy to the main "Display"
 data LayoutDelegate = LayoutDelegate Display (IORef LayoutContext)
