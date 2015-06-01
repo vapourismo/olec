@@ -12,7 +12,7 @@ module Olec.Interface.Layout (
 
 	-- * Delegate
 	LayoutDelegate,
-	toDisplayDelegate,
+	toLayoutDelegate,
 	delegateLayout
 ) where
 
@@ -84,8 +84,8 @@ instance Canvas LayoutDelegate where
 
 -- | Construct a "LayoutDelege" using a "Display".
 --   The delegate targets the entire "Canvas" area, initially.
-toDisplayDelegate :: Display -> IO LayoutDelegate
-toDisplayDelegate display =
+toLayoutDelegate :: Display -> IO LayoutDelegate
+toLayoutDelegate display =
 	LayoutDelegate display <$> (newIORef =<< toLayoutContext display)
 
 -- | Submit the received "LayoutContext" to the delegate.
