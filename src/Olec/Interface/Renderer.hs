@@ -49,6 +49,7 @@ import Data.Word
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.UTF8 as UB
 
 import Graphics.Text.Width
@@ -66,20 +67,11 @@ stringWidth = wcswidth
 -- | Set the cursor position.
 writeCursorPosition :: Int -> Int -> Renderer ()
 writeCursorPosition x y = do
-	tell "\ESC["
-	tell (UB.fromString (show (y + 1)))
-	tell ";"
-	tell (UB.fromString (show (x + 1)))
-	tell "H"
-
--- | Write a RGB triple.
-writeRGB :: Word8 -> Word8 -> Word8 -> Renderer ()
-writeRGB r g b = do
-	tell (UB.fromString (show r))
-	tell ";"
-	tell (UB.fromString (show g))
-	tell ";"
-	tell (UB.fromString (show b))
+	tell (B.concat ["\ESC[",
+	                BC.pack (show (y + 1)),
+	                ";",
+	                BC.pack (show (x + 1)),
+	                "H"])
 
 -- | Info for rendering purposes
 data Info = Info Position Size
@@ -223,9 +215,13 @@ instance Show Color where
 -- | Adjust the foreground color.
 setForegroundColor :: Color -> Renderer ()
 setForegroundColor (Color r g b) = do
-	tell "\ESC[38;2;"
-	writeRGB r g b
-	tell "m"
+	tell (B.concat ["\ESC[38;2;",
+	                BC.pack (show r),
+	                ";",
+	                BC.pack (show g),
+	                ";",
+	                BC.pack (show b),
+	                "m"])
 
 -- | Reset the current foreground color.
 resetForegroundColor :: Renderer ()
@@ -235,9 +231,13 @@ resetForegroundColor =
 -- | Adjust the background color.
 setBackgroundColor :: Color -> Renderer ()
 setBackgroundColor (Color r g b) = do
-	tell "\ESC[48;2;"
-	writeRGB r g b
-	tell "m"
+	tell (B.concat ["\ESC[48;2;",
+	                BC.pack (show r),
+	                ";",
+	                BC.pack (show g),
+	                ";",
+	                BC.pack (show b),
+	                "m"])
 
 -- | Reset the current background color.
 resetBackgroundColor :: Renderer ()
