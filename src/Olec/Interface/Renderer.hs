@@ -118,7 +118,7 @@ runRenderer renderer canvas = do
 	origin <- canvasOrigin canvas
 	size <- canvasSize canvas
 
-	(result, _, msg) <- runRWST (uncurry writeCursorPosition origin >> renderer)
+	(result, _, msg) <- runRWST (uncurry writeCursorPosition origin >> resetStyle >> renderer)
 	                            (Info origin size) (0, 0)
 
 	feedCanvas canvas msg
