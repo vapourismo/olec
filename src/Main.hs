@@ -14,38 +14,6 @@ import System.Random
 
 import Olec.Interface
 
-class Visual a where
-	visualize :: a -> Renderer ()
-
-class Widget a where
-	layout :: a -> Layout ()
-	paint :: a -> IO ()
-
--- |
-update :: (Widget a, Canvas c) => a -> c -> IO ()
-update w c = do
-	runLayout (layout w) c
-	paint w
-
--- |
-data Handle a =	Handle a LayoutDelegate
-
--- |
-newWidget :: Display -> a -> IO (Handle a)
-newWidget d w =
-	Handle w <$> toLayoutDelegate d
-
-instance (Visual a) => Visual (Handle a) where
-	visualize (Handle w _) =
-		visualize w
-
-instance (Visual a) => Widget (Handle a) where
-	layout (Handle _ del) =
-		delegateLayout del
-
-	paint (Handle w del) =
-		runRenderer (visualize w) del
-
 -- |
 data Rainbow = Rainbow
 
@@ -74,16 +42,16 @@ instance Visual Clock where
 			>>= drawString
 
 -- |
-newClock :: Display -> IO (Handle Clock)
+newClock :: Display -> IO (FlatWidget Clock)
 newClock d = do
-	clock <- newWidget d Clock
+	clock <- newFlatWidget d Clock
 	forkIO $ forever $ do
 		threadDelay 1000000
 		paint clock
 	pure clock
 
 -- |
-data RootWidget = RootWidget (Handle Rainbow) (Handle Clock)
+data RootWidget = RootWidget (FlatWidget Rainbow) (FlatWidget Clock)
 
 instance Widget RootWidget where
 	layout (RootWidget rb clock) =
@@ -96,7 +64,7 @@ instance Widget RootWidget where
 -- |
 newRootWidget :: Display -> IO RootWidget
 newRootWidget d =
-	RootWidget <$> newWidget d Rainbow <*> newClock d
+	RootWidget <$> newFlatWidget d Rainbow <*> newClock d
 
 -- | Entry point
 main :: IO ()

@@ -21,6 +21,7 @@ import Olec.Interface.Events as ReExport
 import Olec.Interface.Renderer as ReExport
 import Olec.Interface.Layout as ReExport
 import Olec.Interface.Display as ReExport
+import Olec.Interface.Widget as ReExport
 
 -- | Launch user interface.
 launchUI :: Chan Event -> MVar () -> IO Display
