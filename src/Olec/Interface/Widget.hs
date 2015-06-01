@@ -28,7 +28,6 @@ update w c = do
 
 -- | A widget which does not have sub-widgets.
 data FlatWidget a = FlatWidget a LayoutDelegate
-	deriving (Functor)
 
 instance (Visual a) => Visual (FlatWidget a) where
 	visualize (FlatWidget w _) =
