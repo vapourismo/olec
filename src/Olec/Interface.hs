@@ -6,9 +6,7 @@ module Olec.Interface (
 	module ReExport,
 ) where
 
-import Control.Monad
 import Control.Exception
-
 import Control.Concurrent
 
 import Graphics.UI.Gtk hiding (Size, Display, Layout)
@@ -24,8 +22,8 @@ import Olec.Interface.Display as ReExport
 import Olec.Interface.Widget as ReExport
 
 -- | Launch user interface.
-launchUI :: Chan Event -> MVar () -> IO Display
-launchUI eventChan resizeVar = do
+launchUI :: Chan Event -> IO Display
+launchUI eventChan = do
 	initGUI
 
 	-- Remove style classes
@@ -50,8 +48,6 @@ launchUI eventChan resizeVar = do
 	-- Dispatch events
 	forwardKeyPressEvents win eventChan
 
-	on term sizeAllocate (\ _ -> void (tryPutMVar resizeVar ()))
-
 	on win objectDestroy mainQuit
 	on term buttonPressEvent (return True)
 	on term buttonReleaseEvent (return True)
@@ -63,9 +59,8 @@ launchUI eventChan resizeVar = do
 	newDisplay term
 
 -- | Create the main user interface.
-makeInterface :: IO (Chan Event, MVar (), Display)
+makeInterface :: IO (Chan Event, Display)
 makeInterface = do
 	eventChan <- newChan
-	resizeVar <- newEmptyMVar
-	display <- launchUI eventChan resizeVar
-	pure (eventChan, resizeVar, display)
+	display <- launchUI eventChan
+	pure (eventChan, display)

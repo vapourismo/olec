@@ -92,16 +92,10 @@ newRootWidget d =
 -- | Entry point
 main :: IO ()
 main = do
-	(eventChan, resizeVar, display) <- makeInterface
+	(eventChan, display) <- makeInterface
 
 	rb <- newRootWidget display
-
-	update rb display
-
-	forkIO $ forever $ do
-		takeMVar resizeVar
-		clearDisplay display
-		update rb display
+	glueWidget display rb
 
 	readChan eventChan
 	pure ()
