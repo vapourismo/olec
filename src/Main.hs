@@ -8,6 +8,7 @@ import Control.Concurrent
 import Control.Monad.Reader
 
 import Data.Time
+import Data.IORef
 import Data.Metrics
 
 import System.Random
@@ -33,21 +34,43 @@ instance Visual Rainbow where
 				drawString [c]
 
 -- |
-data Clock = Clock
+data Clock = Clock (IORef UTCTime)
 
 instance Visual Clock where
-	visualize _ =
-		formatTime defaultTimeLocale "%T"
-			<$> liftIO getCurrentTime
-			>>= drawString
+	visualize (Clock ref) = do
+		tm <- liftIO (readIORef ref)
+		let text = formatTime defaultTimeLocale "%T" tm
+
+		(w, _) <- getSize
+		let result =
+			divideMetric [LeftOver () :: DivisionHint Int Float (),
+			              Absolute (stringWidth text) (),
+			              LeftOver ()] w
+
+		case result of
+			[]                           -> pure()
+			(m, _) : []                  -> drawStrings 0 m 0 text
+			(m, _) : (r, _) : []         -> drawStrings 0 m r text
+			(l, _) : (m, _) : (r, _) : _ -> drawStrings l m r text
+
+		where
+			drawStrings l m r text = do
+				drawString (replicate l ' ')
+				drawString (fitString m text)
+				drawString (replicate r ' ')
 
 -- |
 newClock :: Display -> IO (FlatWidget Clock)
 newClock d = do
-	clock <- newFlatWidget d Clock
+	clockState <- newIORef =<< getCurrentTime
+	clock <- newFlatWidget d (Clock clockState)
+
 	forkIO $ forever $ do
 		threadDelay 1000000
+		tm <- getCurrentTime
+		writeIORef clockState tm
 		paint clock
+
 	pure clock
 
 -- |
