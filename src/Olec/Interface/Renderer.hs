@@ -7,7 +7,9 @@ module Olec.Interface.Renderer (
 
 	-- * Type-related utilities
 	textWidth,
+	fitText,
 	stringWidth,
+	fitString,
 
 	-- * Renderer
 	Renderer,
