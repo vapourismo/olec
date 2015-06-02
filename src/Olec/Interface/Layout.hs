@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module Olec.Interface.Layout (
 	-- * Context
 	LayoutContext (..),
@@ -24,7 +26,7 @@ import Data.Metrics
 
 import Olec.Interface.Types
 import Olec.Interface.Renderer
-import Olec.Interface.Display
+--import Olec.Interface.Display
 
 -- | Captures layout restrictions
 data LayoutContext = LayoutContext {
@@ -84,8 +86,8 @@ divideVert hints = do
 			            lay
 			make (offset + elemHeight) xs
 
--- | A "Canvas" used as a restricted proxy to the main "Display"
-data LayoutDelegate = LayoutDelegate Display (IORef LayoutContext)
+-- | A "Canvas" used as a restricted proxy to a "Canvas"
+data LayoutDelegate = forall c . (Canvas c) => LayoutDelegate c (IORef LayoutContext)
 
 instance Canvas LayoutDelegate where
 	canvasSize (LayoutDelegate _ ref) =
@@ -94,14 +96,14 @@ instance Canvas LayoutDelegate where
 	canvasOrigin (LayoutDelegate _ ref) =
 		lcOrigin <$> readIORef ref
 
-	feedCanvas (LayoutDelegate display _) =
-		feedCanvas display
+	feedCanvas (LayoutDelegate canvas _) =
+		feedCanvas canvas
 
--- | Construct a "LayoutDelege" using a "Display".
+-- | Construct a "LayoutDelege" using a "Canvas".
 --   The delegate targets the entire "Canvas" area, initially.
-toLayoutDelegate :: Display -> IO LayoutDelegate
-toLayoutDelegate display =
-	LayoutDelegate display <$> (newIORef =<< toLayoutContext display)
+toLayoutDelegate :: (Canvas c) => c -> IO LayoutDelegate
+toLayoutDelegate canvas =
+	LayoutDelegate canvas <$> (newIORef =<< toLayoutContext canvas)
 
 -- | Submit the received "LayoutContext" to the delegate.
 delegateLayout :: LayoutDelegate -> Layout ()

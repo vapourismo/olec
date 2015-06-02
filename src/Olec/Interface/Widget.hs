@@ -8,7 +8,6 @@ module Olec.Interface.Widget (
 	newFlatWidget
 ) where
 
-import Olec.Interface.Display
 import Olec.Interface.Layout
 import Olec.Interface.Renderer
 
@@ -39,6 +38,6 @@ instance (Visual a) => Widget (FlatWidget a) where
 		runRenderer (visualize w) del
 
 -- | Wrap a value into the "FlatWidget" type.
-newFlatWidget :: Display -> a -> IO (FlatWidget a)
+newFlatWidget :: (Canvas c) => c -> a -> IO (FlatWidget a)
 newFlatWidget d w =
 	FlatWidget w <$> toLayoutDelegate d
