@@ -5,7 +5,6 @@ module Data.Metrics (
 	divideMetric
 ) where
 
-import Data.Maybe
 import Data.Traversable
 
 data DivisionHint i f a
@@ -20,7 +19,7 @@ divideMetric :: (Integral i, RealFrac f)
              -> i                    -- ^ Metric to divide
              -> [(i, a)]
 divideMetric elems total =
-	filter (\ (n, _) -> n > 0) (catMaybes passedTwice)
+	filter (\ (n, _) -> n > 0) passedTwice
 	where
 		-- Traverse through the list of input hints to convert
 		-- relative factors to absolute metrics aswell and
@@ -31,24 +30,28 @@ divideMetric elems total =
 		stepOne (left, unassigned) (Absolute i a)
 			| i > 0 =
 				let used = min left i
-				in ((left - used, unassigned), Just (Left (used, a)))
+				in ((left - used, unassigned), Left (used, a))
 		stepOne (left, unassigned) (Relative f a)
 			| f > 0 =
 				let used = min left (round (min f 1.0 * fromIntegral total))
-				in ((left - used, unassigned), Just (Left (used, a)))
+				in ((left - used, unassigned), Left (used, a))
 		stepOne (left, unassigned) (LeftOver a) =
-			((left, unassigned + 1), Just (Right a))
-		stepOne asis _ =
-			(asis, Nothing)
+			((left, unassigned + 1), Right a)
+		stepOne asis x =
+			(asis, Left (0, cnt x))
+
+		cnt (Absolute _ x) = x
+		cnt (Relative _ x) = x
+		cnt (LeftOver x) = x
 
 		-- Figure out which value to give the "LeftOver" instances
 		(normValue, lastValue) = let (d, m) = divMod left' unassigned' in (d, d + m)
 
 		-- Traverse again to tag remaining "LeftOver" instances with
 		-- the previously calculated value.
-		(_, passedTwice) = mapAccumL stepTwo unassigned' (catMaybes passedOnce)
+		(_, passedTwice) = mapAccumL stepTwo unassigned' passedOnce
 
-		stepTwo acc (Left x) = (acc, Just x)
-		stepTwo n (Right _) | n <= 0 = (0, Nothing)
-		stepTwo 1 (Right a) = (0, Just (lastValue, a))
-		stepTwo n (Right a) = (n - 1, Just (normValue, a))
+		stepTwo n (Left x)           = (n,     x             )
+		stepTwo n (Right x) | n <= 0 = (0,     (0,         x))
+		stepTwo 1 (Right x)          = (0,     (lastValue, x))
+		stepTwo n (Right x)          = (n - 1, (normValue, x))
