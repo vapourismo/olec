@@ -4,14 +4,18 @@ module Olec.Interface.Display (
 	-- * Display
 	Display,
 	newDisplay,
-	clearDisplay
+	clearDisplay,
+	glueWidget
 ) where
 
 import Control.Exception
 import Control.Concurrent.QSem
 
+import Graphics.UI.Gtk hiding (Size, Display, Layout, Widget)
+
 import Olec.Interface.Terminal
 import Olec.Interface.Renderer
+import Olec.Interface.Widget
 
 -- | Display for a "Terminal".
 data Display = Display QSem Terminal
@@ -34,3 +38,9 @@ newDisplay term = do
 clearDisplay :: Display -> IO ()
 clearDisplay (Display lock term) =
 	bracket_ (waitQSem lock) (signalQSem lock) (terminalFeed term "\ESC[m\ESC[2J")
+
+-- | Update a "Widget" when "Display" resizes.
+glueWidget :: (Widget a) => Display -> a -> IO ()
+glueWidget d@(Display _ term) w = do
+	on term sizeAllocate (const (update w d))
+	update w d
