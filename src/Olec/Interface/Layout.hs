@@ -27,7 +27,6 @@ import Data.Metrics
 
 import Olec.Interface.Types
 import Olec.Interface.Renderer
---import Olec.Interface.Display
 
 -- | Captures layout restrictions
 data LayoutContext = LayoutContext {
@@ -63,18 +62,26 @@ layoutSize = asks lcSize
 -- | Is the underlying LayoutContext adjustable?
 class Placeable m where
 	askPlaceable :: m LayoutContext
+
 	withPlaceable :: (LayoutContext -> LayoutContext) -> m a -> m a
 
 instance Placeable Layout where
 	askPlaceable = ask
+
 	withPlaceable = local
+
+instance Placeable Renderer where
+	askPlaceable = LayoutContext (0, 0) <$> getSize
+
+	withPlaceable f r = do
+		LayoutContext origin size <- f . LayoutContext (0, 0) <$> getSize
+		constrainRenderer origin size r
 
 -- | Divide the layout horizontally. For more information look at "divideMetric".
 divideHoriz :: (Monad m, Placeable m) => [DivisionHint Int Float (m ())] -> m ()
 divideHoriz hints = do
 	LayoutContext _ (w, _) <- askPlaceable
 	make 0 (divideMetric hints w)
-
 	where
 		make _ [] = pure ()
 		make offset ((elemWidth, lay) : xs) = do
@@ -88,7 +95,6 @@ divideVert :: [DivisionHint Int Float (Layout ())] -> Layout ()
 divideVert hints = do
 	LayoutContext _ (_, h) <- askPlaceable
 	make 0 (divideMetric hints h)
-
 	where
 		make _ [] = pure ()
 		make offset ((elemHeight, lay) : xs) = do
