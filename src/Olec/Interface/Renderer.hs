@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
@@ -105,7 +106,10 @@ class Canvas a where
 	feedCanvas   :: a -> B.ByteString -> IO ()
 
 -- | Render something in a constrained area.
-type Renderer = RWST Info B.ByteString Position IO
+newtype Renderer a = Renderer { unwrapRenderer :: RWST Info B.ByteString Position IO a }
+	deriving (Functor, Applicative, Monad, MonadReader Info,
+	          MonadState Position, MonadWriter B.ByteString,
+	          MonadIO)
 
 -- | Types which have a visual representation
 class Visual a where
@@ -117,16 +121,20 @@ runRenderer renderer canvas = do
 	origin <- canvasOrigin canvas
 	size <- canvasSize canvas
 
-	(result, _, msg) <- runRWST (uncurry writeCursorPosition origin >> resetStyle >> renderer)
-	                            (Info origin size) (0, 0)
+	(result, _, msg) <- runRWST (unwrapRenderer (uncurry writeCursorPosition origin
+	                                             >> resetStyle
+	                                             >> renderer))
+	                            (Info origin size)
+	                            (0, 0)
 
 	feedCanvas canvas msg
 	pure result
 
 -- | Constrain a "Renderer" to an area.
 constrainRenderer :: Position -> Size -> Renderer a -> Renderer a
-constrainRenderer (x, y) (rw, rh) renderer =
-	withRWST transform (resetCursor >> renderer)
+constrainRenderer (x, y) (rw, rh) (Renderer renderer) = do
+	resetCursor
+	Renderer (withRWST transform renderer)
 	where
 		transform (Info (x0, y0) (w, h)) s =
 			let
