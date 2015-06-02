@@ -41,22 +41,14 @@ instance Visual Clock where
 		let text = formatTime defaultTimeLocale "%T" tm
 
 		(w, _) <- getSize
-		let result =
+		let [(l, _), (m, _), (r, _)] =
 			divideMetric [LeftOver () :: DivisionHint Int Float (),
 			              Absolute (stringWidth text) (),
 			              LeftOver ()] w
 
-		case result of
-			[]                           -> pure()
-			(m, _) : []                  -> drawStrings 0 m 0 text
-			(m, _) : (r, _) : []         -> drawStrings 0 m r text
-			(l, _) : (m, _) : (r, _) : _ -> drawStrings l m r text
-
-		where
-			drawStrings l m r text = do
-				drawString (replicate l ' ')
-				drawString (fitString m text)
-				drawString (replicate r ' ')
+		drawString (replicate l ' ')
+		drawString (fitString m text)
+		drawString (replicate r ' ')
 
 -- |
 newClock :: Display -> IO (FlatWidget Clock)
