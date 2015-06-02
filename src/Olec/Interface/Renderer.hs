@@ -66,7 +66,7 @@ stringWidth = wcswidth
 
 -- | Set the cursor position.
 writeCursorPosition :: Int -> Int -> Renderer ()
-writeCursorPosition x y = do
+writeCursorPosition x y =
 	tell (B.concat ["\ESC[",
 	                BC.pack (show (y + 1)),
 	                ";",
@@ -214,7 +214,7 @@ instance Show Color where
 
 -- | Adjust the foreground color.
 setForegroundColor :: Color -> Renderer ()
-setForegroundColor (Color r g b) = do
+setForegroundColor (Color r g b) =
 	tell (B.concat ["\ESC[38;2;",
 	                BC.pack (show r),
 	                ";",
@@ -230,7 +230,7 @@ resetForegroundColor =
 
 -- | Adjust the background color.
 setBackgroundColor :: Color -> Renderer ()
-setBackgroundColor (Color r g b) = do
+setBackgroundColor (Color r g b) =
 	tell (B.concat ["\ESC[48;2;",
 	                BC.pack (show r),
 	                ";",
