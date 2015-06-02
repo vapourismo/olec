@@ -16,16 +16,21 @@ import Olec.Interface
 
 -- | Component
 class Component r s where
+	-- | Perform layout
 	layoutRT :: Runtime r s Layout ()
 
+	-- | Paint stuff
 	paintRT :: Runtime r s IO ()
 
 -- | Component which may be used by the root UI facilities
 class (Component r s) => RootComponent r s where
+	-- | Before UI lauched
 	startRT :: Runtime r s IO ()
 
+	-- | After UI exited
 	exitRT :: Runtime r s IO ()
 
+	-- | On key events
 	inputRT :: KeyEvent -> Runtime r s IO Bool
 
 -- | Handke to a Component
