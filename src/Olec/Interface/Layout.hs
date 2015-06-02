@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Olec.Interface.Layout (
@@ -41,11 +42,12 @@ toLayoutContext canvas =
 	LayoutContext <$> canvasOrigin canvas <*> canvasSize canvas
 
 -- | Layout actions
-type Layout = ReaderT LayoutContext IO
+newtype Layout a = Layout (ReaderT LayoutContext IO a)
+	deriving (Functor, Applicative, Monad, MonadReader LayoutContext, MonadIO)
 
 -- | Perform the "Layout" actions.
 runLayout :: (Canvas c) => Layout a -> c -> IO a
-runLayout lay canvas =
+runLayout (Layout lay) canvas =
 	LayoutContext <$> canvasOrigin canvas
 	              <*> canvasSize canvas
 	              >>= runReaderT lay
@@ -58,32 +60,41 @@ layoutOrigin = asks lcOrigin
 layoutSize :: Layout Size
 layoutSize = asks lcSize
 
+-- | Is the underlying LayoutContext adjustable?
+class Placeable m where
+	askPlaceable :: m LayoutContext
+	withPlaceable :: (LayoutContext -> LayoutContext) -> m a -> m a
+
+instance Placeable Layout where
+	askPlaceable = ask
+	withPlaceable = local
+
 -- | Divide the layout horizontally. For more information look at "divideMetric".
-divideHoriz :: [DivisionHint Int Float (Layout ())] -> Layout ()
+divideHoriz :: (Monad m, Placeable m) => [DivisionHint Int Float (m ())] -> m ()
 divideHoriz hints = do
-	LayoutContext _ (w, _) <- ask
+	LayoutContext _ (w, _) <- askPlaceable
 	make 0 (divideMetric hints w)
 
 	where
 		make _ [] = pure ()
 		make offset ((elemWidth, lay) : xs) = do
-			withReaderT (\ (LayoutContext (_, y) (_, h)) ->
-			                 LayoutContext (offset, y) (elemWidth, h))
-			            lay
+			withPlaceable
+				(\ (LayoutContext (_, y) (_, h)) -> LayoutContext (offset, y) (elemWidth, h))
+				lay
 			make (offset + elemWidth) xs
 
 -- | Divide the layout vertically. For more information look at "divideMetric".
 divideVert :: [DivisionHint Int Float (Layout ())] -> Layout ()
 divideVert hints = do
-	LayoutContext _ (_, h) <- ask
+	LayoutContext _ (_, h) <- askPlaceable
 	make 0 (divideMetric hints h)
 
 	where
 		make _ [] = pure ()
 		make offset ((elemHeight, lay) : xs) = do
-			withReaderT (\ (LayoutContext (x, _) (w, _)) ->
-			                 LayoutContext (x, offset) (w, elemHeight))
-			            lay
+			withPlaceable
+				(\ (LayoutContext (x, _) (w, _)) -> LayoutContext (x, offset) (w, elemHeight))
+				lay
 			make (offset + elemHeight) xs
 
 -- | A "Canvas" used as a restricted proxy to a "Canvas"
