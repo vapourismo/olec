@@ -105,7 +105,7 @@ launchUI s = do
 			lift (input widget (KeyPress (toModifierMask emod) eval))
 
 	-- Resize events
-	on term sizeAllocate (const (update widget display))
+	on term sizeAllocate (const (clearDisplay display >> update widget display))
 
 	-- Other events
 	on win objectDestroy mainQuit
