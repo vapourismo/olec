@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Main where
 
@@ -74,28 +73,27 @@ newClock d = do
 	pure clock
 
 -- |
-data RootWidget = RootWidget (FlatWidget Rainbow) (FlatWidget Clock)
+data MyRootWidget = MyRootWidget (FlatWidget Rainbow) (FlatWidget Clock)
 
-instance Widget RootWidget where
-	layout (RootWidget rb clock) =
+instance Widget MyRootWidget where
+	layout (MyRootWidget rb clock) =
 		divideVert [LeftOver (layout rb), Absolute 1 (layout clock)]
 
-	paint (RootWidget rb clock) = do
+	paint (MyRootWidget rb clock) = do
 		paint rb
 		paint clock
 
--- |
-newRootWidget :: Display -> IO RootWidget
-newRootWidget d =
-	RootWidget <$> newFlatWidget d Rainbow <*> newClock d
+instance RootWidget MyRootWidget where
+	data Setup MyRootWidget = SetupMyRootWidget
+
+	input _ _ = do
+		exitUI
+		pure False
+
+	exit _ = putStrLn "Bye"
+
+	setup d _ = MyRootWidget <$> newFlatWidget d Rainbow <*> newClock d
 
 -- | Entry point
 main :: IO ()
-main = do
-	(eventChan, display) <- makeInterface
-
-	rb <- newRootWidget display
-	glueWidget display rb
-
-	readChan eventChan
-	pure ()
+main = launchUI SetupMyRootWidget
