@@ -9,6 +9,7 @@ import Data.Metrics
 import Olec.Interface.GTK
 import Olec.Interface.Types
 import Olec.Interface.Image
+import Olec.Interface.Events
 
 -- |
 fillArea :: Style -> Char -> Visualiser
@@ -22,6 +23,9 @@ main :: IO ()
 main = do
 	d <- newInterface
 
+	onKeyEvent d (\ _ -> True <$ exitInterface)
+
 	clearOutput d
 	outputImage d (0, 0) (fillArea (Style (Color 255 0 0) (Color 255 255 255)) 'x' (10, 10))
-	threadDelay 5000000
+
+	runInterface

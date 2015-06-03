@@ -4,6 +4,8 @@ module Olec.Interface.GTK (
 	-- * Interface
 	Interface,
 	newInterface,
+	runInterface,
+	exitInterface
 ) where
 
 import Foreign.C.Types
@@ -168,9 +170,15 @@ newInterface = do
 
 	-- Show interface
 	G.widgetShowAll win
-	forkOS G.mainGUI
 
 	-- Interface
 	lock <- newQSem 1
 	pure (Interface lock term)
 
+-- | Start the GTK main loop
+runInterface :: IO ()
+runInterface = G.mainGUI
+
+-- | Exit the GTK main loop
+exitInterface :: IO ()
+exitInterface = G.mainQuit
