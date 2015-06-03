@@ -5,6 +5,7 @@ module Olec.Visual.Image (
 	imageHeight,
 
 	-- * Visualisers
+	Visualiser,
 	drawText,
 	drawString,
 	alignVertically,
