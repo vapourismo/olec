@@ -1,64 +1,145 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Main where
 
-import Control.Monad.Reader
 import Control.Monad.State.Strict
 
+import Numeric
+
+import Data.Char
+import Data.List
+import Data.Word
 import Data.Metrics
 
 import qualified Data.Text as T
 
-import Olec.Interface
+import Graphics.Text.Width
 
-data StatusBarConfig = StatusBarConfig Color Color
+type Size = (Int, Int)
 
-data StatusBarText = StatusBarText T.Text
+type Position = (Int, Int)
 
-instance Component StatusBarConfig StatusBarText where
-	layoutRT = pure ()
+-- | RGB Color
+data Color = Color Word8 Word8 Word8
+	deriving (Eq, Ord)
 
-	paintRT = do
-		StatusBarConfig fg bg <- ask
-		StatusBarText mode <- get
-
-		renderRT $ do
-			resetStyle
-			divideVert [LeftOver   (space fg bg),
-			            Absolute 1 (drawBar fg bg mode)]
-			resetCursor
-
+instance Show Color where
+	show (Color r g b) =
+		"#" ++ extendTo2 (showHex r [])
+		    ++ extendTo2 (showHex g [])
+		    ++ extendTo2 (showHex b [])
 		where
-			space fg bg = do
-				setForegroundColor fg
-				setBackgroundColor bg
-				fillDrawingArea ' '
+			extendTo2 [x] = '0' : [x]
+			extendTo2 xs = xs
 
-			drawBar fg bg mode = do
-				space fg bg
-				moveCursor 0 0
-				drawMode mode
+data Style = Style {
+	styleForeground :: Color,
+	styleBackground :: Color
+}
 
-			drawMode mode = do
-				setForegroundColor (Color 255 0 0)
-				setBackgroundColor (Color 0 0 0)
+newtype PlainText = PlainText T.Text
 
-				drawString " "
-				drawText mode
-				drawString " "
+toPlainText :: Int -> T.Text -> PlainText
+toPlainText n text = PlainText (fitText n (T.filter isPrint text))
 
-instance RootComponent StatusBarConfig StatusBarText where
-	startRT = pure ()
+textWidth :: T.Text -> Int
+textWidth = T.foldl' (\ n c -> n + safeWcwidth c) 0
 
-	exitRT = pure ()
+fitText :: Int -> T.Text -> T.Text
+fitText n txt | textWidth txt > n =
+	snd (T.foldl' runner (n, T.empty) txt)
+	where
+		runner (m, acc) c
+			| safeWcwidth c <= m = (m - safeWcwidth c, T.snoc acc c)
+			| otherwise = (m, acc)
+fitText _ txt = txt
 
-	inputRT _ = lift exitUI >> pure True
+data Image
+	= Text Style PlainText
+	| VAlign [Image]
+	| HAlign [Image]
 
--- | Entry point
+imageWidth :: Image -> Int
+imageWidth (Text _ (PlainText txt)) = fromIntegral (textWidth txt)
+imageWidth (VAlign imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
+imageWidth (HAlign imgs) = sum (map imageWidth imgs)
+
+imageHeight :: Image -> Int
+imageHeight (Text _ _) = 1
+imageHeight (VAlign imgs) = sum (map imageHeight imgs)
+imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
+
+type Visualiser = Size -> Image
+
+drawText :: Style -> T.Text -> Visualiser
+drawText style text (w, _) =
+	Text style (toPlainText w text)
+
+alignVertically :: [DivisionHint Int Float Visualiser] -> Visualiser
+alignVertically hints size@(_, height) =
+	VAlign (snd (divideMetricFitted hints height constrain size))
+	where
+		constrain (rheight, visualizer) (width, _) =
+			let img = visualizer (width, rheight)
+			in (imageHeight img, img)
+
+class TerminalOutput a where
+	-- | Clear the screen
+	writeClear      :: a                -> IO ()
+
+	-- | Move the cursor
+	writeMoveCursor :: a -> Position    -> IO ()
+
+	-- | Reset all colors
+	writeReset      :: a                -> IO ()
+
+	-- | Print text
+	writeText       :: a -> T.Text      -> IO ()
+
+	-- | Set foreground color
+	writeForeground :: a -> Color       -> IO ()
+
+	-- | Set background color
+	writeBackground :: a -> Color       -> IO ()
+
+writeImage :: (TerminalOutput a) => a -> Position -> Image -> IO ()
+writeImage output o i = do
+	writeReset output
+	evalStateT (render o i) (Style (Color 255 255 255) (Color 0 0 0))
+	where
+		applyStyle :: Style -> StateT Style IO ()
+		applyStyle style@(Style fg bg) = do
+			Style fg' bg' <- get
+			when (fg' /= fg) (liftIO (writeForeground output fg))
+			when (bg' /= bg) (liftIO (writeBackground output bg))
+			put style
+
+		render :: Position -> Image -> StateT Style IO ()
+		render origin img =
+			case img of
+				Text style (PlainText text) -> do
+					applyStyle style
+					liftIO $ do
+						writeMoveCursor output origin
+						writeText output text
+
+				VAlign imgs ->
+					renderV origin imgs
+
+				HAlign imgs ->
+					renderH origin imgs
+
+		renderV :: Position -> [Image] -> StateT Style IO ()
+		renderV _ [] = pure ()
+		renderV origin@(x, y) (img : imgs) = do
+			render origin img
+			renderV (x, y + imageHeight img) imgs
+
+		renderH :: Position -> [Image] -> StateT Style IO ()
+		renderH _ [] = pure ()
+		renderH origin@(x, y) (img : imgs) = do
+			render origin img
+			renderH (x + imageWidth img, y) imgs
+
 main :: IO ()
-main = launchUI $ ConstructRootWidget $
-	pure (StatusBarConfig (Color 0 0 0) (Color 255 255 255),
-	      StatusBarText "StatusBarText Bar Text")
+main = pure ()
