@@ -122,7 +122,6 @@ runRenderer renderer canvas = do
 	size <- canvasSize canvas
 
 	(result, _, msg) <- runRWST (unwrapRenderer (uncurry writeCursorPosition origin
-	                                             >> resetStyle
 	                                             >> renderer))
 	                            (Info origin size)
 	                            (0, 0)
@@ -132,18 +131,19 @@ runRenderer renderer canvas = do
 
 -- | Constrain a "Renderer" to an area.
 constrainRenderer :: Position -> Size -> Renderer a -> Renderer a
-constrainRenderer (x, y) (rw, rh) (Renderer renderer) = do
-	resetCursor
-	Renderer (withRWST transform renderer)
+constrainRenderer (x, y) (rw, rh) (Renderer renderer) =
+	Renderer $ withRWST transform $ do
+		unwrapRenderer resetCursor
+		renderer
 	where
-		transform (Info (x0, y0) (w, h)) s =
+		transform (Info (x0, y0) (w, h)) _ =
 			let
 				origin = (x0 + min (w - 1) (max 0 x),
 				          y0 + min (h - 1) (max 0 y))
 				size = (min (w - min (w - 1) (max 0 x)) rw,
 				        min (h - min (h - 1) (max 0 y)) rh)
 			in
-				(Info origin size, s)
+				(Info origin size, (0, 0))
 
 -- | Get the size of the current drawing area.
 getSize :: Renderer Size
@@ -223,6 +223,7 @@ instance Show Color where
 			extendTo2 xs = xs
 
 -- | Adjust the foreground color.
+--   TODO: Check if color is already present.
 setForegroundColor :: Color -> Renderer ()
 setForegroundColor (Color r g b) =
 	tell (B.concat ["\ESC[38;2;",
@@ -239,6 +240,7 @@ resetForegroundColor =
 	tell "\ESC[30m"
 
 -- | Adjust the background color.
+--   TODO: Check if color is already present.
 setBackgroundColor :: Color -> Renderer ()
 setBackgroundColor (Color r g b) =
 	tell (B.concat ["\ESC[48;2;",
