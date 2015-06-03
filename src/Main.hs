@@ -27,21 +27,20 @@ instance Component StatusBarConfig StatusBarText where
 
 		renderRT $ do
 			resetStyle
-			fillDrawingArea ' '
-			divideVert [LeftOver   (pure ()),
+			divideVert [LeftOver   (space fg bg),
 			            Absolute 1 (drawBar fg bg mode)]
 			resetCursor
 
 		where
-			drawBar fg bg mode = do
+			space fg bg = do
 				setForegroundColor fg
 				setBackgroundColor bg
-
 				fillDrawingArea ' '
 
-				divideHoriz [Absolute 1 (pure ()),
-				             LeftOver   (drawMode mode),
-				             Absolute 1 (pure ())]
+			drawBar fg bg mode = do
+				space fg bg
+				moveCursor 0 0
+				drawMode mode
 
 			drawMode mode = do
 				setForegroundColor (Color 255 0 0)
