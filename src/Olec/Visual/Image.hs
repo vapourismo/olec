@@ -53,15 +53,18 @@ data Image
 	= Text Style T.Text
 	| VAlign [Image]
 	| HAlign [Image]
+	| Empty
 
 -- | How many columns does the "Image" need?
 imageWidth :: Image -> Int
+imageWidth (Empty) = 0
 imageWidth (Text _ text) = textWidth text
 imageWidth (VAlign imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (HAlign imgs) = sum (map imageWidth imgs)
 
 -- | How many rows does the "Image" need?
 imageHeight :: Image -> Int
+imageHeight (Empty) = 0
 imageHeight (Text _ _) = 1
 imageHeight (VAlign imgs) = sum (map imageHeight imgs)
 imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
@@ -71,31 +74,37 @@ type Visualiser = Size -> Image
 
 -- | Draw "Text" in a given "Style".
 drawText :: Style -> T.Text -> Visualiser
-drawText style text (w, _) =
-	Text style (fitText w (T.filter isPrint text))
+drawText style text (w, h)
+	| h >= 1 = Text style (fitText w (T.filter isPrint text))
+	| otherwise = Empty
 
 -- | Draw "String" in a given "Style".
 drawString :: Style -> String -> Visualiser
-drawString style text (w, _) =
-	Text style (T.pack (fitString w (filter isPrint text)))
+drawString style text (w, h)
+	| h >= 1 = Text style (T.pack (fitString w (filter isPrint text)))
+	| otherwise = Empty
 
 -- | Align many "Visualiser"s vertically.
 alignVertically :: [DivisionHint Int Float Visualiser] -> Visualiser
 alignVertically hints size@(_, height) =
 	VAlign (snd (divideMetricFitted hints height constrain size))
 	where
-		constrain (rheight, visualizer) (width, _) =
-			let img = visualizer (width, rheight)
-			in (imageHeight img, img)
+		constrain (rheight, visualizer) (width, _)
+			| rheight > 0 =
+				let img = visualizer (width, rheight)
+				in (imageHeight img, img)
+			| otherwise = (0, Empty)
 
 -- | Align many "Visualiser"s horizontally.
 alignHorizontally :: [DivisionHint Int Float Visualiser] -> Visualiser
 alignHorizontally hints size@(width, _) =
 	HAlign (snd (divideMetricFitted hints width constrain size))
 	where
-		constrain (rwidth, visualizer) (_, height) =
-			let img = visualizer (rwidth, height)
-			in (imageWidth img, img)
+		constrain (rwidth, visualizer) (_, height)
+			| rwidth > 0 =
+				let img = visualizer (rwidth, height)
+				in (imageWidth img, img)
+			| otherwise = (0, Empty)
 
 class Display a where
 	-- | Retrieve the display size.
