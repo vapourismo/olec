@@ -11,6 +11,9 @@ import Control.Monad.State.Strict
 
 import Data.IORef
 import Data.Tuple
+import Data.Metrics
+
+import qualified Data.Text as T
 
 import Olec.Interface
 
@@ -41,7 +44,9 @@ data Handle r s = Handle {
 }
 
 instance (Component r s) => Widget (Handle r s) where
-	layout h = withComponent h layoutRT
+	layout h = do
+		delegateLayout (hDelegate h)
+		withComponent h layoutRT
 
 	paint h = withComponent h paintRT
 
@@ -94,32 +99,52 @@ newHandle r s =
 	Handle r <$> liftIO (newIORef s)
 	         <*> (ask >>= liftIO . toLayoutDelegate)
 
-data ClockR = ClockR
+data StatusBarConfig = StatusBarConfig Color Color
 
-data ClockS = ClockS Word Word
+data StatusBarText = StatusBarText T.Text
 
-instance Component ClockR ClockS where
+instance Component StatusBarConfig StatusBarText where
 	layoutRT = pure ()
 
 	paintRT = do
-		ClockS n r <- get
-		renderRT (drawString (show (n, r)))
-		put (ClockS n (r + 1))
+		StatusBarConfig fg bg <- ask
+		StatusBarText mode <- get
 
-instance RootComponent ClockR ClockS where
-	startRT =
-		liftIO (putStrLn "Handleello")
+		renderRT $ do
+			resetStyle
+			fillDrawingArea ' '
+			divideVert [LeftOver   (pure ()),
+			            Absolute 1 (drawBar fg bg mode)]
+			resetCursor
 
-	exitRT =
-		liftIO (putStrLn "Good bye")
+		where
+			drawBar fg bg mode = do
+				setForegroundColor fg
+				setBackgroundColor bg
 
-	inputRT e = do
-		ClockS n r <- get
-		liftIO (print e)
-		put (ClockS (n + 1) r)
-		paintRT
-		pure True
+				fillDrawingArea ' '
+
+				divideHoriz [Absolute 1 (pure ()),
+				             LeftOver   (drawMode mode),
+				             Absolute 1 (pure ())]
+
+			drawMode mode = do
+				setForegroundColor (Color 255 0 0)
+				setBackgroundColor (Color 0 0 0)
+
+				drawString " "
+				drawText mode
+				drawString " "
+
+instance RootComponent StatusBarConfig StatusBarText where
+	startRT = pure ()
+
+	exitRT = pure ()
+
+	inputRT _ = lift exitUI >> pure True
 
 -- | Entry point
 main :: IO ()
-main = launchUI (ConstructRootWidget (pure (ClockR, ClockS 0 0)))
+main = launchUI $ ConstructRootWidget $
+	pure (StatusBarConfig (Color 0 0 0) (Color 255 255 255),
+	      StatusBarText "StatusBarText Bar Text")
