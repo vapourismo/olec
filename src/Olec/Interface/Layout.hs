@@ -91,7 +91,7 @@ divideHoriz hints = do
 			make (offset + elemWidth) xs
 
 -- | Divide the layout vertically. For more information look at "divideMetric".
-divideVert :: [DivisionHint Int Float (Layout ())] -> Layout ()
+divideVert :: (Monad m, Placeable m) => [DivisionHint Int Float (m ())] -> m ()
 divideVert hints = do
 	LayoutContext _ (_, h) <- askPlaceable
 	make 0 (divideMetric hints h)
