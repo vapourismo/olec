@@ -1,6 +1,9 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Olec.Interface.Widget (
 	-- * Widgets
 	Widget (..),
+	RootWidget (..),
 	update,
 
 	-- * Flat Widget
@@ -10,11 +13,22 @@ module Olec.Interface.Widget (
 
 import Olec.Interface.Layout
 import Olec.Interface.Renderer
+import Olec.Interface.Events
 
 -- | Types which might appear on screen
 class Widget a where
 	layout :: a -> Layout ()
 	paint :: a -> IO ()
+
+-- | This will be glued to the screen.
+class (Widget a) => RootWidget a where
+	data Setup a
+
+	setup :: (Canvas c) => c -> Setup a -> IO a
+
+	input :: a -> KeyEvent -> IO Bool
+
+	exit :: a -> IO ()
 
 -- | Update a "Widget" to fit inside the given "Canvas".
 --   This will repaint the "Widget" aswell.
