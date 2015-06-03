@@ -1,4 +1,4 @@
-module Olec.Visual.Types (
+module Olec.Interface.Types (
 	-- * General
 	Size,
 	Position,

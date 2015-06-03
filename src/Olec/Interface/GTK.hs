@@ -13,6 +13,9 @@ import Foreign.Ptr
 import Foreign.ForeignPtr
 
 import Control.Concurrent
+import Control.Monad.Trans
+
+import Data.Word
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -27,8 +30,10 @@ import qualified Graphics.UI.Gtk.General.CssProvider as G
 import System.Glib.GObject
 import System.Posix.Types
 
-import Olec.Visual.Types
-import Olec.Visual.Image
+import Olec.Interface.Events
+
+import Olec.Interface.Types
+import Olec.Interface.Image
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: IO (Ptr Terminal)
@@ -110,6 +115,30 @@ instance Output Interface where
 		                             BC.pack (show (y + 1)), ";",
 		                             BC.pack (show (x + 1)), "H"])
 
+-- | Check if the given key value is single modifier key stroke.
+isModifier :: Word32 -> Bool
+isModifier key =
+	(0xffe1 <= key && key <= 0xffee) ||
+	(0xfe01 <= key && key <= 0xfe0f) ||
+	(0xfe11 <= key && key <= 0xfe13) ||
+	key == 0xff7e
+
+instance EventSource Interface where
+	onKeyEvent (Interface _ term) handler = do
+		G.on term G.keyPressEvent $ do
+			eval <- G.eventKeyVal
+			emod <- G.eventModifier
+
+			if isModifier eval then
+				pure False
+			else
+				liftIO (handler (KeyPress (toModifierMask emod) eval))
+
+		pure ()
+
+	onResize (Interface _ term) handler =
+		() <$ G.on term G.sizeAllocate (const (terminalSize term >>= handler))
+
 -- | Create a new GTK "Interface".
 newInterface :: IO Interface
 newInterface = do
@@ -136,19 +165,6 @@ newInterface = do
 	G.boxPackStart box term G.PackGrow 0
 	G.on term G.buttonPressEvent (return True)
 	G.on term G.buttonReleaseEvent (return True)
-
-	-- Key events
-	--on term keyPressEvent $ do
-	--	eval <- eventKeyVal
-	--	emod <- eventModifier
-
-	--	if isModifier eval then
-	--		pure False
-	--	else
-	--		lift (input widget (KeyPress (toModifierMask emod) eval))
-
-	-- Resize events
-	--on term sizeAllocate (const (clearDisplay display >> update widget display))
 
 	-- Show interface
 	G.widgetShowAll win

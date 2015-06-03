@@ -1,9 +1,14 @@
 module Olec.Interface.Events (
+	-- * General
 	KeyEvent (..),
+
+	-- * Utilities
 	Modifier (..),
-	isModifier,
 	toModifierMask,
 	toKeyValue,
+
+	-- * Type Class
+	EventSource (..),
 ) where
 
 import Data.Word
@@ -14,13 +19,7 @@ import qualified Data.Text as T
 
 import Graphics.UI.Gtk hiding (Size, Display, Layout, Widget)
 
--- | Check if the given key value is single modifier key stroke.
-isModifier :: Word32 -> Bool
-isModifier key =
-	(0xffe1 <= key && key <= 0xffee) ||
-	(0xfe01 <= key && key <= 0xfe0f) ||
-	(0xfe11 <= key && key <= 0xfe13) ||
-	key == 0xff7e
+import Olec.Interface.Types
 
 -- | Make a modifier mask from a list of modifiers.
 toModifierMask :: [Modifier] -> Word32
@@ -33,3 +32,9 @@ toKeyValue = keyFromName
 -- | An event triggered by a key.
 data KeyEvent = KeyPress Word32 Word32
 	deriving (Show, Eq, Ord)
+
+-- | Event source
+class EventSource a where
+	onKeyEvent :: a -> (KeyEvent -> IO Bool) -> IO ()
+
+	onResize :: a -> (Size -> IO ()) -> IO ()

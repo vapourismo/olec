@@ -4,19 +4,24 @@ module Main where
 
 import Control.Concurrent
 
-import qualified Data.Text as T
+import Data.Metrics
 
 import Olec.Interface.GTK
-import Olec.Visual
+import Olec.Interface.Types
+import Olec.Interface.Image
 
 -- |
 fillArea :: Style -> Char -> Visualiser
 fillArea style c (w, h) =
-	VAlign (replicate h (Text style (T.pack (replicate w c))))
+	alignVertically hints (w, h)
+	where
+		line = replicate w c
+		hints = replicate h (Absolute 1 (drawString style line))
 
 main :: IO ()
 main = do
 	d <- newInterface
-	size <- dimensions d
-	display d (0, 0) (fillArea (Style (Color 255 0 0) (Color 255 255 255)) 'x' (10, 10))
+
+	clearOutput d
+	outputImage d (0, 0) (fillArea (Style (Color 255 0 0) (Color 255 255 255)) 'x' (10, 10))
 	threadDelay 5000000
