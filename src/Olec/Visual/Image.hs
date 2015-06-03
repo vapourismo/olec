@@ -1,6 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Olec.Visual.Image (
 	-- * Image
-	Image (..),
+	Image,
 	imageWidth,
 	imageHeight,
 
@@ -11,15 +13,21 @@ module Olec.Visual.Image (
 	alignVertically,
 	alignHorizontally,
 
-	-- * Display
-	Display (..)
+	-- * Output
+	Output (..),
+	outputImage
 ) where
+
+import Control.Exception
+import Control.Monad.State.Strict
 
 import Data.Metrics
 import Data.Foldable
 
 import Data.Char
+
 import qualified Data.Text as T
+
 import Graphics.Text.Width
 
 import Olec.Visual.Types
@@ -106,12 +114,79 @@ alignHorizontally hints size@(width, _) =
 				in (imageWidth img, img)
 			| otherwise = (0, Empty)
 
-class Display a where
-	-- | Retrieve the display size.
-	dimensions :: a -> IO Size
+-- | VT100-style output
+class Output a where
+	lockOutput :: a -> IO ()
 
-	-- | Clear the entire display.
-	clear :: a -> IO ()
+	unlockOutput :: a -> IO ()
 
-	-- | Display an "Image" at a given "Position".
-	display :: a -> Position -> Image -> IO ()
+	sizeOfOutput :: a -> IO Size
+
+	clearOutput :: a -> IO ()
+
+	setForeground :: a -> Color -> IO ()
+
+	setBackground :: a -> Color -> IO ()
+
+	writeText :: a -> T.Text -> IO ()
+
+	moveCursor :: a -> Position -> IO ()
+
+-- | Output the "Image" at a given "Position".
+outputImage :: (Output o) => o -> Position -> Image -> IO ()
+outputImage out origin img =
+	bracket_ (lockOutput out)
+	         (unlockOutput out)
+	         (evalStateT (renderOne out origin img) Nothing)
+
+-- | Image output
+type ImageOutput = StateT (Maybe Style) IO
+
+-- | Change the "Style".
+changeStyle :: (Output o) => o -> Style -> ImageOutput ()
+changeStyle out style@(Style fg bg) = do
+	mbStyle <- get
+	case mbStyle of
+		Nothing ->
+			liftIO $ do
+				setForeground out fg
+				setBackground out bg
+
+		Just (Style fg' bg') ->
+			liftIO $ do
+				when (fg' /= fg) (setForeground out fg)
+				when (bg' /= bg) (setBackground out bg)
+
+	put (Just style)
+
+-- | Render one "Image".
+renderOne :: (Output o) => o -> Position -> Image -> ImageOutput ()
+renderOne out origin img =
+	case img of
+		Empty -> pure ()
+
+		Text style text -> do
+			changeStyle out style
+			liftIO $ do
+				moveCursor out origin
+				writeText out text
+
+		VAlign imgs ->
+			renderVertically out origin imgs
+
+		HAlign imgs ->
+			renderHorizontally out origin imgs
+
+-- | Render some "Image"s vertically aligned.
+renderVertically :: (Output o) => o -> Position -> [Image] -> ImageOutput ()
+renderVertically _ _ [] = pure ()
+renderVertically out origin@(x, y) (img : imgs) = do
+	renderOne out origin img
+	renderVertically out (x, y + imageHeight img) imgs
+
+-- | Render some "Images"s horizontally aligned.
+renderHorizontally :: (Output o) => o -> Position -> [Image] -> ImageOutput ()
+renderHorizontally _ _ [] = pure ()
+renderHorizontally out origin@(x, y) (img : imgs) = do
+	renderOne out origin img
+	renderHorizontally out (x + imageWidth img, y) imgs

@@ -13,8 +13,6 @@ import Foreign.Ptr
 import Foreign.ForeignPtr
 
 import Control.Concurrent
-import Control.Exception
-import Control.Monad.State.Strict
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -29,8 +27,8 @@ import qualified Graphics.UI.Gtk.General.CssProvider as G
 import System.Glib.GObject
 import System.Posix.Types
 
-import Olec.Visual.Image
 import Olec.Visual.Types
+import Olec.Visual.Image
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: IO (Ptr Terminal)
@@ -60,7 +58,8 @@ newTerminal =
 
 -- | Do something with the underlying raw pointer.
 withTerminalPtr :: Terminal -> (Ptr Terminal -> IO a) -> IO a
-withTerminalPtr (Terminal ptr) = withForeignPtr ptr
+withTerminalPtr (Terminal ptr) =
+	withForeignPtr ptr
 
 -- | Get the column and row count.
 terminalSize :: Terminal -> IO (Int, Int)
@@ -78,93 +77,38 @@ terminalFeed term bs =
 -- | GTK Interface
 data Interface = Interface QSem Terminal
 
-instance Display Interface where
-	dimensions (Interface _ term) =
+instance Output Interface where
+	lockOutput (Interface lock _) =
+		waitQSem lock
+
+	unlockOutput (Interface lock _) =
+		signalQSem lock
+
+	sizeOfOutput (Interface _ term) =
 		terminalSize term
 
-	clear (Interface lock term) =
-		bracket_ (waitQSem lock)
-		         (signalQSem lock)
-		         (terminalFeed term "\ESC[2J\ESC[m")
+	clearOutput (Interface _ term) =
+		terminalFeed term "\ESC[2J\ESC[m"
 
-	display (Interface lock term) o i =
-		bracket_ (waitQSem lock) (signalQSem lock) $ do
-			-- Reset all attributes and colors
-			write "\ESC[m"
-			writeForeground initForeground
-			writeBackground initBackground
+	setForeground (Interface _ term) (Color r g b) =
+		terminalFeed term (B.concat ["\ESC[38;2;",
+		                             BC.pack (show r), ";",
+		                             BC.pack (show g), ";",
+		                             BC.pack (show b), "m"])
 
-			-- Evaluate the state transformer
-			evalStateT (render o i) (Style initForeground initBackground)
+	setBackground (Interface _ term) (Color r g b) =
+		terminalFeed term (B.concat ["\ESC[48;2;",
+		                             BC.pack (show r), ";",
+		                             BC.pack (show g), ";",
+		                             BC.pack (show b), "m"])
 
-		where
-			initForeground :: Color
-			initForeground = Color 255 255 255
+	writeText (Interface _ term) text =
+		terminalFeed term (T.encodeUtf8 text)
 
-			initBackground :: Color
-			initBackground = Color 0 0 0
-
-			write :: B.ByteString -> IO ()
-			write = terminalFeed term
-
-			writeMoveCursor :: Position -> IO ()
-			writeMoveCursor (x, y) =
-				write (B.concat ["\ESC[",
-				                 BC.pack (show (y + 1)), ";",
-				                 BC.pack (show (x + 1)), "H"])
-
-			writeForeground :: Color -> IO ()
-			writeForeground (Color r g b) =
-				write (B.concat ["\ESC[38;2;",
-				                 BC.pack (show r), ";",
-				                 BC.pack (show g), ";",
-				                 BC.pack (show b), "m"])
-
-			writeBackground :: Color -> IO ()
-			writeBackground (Color r g b) =
-				write (B.concat ["\ESC[48;2;",
-				                 BC.pack (show r), ";",
-				                 BC.pack (show g), ";",
-				                 BC.pack (show b), "m"])
-
-			writeText :: T.Text -> IO ()
-			writeText text =
-				write (T.encodeUtf8 text)
-
-			applyStyle :: Style -> StateT Style IO ()
-			applyStyle style@(Style fg bg) = do
-				Style fg' bg' <- get
-				liftIO $ do
-					when (fg' /= fg) (writeForeground fg)
-					when (bg' /= bg) (writeBackground bg)
-				put style
-
-			render :: Position -> Image -> StateT Style IO ()
-			render origin img =
-				case img of
-					Text style text -> do
-						applyStyle style
-						liftIO $ do
-							writeMoveCursor origin
-							writeText text
-
-					VAlign imgs ->
-						renderVertically origin imgs
-
-					HAlign imgs ->
-						renderHorizontally origin imgs
-
-			renderVertically :: Position -> [Image] -> StateT Style IO ()
-			renderVertically _ [] = pure ()
-			renderVertically origin@(x, y) (img : imgs) = do
-				render origin img
-				renderVertically (x, y + imageHeight img) imgs
-
-			renderHorizontally :: Position -> [Image] -> StateT Style IO ()
-			renderHorizontally _ [] = pure ()
-			renderHorizontally origin@(x, y) (img : imgs) = do
-				render origin img
-				renderHorizontally (x + imageWidth img, y) imgs
+	moveCursor (Interface _ term) (x, y) =
+		terminalFeed term (B.concat ["\ESC[",
+		                             BC.pack (show (y + 1)), ";",
+		                             BC.pack (show (x + 1)), "H"])
 
 -- | Create a new GTK "Interface".
 newInterface :: IO Interface
