@@ -2,6 +2,8 @@
 
 module Main where
 
+import Control.Concurrent
+import Control.Exception
 import Control.Monad.State.Strict
 
 import Numeric
@@ -12,8 +14,15 @@ import Data.Word
 import Data.Metrics
 
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as BC
 
 import Graphics.Text.Width
+
+import Olec.Interface
+import Olec.Interface.Terminal
 
 type Size = (Int, Int)
 
@@ -37,10 +46,10 @@ data Style = Style {
 	styleBackground :: Color
 }
 
-newtype PlainText = PlainText T.Text
+newtype PrintText = PrintText T.Text
 
-toPlainText :: Int -> T.Text -> PlainText
-toPlainText n text = PlainText (fitText n (T.filter isPrint text))
+toPlainText :: Int -> T.Text -> PrintText
+toPlainText n text = PrintText (fitText n (T.filter isPrint text))
 
 textWidth :: T.Text -> Int
 textWidth = T.foldl' (\ n c -> n + safeWcwidth c) 0
@@ -55,12 +64,12 @@ fitText n txt | textWidth txt > n =
 fitText _ txt = txt
 
 data Image
-	= Text Style PlainText
+	= Text Style PrintText
 	| VAlign [Image]
 	| HAlign [Image]
 
 imageWidth :: Image -> Int
-imageWidth (Text _ (PlainText txt)) = fromIntegral (textWidth txt)
+imageWidth (Text _ (PrintText txt)) = fromIntegral (textWidth txt)
 imageWidth (VAlign imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (HAlign imgs) = sum (map imageWidth imgs)
 
@@ -83,63 +92,89 @@ alignVertically hints size@(_, height) =
 			let img = visualizer (width, rheight)
 			in (imageHeight img, img)
 
-class TerminalOutput a where
-	-- | Clear the screen
-	writeClear      :: a                -> IO ()
+writeImage :: Display -> Position -> Image -> IO ()
+writeImage (Display lock term) o i =
+	bracket_ (waitQSem lock) (signalQSem lock) $ do
+		-- Reset all attributes and colors
+		write "\ESC[m"
+		writeForeground initForeground
+		writeBackground initBackground
 
-	-- | Move the cursor
-	writeMoveCursor :: a -> Position    -> IO ()
+		-- Evaluate the state transformer
+		evalStateT (render o i) (Style initForeground initBackground)
 
-	-- | Reset all colors
-	writeReset      :: a                -> IO ()
-
-	-- | Print text
-	writeText       :: a -> T.Text      -> IO ()
-
-	-- | Set foreground color
-	writeForeground :: a -> Color       -> IO ()
-
-	-- | Set background color
-	writeBackground :: a -> Color       -> IO ()
-
-writeImage :: (TerminalOutput a) => a -> Position -> Image -> IO ()
-writeImage output o i = do
-	writeReset output
-	evalStateT (render o i) (Style (Color 255 255 255) (Color 0 0 0))
 	where
+		initForeground :: Color
+		initForeground = Color 255 255 255
+
+		initBackground :: Color
+		initBackground = Color 0 0 0
+
+		write :: B.ByteString -> IO ()
+		write = terminalFeed term
+
+		writeMoveCursor :: Position -> IO ()
+		writeMoveCursor (x, y) =
+			write (B.concat ["\ESC[",
+			                 BC.pack (show (y + 1)), ";",
+			                 BC.pack (show (x + 1)), "H"])
+
+		writeForeground :: Color -> IO ()
+		writeForeground (Color r g b) =
+			write (B.concat ["\ESC[38;2;",
+			                 BC.pack (show r), ";",
+			                 BC.pack (show g), ";",
+			                 BC.pack (show b), "m"])
+
+		writeBackground :: Color -> IO ()
+		writeBackground (Color r g b) =
+			write (B.concat ["\ESC[48;2;",
+			                 BC.pack (show r), ";",
+			                 BC.pack (show g), ";",
+			                 BC.pack (show b), "m"])
+
+		writeText :: T.Text -> IO ()
+		writeText text =
+			write (T.encodeUtf8 text)
+
 		applyStyle :: Style -> StateT Style IO ()
 		applyStyle style@(Style fg bg) = do
 			Style fg' bg' <- get
-			when (fg' /= fg) (liftIO (writeForeground output fg))
-			when (bg' /= bg) (liftIO (writeBackground output bg))
+			liftIO $ do
+				when (fg' /= fg) (writeForeground fg)
+				when (bg' /= bg) (writeBackground bg)
 			put style
 
 		render :: Position -> Image -> StateT Style IO ()
 		render origin img =
 			case img of
-				Text style (PlainText text) -> do
+				Text style (PrintText text) -> do
 					applyStyle style
 					liftIO $ do
-						writeMoveCursor output origin
-						writeText output text
+						writeMoveCursor origin
+						writeText text
 
 				VAlign imgs ->
-					renderV origin imgs
+					renderVertically origin imgs
 
 				HAlign imgs ->
-					renderH origin imgs
+					renderHorizontally origin imgs
 
-		renderV :: Position -> [Image] -> StateT Style IO ()
-		renderV _ [] = pure ()
-		renderV origin@(x, y) (img : imgs) = do
+		renderVertically :: Position -> [Image] -> StateT Style IO ()
+		renderVertically _ [] = pure ()
+		renderVertically origin@(x, y) (img : imgs) = do
 			render origin img
-			renderV (x, y + imageHeight img) imgs
+			renderVertically (x, y + imageHeight img) imgs
 
-		renderH :: Position -> [Image] -> StateT Style IO ()
-		renderH _ [] = pure ()
-		renderH origin@(x, y) (img : imgs) = do
+		renderHorizontally :: Position -> [Image] -> StateT Style IO ()
+		renderHorizontally _ [] = pure ()
+		renderHorizontally origin@(x, y) (img : imgs) = do
 			render origin img
-			renderH (x + imageWidth img, y) imgs
+			renderHorizontally (x + imageWidth img, y) imgs
+
 
 main :: IO ()
-main = pure ()
+main = do
+	d <- launchUI
+	writeImage d (0, 0) (drawText (Style (Color 255 255 255) (Color 0 0 0)) "Hello World" (10, 10))
+	threadDelay 5000000
