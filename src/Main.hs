@@ -5,8 +5,7 @@ module Main where
 import Control.Concurrent
 
 import Olec.Interface.GTK
-import Olec.Interface.Types
-import Olec.Interface.Image
+import Olec.Visual
 
 main :: IO ()
 main = do

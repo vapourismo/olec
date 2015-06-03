@@ -1,4 +1,4 @@
-module Olec.Interface.Image (
+module Olec.Visual.Image (
 	-- * Image
 	Image (..),
 	imageWidth,
@@ -20,7 +20,7 @@ import Data.Char
 import qualified Data.Text as T
 import Graphics.Text.Width
 
-import Olec.Interface.Types
+import Olec.Visual.Types
 
 -- | How many characters does the "Text" occupy?
 textWidth :: T.Text -> Int
@@ -81,7 +81,7 @@ alignHorizontally hints size@(width, _) =
 			in (imageWidth img, img)
 
 class Display a where
-	-- | Retrieve the display size
+	-- | Retrieve the display size.
 	dimensions :: a -> IO Size
 
 	-- | Clear the entire display.

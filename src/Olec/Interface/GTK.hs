@@ -29,8 +29,8 @@ import qualified Graphics.UI.Gtk.General.CssProvider as G
 import System.Glib.GObject
 import System.Posix.Types
 
-import Olec.Interface.Image
-import Olec.Interface.Types
+import Olec.Visual.Image
+import Olec.Visual.Types
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: IO (Ptr Terminal)
