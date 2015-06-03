@@ -6,6 +6,7 @@ module Olec.Visual.Image (
 
 	-- * Visualisers
 	drawText,
+	drawString,
 	alignVertically,
 	alignHorizontally,
 
@@ -36,6 +37,16 @@ fitText n txt | textWidth txt > n =
 			| otherwise = (m, acc)
 fitText _ txt = txt
 
+-- | Fit "String" into a given number of columns.
+fitString :: Int -> String -> String
+fitString n txt | safeWcswidth txt > n =
+	snd (foldl' runner (n, []) txt)
+	where
+		runner (m, acc) c
+			| safeWcwidth c <= m = (m - safeWcwidth c, acc ++ [c])
+			| otherwise = (m, acc)
+fitString _ txt = txt
+
 -- | An image
 data Image
 	= Text Style T.Text
@@ -61,6 +72,11 @@ type Visualiser = Size -> Image
 drawText :: Style -> T.Text -> Visualiser
 drawText style text (w, _) =
 	Text style (fitText w (T.filter isPrint text))
+
+-- | Draw "String" in a given "Style".
+drawString :: Style -> String -> Visualiser
+drawString style text (w, _) =
+	Text style (T.pack (fitString w (filter isPrint text)))
 
 -- | Align many "Visualiser"s vertically.
 alignVertically :: [DivisionHint Int Float Visualiser] -> Visualiser
