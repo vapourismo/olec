@@ -7,8 +7,6 @@ import Control.Monad.Reader
 import Data.IORef
 import Data.Metrics
 
-import qualified Data.Text as T
-
 import Olec.Interface.GTK
 import Olec.Interface.Types
 import Olec.Interface.Image
@@ -55,18 +53,17 @@ newHandle :: a -> IO (Handle a)
 newHandle w = Handle w <$> newLayoutDelegate
 
 -- |
-bindWidget :: (EventSource o, Output o, Widget a) => o -> a -> IO ()
-bindWidget o w = do
-	onResize o $ \ size -> do
-		clearOutput o
-		performLayout w (0, 0) size
-		paintWidget w o
-
-	size <- sizeOfOutput o
-
+updateWidget :: (Output o, Widget w) => o -> w -> Size -> IO ()
+updateWidget o w size = do
 	clearOutput o
 	performLayout w (0, 0) size
 	paintWidget w o
+
+-- |
+bindWidget :: (EventSource o, Output o, Widget a) => o -> a -> IO ()
+bindWidget o w = do
+	onResize o (updateWidget o w)
+	updateWidget o w =<< sizeOfOutput o
 
 data Test = Test
 
