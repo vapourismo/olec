@@ -8,6 +8,7 @@ module Olec.Interface.Image (
 
 	-- * Visualisers
 	Visualiser,
+	runVisualizer,
 	Visual (..),
 	drawText,
 	drawString,
@@ -20,6 +21,8 @@ module Olec.Interface.Image (
 ) where
 
 import Control.Exception
+
+import Control.Monad.Reader
 import Control.Monad.State.Strict
 
 import Data.Metrics
@@ -79,44 +82,62 @@ imageHeight (VAlign imgs) = sum (map imageHeight imgs)
 imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 
 -- | An "Image" generator
-type Visualiser = Size -> Image
+type Visualiser = ReaderT Size IO Image
+
+-- | Generate the "Image"
+runVisualizer :: Size -> Visualiser -> IO Image
+runVisualizer = flip runReaderT
 
 class Visual a where
 	visualize :: a -> Visualiser
 
 -- | Draw "Text" in a given "Style".
 drawText :: Style -> T.Text -> Visualiser
-drawText style text (w, h)
-	| h >= 1 = Text style (fitText w (T.filter isPrint text))
-	| otherwise = Empty
+drawText style text = do
+	(w, h) <- ask
+	pure $
+		if h >= 1 then
+			Text style (fitText w (T.filter isPrint text))
+		else
+			Empty
 
 -- | Draw "String" in a given "Style".
 drawString :: Style -> String -> Visualiser
-drawString style text (w, h)
-	| h >= 1 = Text style (T.pack (fitString w (filter isPrint text)))
-	| otherwise = Empty
+drawString style text = do
+	(w, h) <- ask
+	pure $
+		if h >= 1 then
+			Text style (T.pack (fitString w (filter isPrint text)))
+		else
+			Empty
 
 -- | Align many "Visualiser"s vertically.
 alignVertically :: [DivisionHint Int Float Visualiser] -> Visualiser
-alignVertically hints size@(_, height) =
-	VAlign (snd (divideMetricFitted hints height constrain size))
+alignVertically hints = do
+	(_, height) <- ask
+	VAlign . snd <$> divideMetricFitted hints height constrain
 	where
-		constrain (rheight, visualizer) (width, _)
-			| rheight > 0 =
-				let img = visualizer (width, rheight)
-				in (imageHeight img, img)
-			| otherwise = (0, Empty)
+		constrain :: (Int, Visualiser) -> ReaderT Size IO (Int, Image)
+		constrain (rheight, visualizer) = do
+			if rheight > 0 then
+				fmap (\ img -> (imageHeight img, img))
+				     (local (\ (width, _) -> (width, rheight)) visualizer)
+			else
+				pure (0, Empty)
 
 -- | Align many "Visualiser"s horizontally.
 alignHorizontally :: [DivisionHint Int Float Visualiser] -> Visualiser
-alignHorizontally hints size@(width, _) =
-	HAlign (snd (divideMetricFitted hints width constrain size))
+alignHorizontally hints = do
+	(width, _) <- ask
+	HAlign . snd <$> divideMetricFitted hints width constrain
 	where
-		constrain (rwidth, visualizer) (_, height)
-			| rwidth > 0 =
-				let img = visualizer (rwidth, height)
-				in (imageWidth img, img)
-			| otherwise = (0, Empty)
+		constrain :: (Int, Visualiser) -> ReaderT Size IO (Int, Image)
+		constrain (rwidth, visualizer) = do
+			if rwidth > 0 then
+				fmap (\ img -> (imageWidth img, img))
+				     (local (\ (_, height) -> (rwidth, height)) visualizer)
+			else
+				pure (0, Empty)
 
 -- | VT100-style output
 class Output a where
