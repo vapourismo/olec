@@ -32,7 +32,7 @@ import Graphics.Text.Width
 
 import Olec.Interface.Types
 
--- | How many characters does the "Text" occupy?
+-- | How many columns does the "Text" occupy?
 textWidth :: T.Text -> Int
 textWidth = T.foldl' (\ n c -> n + safeWcwidth c) 0
 
