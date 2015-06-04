@@ -68,7 +68,7 @@ bindWidget o w = do
 	paintWidget w o
 
 instance Visual T.Text where
-	visualize = drawText (Style (Color 255 255 255) (Color 0 0 0))
+	visualize _ = fillArea (Style (Color 255 255 255) (Color 255 255 255)) ' '
 
 main :: IO ()
 main = do
