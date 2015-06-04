@@ -97,6 +97,12 @@ instance Output Interface where
 	clearOutput (Interface _ term) =
 		terminalFeed term "\ESC[2J\ESC[m"
 
+	hideCursor (Interface _ term) =
+		terminalFeed term "\ESC[?25l"
+
+	showCursor (Interface _ term) =
+		terminalFeed term "\ESC[?25h"
+
 	setForeground (Interface _ term) (Color r g b) =
 		terminalFeed term (B.concat ["\ESC[38;2;",
 		                             BC.pack (show r), ";",

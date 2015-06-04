@@ -147,6 +147,10 @@ class Output a where
 
 	clearOutput :: a -> IO ()
 
+	hideCursor :: a -> IO ()
+
+	showCursor :: a -> IO ()
+
 	setForeground :: a -> Color -> IO ()
 
 	setBackground :: a -> Color -> IO ()
