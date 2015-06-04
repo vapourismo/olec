@@ -8,7 +8,7 @@ module Olec.Interface.Image (
 
 	-- * Visualisers
 	Visualiser,
-	runVisualizer,
+	runVisualiser,
 	Visual (..),
 	drawText,
 	drawString,
@@ -85,8 +85,8 @@ imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 type Visualiser = ReaderT Size IO Image
 
 -- | Generate the "Image"
-runVisualizer :: Size -> Visualiser -> IO Image
-runVisualizer = flip runReaderT
+runVisualiser :: Size -> Visualiser -> IO Image
+runVisualiser = flip runReaderT
 
 class Visual a where
 	visualize :: a -> Visualiser

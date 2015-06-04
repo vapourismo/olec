@@ -2,6 +2,8 @@
 
 module Main where
 
+import Control.Monad.Reader
+
 import Data.IORef
 import Data.Metrics
 
@@ -14,20 +16,18 @@ import Olec.Interface.Events
 
 -- |
 fillArea :: Style -> Char -> Visualiser
-fillArea style c (w, h) =
-	alignVertically hints (w, h)
+fillArea style c = do
+	(w, h) <- ask
+	alignVertically (hints w h)
 	where
-		line = replicate w c
-		hints = replicate h (Absolute 1 (drawString style line))
+		line w = replicate w c
+		hints w h = replicate h (Absolute 1 (drawString style (line w)))
 
 newtype LayoutDelegate = LayoutDelegate (IORef (Position, Size))
 
 -- |
 newLayoutDelegate :: IO LayoutDelegate
 newLayoutDelegate = LayoutDelegate <$> newIORef ((0, 0), (0, 0))
-
-class Visual a where
-	visualize :: a -> Visualiser
 
 class Layout a where
 	performLayout :: a -> Position -> Size -> IO ()
@@ -47,7 +47,8 @@ instance Layout (Handle a) where
 instance (Visual a) => Widget (Handle a) where
 	paintWidget (Handle w (LayoutDelegate ref)) out = do
 		(origin, size) <- readIORef ref
-		outputImage out origin (visualize w size)
+		img <- runVisualiser size (visualize w)
+		outputImage out origin img
 
 -- |
 newHandle :: a -> IO (Handle a)
@@ -67,7 +68,9 @@ bindWidget o w = do
 	performLayout w (0, 0) size
 	paintWidget w o
 
-instance Visual T.Text where
+data Test = Test
+
+instance Visual Test where
 	visualize _ = fillArea (Style (Color 255 255 255) (Color 255 255 255)) ' '
 
 main :: IO ()
@@ -75,7 +78,7 @@ main = do
 	o <- newInterface
 	onKeyEvent o (\ _ -> True <$ exitInterface)
 
-	h <- newHandle ("Hello World" :: T.Text)
+	h <- newHandle Test
 	bindWidget o h
 
 	runInterface
