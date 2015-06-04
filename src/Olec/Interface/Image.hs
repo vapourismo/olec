@@ -8,6 +8,7 @@ module Olec.Interface.Image (
 
 	-- * Visualisers
 	Visualiser,
+	Visual (..),
 	drawText,
 	drawString,
 	alignVertically,
@@ -79,6 +80,9 @@ imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 
 -- | An "Image" generator
 type Visualiser = Size -> Image
+
+class Visual a where
+	visualize :: a -> Visualiser
 
 -- | Draw "Text" in a given "Style".
 drawText :: Style -> T.Text -> Visualiser
