@@ -94,8 +94,7 @@ class Visual a where
 -- | Draw "Text" in a given "Style".
 drawText :: Style -> T.Text -> Visualiser
 drawText style text = do
-	(w, h) <- ask
-	pure $
+	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
 			Text style (fitText w (T.filter isPrint text))
 		else
@@ -104,8 +103,7 @@ drawText style text = do
 -- | Draw "String" in a given "Style".
 drawString :: Style -> String -> Visualiser
 drawString style text = do
-	(w, h) <- ask
-	pure $
+	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
 			Text style (T.pack (fitString w (filter isPrint text)))
 		else
