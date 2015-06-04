@@ -47,7 +47,7 @@ fitText n txt | textWidth txt > n =
 	where
 		runner (m, acc) c
 			| safeWcwidth c <= m = (m - safeWcwidth c, T.snoc acc c)
-			| otherwise = (m, acc)
+			| otherwise = (-1, acc)
 fitText _ txt = txt
 
 -- | Fit "String" into a given number of columns.
@@ -57,7 +57,7 @@ fitString n txt | safeWcswidth txt > n =
 	where
 		runner (m, acc) c
 			| safeWcwidth c <= m = (m - safeWcwidth c, acc ++ [c])
-			| otherwise = (m, acc)
+			| otherwise = (-1, acc)
 fitString _ txt = txt
 
 -- | An image
