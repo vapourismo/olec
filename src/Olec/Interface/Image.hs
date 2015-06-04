@@ -93,7 +93,7 @@ class Visual a where
 
 -- | Draw "Text" in a given "Style".
 drawText :: Style -> T.Text -> Visualiser
-drawText style text = do
+drawText style text =
 	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
 			Text style (fitText w (T.filter isPrint text))
@@ -102,7 +102,7 @@ drawText style text = do
 
 -- | Draw "String" in a given "Style".
 drawString :: Style -> String -> Visualiser
-drawString style text = do
+drawString style text =
 	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
 			Text style (T.pack (fitString w (filter isPrint text)))
@@ -116,7 +116,7 @@ alignVertically hints = do
 	VAlign . snd <$> divideMetricFitted hints height constrain
 	where
 		constrain :: (Int, Visualiser) -> ReaderT Size IO (Int, Image)
-		constrain (rheight, visualizer) = do
+		constrain (rheight, visualizer) =
 			if rheight > 0 then
 				fmap (\ img -> (imageHeight img, img))
 				     (local (\ (width, _) -> (width, rheight)) visualizer)
@@ -130,7 +130,7 @@ alignHorizontally hints = do
 	HAlign . snd <$> divideMetricFitted hints width constrain
 	where
 		constrain :: (Int, Visualiser) -> ReaderT Size IO (Int, Image)
-		constrain (rwidth, visualizer) = do
+		constrain (rwidth, visualizer) =
 			if rwidth > 0 then
 				fmap (\ img -> (imageWidth img, img))
 				     (local (\ (_, height) -> (rwidth, height)) visualizer)
