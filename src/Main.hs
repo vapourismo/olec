@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveFunctor #-}
 
 module Main where
 
@@ -64,16 +63,10 @@ main = do
 	onKeyEvent iface (writeChan src)
 
 	let km = bindKeys $ do
-		bind (KeyPress (toModifierMask [Control]) (toKeyValue "q"))
-		     (\ () -> exitInterface)
-
-		nest (KeyPress (toModifierMask [Control]) (toKeyValue "x")) $
-			bind (KeyPress (toModifierMask [Control]) (toKeyValue "c"))
-			     (\ () -> putStrLn "C-x C-c")
-
-		nest (KeyPress (toModifierMask [Control]) (toKeyValue "x")) $
-			bind (KeyPress (toModifierMask [Control]) (toKeyValue "v"))
-			     (\ () -> putStrLn "C-x C-v")
+		bind "control-q" (\ () -> exitInterface)
+		nest "control-x" $ do
+			bind "control-c" (\ () -> putStrLn "control-x control-c")
+			bind "control-v" (\ () -> putStrLn "control-x control-v")
 
 	forkIO (forever (handleKeyEvent km () src >>= print))
 
