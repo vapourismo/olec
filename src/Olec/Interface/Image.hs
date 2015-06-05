@@ -1,23 +1,22 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Olec.Interface.Image (
 	-- * Image
 	Image,
 	imageWidth,
 	imageHeight,
 
-	-- * Visualisers
-	Visualiser,
-	runVisualiser,
-	Visual (..),
-	drawText,
-	drawString,
-	alignVertically,
-	alignHorizontally,
+	-- * Painter
+	Painter,
+	paintImage,
 
-	-- * Output
-	Output (..),
-	outputImage
+	-- * Utilities
+	text,
+	string,
+	vbox,
+	hbox,
+
+	-- * Canvas
+	Canvas (..),
+	renderImage
 ) where
 
 import Control.Exception
@@ -70,7 +69,7 @@ data Image
 -- | How many columns does the "Image" need?
 imageWidth :: Image -> Int
 imageWidth (Empty) = 0
-imageWidth (Text _ text) = textWidth text
+imageWidth (Text _ txt) = textWidth txt
 imageWidth (VAlign imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (HAlign imgs) = sum (map imageWidth imgs)
 
@@ -81,41 +80,38 @@ imageHeight (Text _ _) = 1
 imageHeight (VAlign imgs) = sum (map imageHeight imgs)
 imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 
--- | An "Image" generator
-type Visualiser = ReaderT Size IO Image
+-- | An "Image" producer
+type Painter = ReaderT Size IO Image
 
 -- | Generate the "Image"
-runVisualiser :: Size -> Visualiser -> IO Image
-runVisualiser = flip runReaderT
-
-class Visual a where
-	visualize :: a -> Visualiser
+paintImage :: Painter -> Size -> IO Image
+paintImage = runReaderT
 
 -- | Draw "Text" in a given "Style".
-drawText :: Style -> T.Text -> Visualiser
-drawText style text =
+text :: Style -> T.Text -> Painter
+text style txt =
 	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
-			Text style (fitText w (T.filter isPrint text))
+			Text style (fitText w (T.filter isPrint txt))
 		else
 			Empty
 
 -- | Draw "String" in a given "Style".
-drawString :: Style -> String -> Visualiser
-drawString style text =
+string :: Style -> String -> Painter
+string style txt =
 	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
-			Text style (T.pack (fitString w (filter isPrint text)))
+			Text style (T.pack (fitString w (filter isPrint txt)))
 		else
 			Empty
 
--- | Align many "Visualiser"s vertically.
-alignVertically :: [DivisionHint Int Float Visualiser] -> Visualiser
-alignVertically hints = do
+-- | Align many "Painter"s vertically.
+vbox :: [DivisionHint Int Float Painter] -> Painter
+vbox hints = do
 	(_, height) <- ask
 	VAlign . snd <$> divideMetricFitted hints height constrain
 	where
-		constrain :: (Int, Visualiser) -> ReaderT Size IO (Int, Image)
+		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rheight, visualizer) =
 			if rheight > 0 then
 				fmap (\ img -> (imageHeight img, img))
@@ -123,13 +119,13 @@ alignVertically hints = do
 			else
 				pure (0, Empty)
 
--- | Align many "Visualiser"s horizontally.
-alignHorizontally :: [DivisionHint Int Float Visualiser] -> Visualiser
-alignHorizontally hints = do
+-- | Align many "Painter"s horizontally.
+hbox :: [DivisionHint Int Float Painter] -> Painter
+hbox hints = do
 	(width, _) <- ask
 	HAlign . snd <$> divideMetricFitted hints width constrain
 	where
-		constrain :: (Int, Visualiser) -> ReaderT Size IO (Int, Image)
+		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rwidth, visualizer) =
 			if rwidth > 0 then
 				fmap (\ img -> (imageWidth img, img))
@@ -138,14 +134,14 @@ alignHorizontally hints = do
 				pure (0, Empty)
 
 -- | VT100-style output
-class Output a where
-	lockOutput :: a -> IO ()
+class Canvas a where
+	lockCanvas :: a -> IO ()
 
-	unlockOutput :: a -> IO ()
+	unlockCanvas :: a -> IO ()
 
-	sizeOfOutput :: a -> IO Size
+	sizeOfCanvas :: a -> IO Size
 
-	clearOutput :: a -> IO ()
+	clearCanvas :: a -> IO ()
 
 	hideCursor :: a -> IO ()
 
@@ -155,22 +151,22 @@ class Output a where
 
 	setBackground :: a -> Color -> IO ()
 
-	writeText :: a -> T.Text -> IO ()
+	drawText :: a -> T.Text -> IO ()
 
 	moveCursor :: a -> Position -> IO ()
 
--- | Output the "Image" at a given "Position".
-outputImage :: (Output o) => o -> Position -> Image -> IO ()
-outputImage out origin img =
-	bracket_ (lockOutput out)
-	         (unlockOutput out)
+-- | Render the "Image" at a given "Position".
+renderImage :: (Canvas o) => o -> Position -> Image -> IO ()
+renderImage out origin img =
+	bracket_ (lockCanvas out)
+	         (unlockCanvas out)
 	         (evalStateT (renderOne out origin img) Nothing)
 
 -- | Image output
 type ImageOutput = StateT (Maybe Style) IO
 
 -- | Change the "Style".
-changeStyle :: (Output o) => o -> Style -> ImageOutput ()
+changeStyle :: (Canvas o) => o -> Style -> ImageOutput ()
 changeStyle out style@(Style fg bg) = do
 	mbStyle <- get
 	case mbStyle of
@@ -187,16 +183,16 @@ changeStyle out style@(Style fg bg) = do
 	put (Just style)
 
 -- | Render one "Image".
-renderOne :: (Output o) => o -> Position -> Image -> ImageOutput ()
+renderOne :: (Canvas o) => o -> Position -> Image -> ImageOutput ()
 renderOne out origin img =
 	case img of
 		Empty -> pure ()
 
-		Text style text -> do
+		Text style txt -> do
 			changeStyle out style
 			liftIO $ do
 				moveCursor out origin
-				writeText out text
+				drawText out txt
 
 		VAlign imgs ->
 			renderVertically out origin imgs
@@ -205,14 +201,14 @@ renderOne out origin img =
 			renderHorizontally out origin imgs
 
 -- | Render some "Image"s vertically aligned.
-renderVertically :: (Output o) => o -> Position -> [Image] -> ImageOutput ()
+renderVertically :: (Canvas o) => o -> Position -> [Image] -> ImageOutput ()
 renderVertically _ _ [] = pure ()
 renderVertically out origin@(x, y) (img : imgs) = do
 	renderOne out origin img
 	renderVertically out (x, y + imageHeight img) imgs
 
 -- | Render some "Images"s horizontally aligned.
-renderHorizontally :: (Output o) => o -> Position -> [Image] -> ImageOutput ()
+renderHorizontally :: (Canvas o) => o -> Position -> [Image] -> ImageOutput ()
 renderHorizontally _ _ [] = pure ()
 renderHorizontally out origin@(x, y) (img : imgs) = do
 	renderOne out origin img
