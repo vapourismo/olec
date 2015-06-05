@@ -134,7 +134,7 @@ registerKeyHandler (Interface _ term) handler =
 		emod <- G.eventModifier
 
 		unless (isModifier eval) $
-			liftIO (handler (KeyPress (toModifierMask emod) eval))
+			liftIO (handler (KeyEvent (toModifierMask emod) eval))
 
 		pure True
 	where
