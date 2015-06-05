@@ -3,7 +3,7 @@
 module Olec.Interface.Slot (
 	-- * Slot
 	Slot,
-	newSlot,
+	toSlot,
 	updateSlot,
 	paintSlot,
 ) where
@@ -18,12 +18,13 @@ import Olec.Interface.Image
 -- | Layout Slot
 data Slot = forall o. (Canvas o) => Slot o (IORef (Position, Size))
 
--- | Create a new "Slot". It is initially invisible.
-newSlot :: (Canvas o) => o -> IO Slot
-newSlot out =
-	Slot out <$> newIORef ((0, 0), (0, 0))
+-- | Create a new "Slot". The slot initially occupies the entire canvas.
+toSlot :: (Canvas o) => o -> IO Slot
+toSlot out = do
+	size <- sizeOfCanvas out
+	Slot out <$> newIORef ((0, 0), size)
 
--- | Change the bounds associated with the "Slot".
+-- | Update the "Slot" with new bounds.
 updateSlot :: Slot -> Position -> Size -> IO ()
 updateSlot (Slot _ ref) origin size =
 	writeIORef ref (origin, size)
