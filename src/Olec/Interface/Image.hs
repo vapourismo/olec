@@ -6,6 +6,7 @@ module Olec.Interface.Image (
 
 	-- * Painter
 	Painter,
+	Paintable (..),
 	paintImage,
 
 	-- * Utilities
@@ -82,6 +83,9 @@ imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 
 -- | An "Image" producer
 type Painter = ReaderT Size IO Image
+
+class Paintable a where
+	toPainter :: a -> Painter
 
 -- | Generate the "Image"
 paintImage :: Painter -> Size -> IO Image
