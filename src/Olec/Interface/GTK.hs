@@ -84,17 +84,17 @@ terminalFeed term bs =
 -- | GTK Interface
 data Interface = Interface QSem Terminal
 
-instance Output Interface where
-	lockOutput (Interface lock _) =
+instance Canvas Interface where
+	lockCanvas (Interface lock _) =
 		waitQSem lock
 
-	unlockOutput (Interface lock _) =
+	unlockCanvas (Interface lock _) =
 		signalQSem lock
 
-	sizeOfOutput (Interface _ term) =
+	sizeOfCanvas (Interface _ term) =
 		terminalSize term
 
-	clearOutput (Interface _ term) =
+	clearCanvas (Interface _ term) =
 		terminalFeed term "\ESC[2J\ESC[m"
 
 	hideCursor (Interface _ term) =
@@ -115,8 +115,8 @@ instance Output Interface where
 		                             BC.pack (show g), ";",
 		                             BC.pack (show b), "m"])
 
-	writeText (Interface _ term) text =
-		terminalFeed term (T.encodeUtf8 text)
+	drawText (Interface _ term) txt =
+		terminalFeed term (T.encodeUtf8 txt)
 
 	moveCursor (Interface _ term) (x, y) =
 		terminalFeed term (B.concat ["\ESC[",
@@ -154,7 +154,7 @@ newInterface = do
 
 	-- Remove style classes
 	mbScreen <- G.screenGetDefault
-	flip (maybe (return ())) mbScreen $ \ screen -> do
+	flip (maybe (pure ())) mbScreen $ \ screen -> do
 		cssProvider <- G.cssProviderNew
 		G.cssProviderLoadFromString cssProvider ("VteTerminal { padding: 6px; }" :: T.Text)
 		G.styleContextAddProviderForScreen screen cssProvider 800
@@ -171,8 +171,8 @@ newInterface = do
 	-- Terminal
 	term <- newTerminal
 	G.boxPackStart box term G.PackGrow 0
-	G.on term G.buttonPressEvent (return True)
-	G.on term G.buttonReleaseEvent (return True)
+	G.on term G.buttonPressEvent (pure True)
+	G.on term G.buttonReleaseEvent (pure True)
 
 	-- Show interface
 	G.widgetShowAll win
