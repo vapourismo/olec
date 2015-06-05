@@ -15,6 +15,8 @@ import Foreign.Ptr
 import Foreign.ForeignPtr
 
 import Control.Concurrent
+
+import Control.Monad
 import Control.Monad.Trans
 
 import Data.Word
@@ -132,20 +134,18 @@ isModifier key =
 	key == 0xff7e
 
 instance EventSource Interface where
-	onKeyEvent (Interface _ term) handler = do
-		G.on term G.keyPressEvent $ do
+	onKeyEvent (Interface _ term) handler =
+		void $ G.on term G.keyPressEvent $ do
 			eval <- G.eventKeyVal
 			emod <- G.eventModifier
 
-			if isModifier eval then
-				pure False
-			else
-				liftIO (True <$ handler (KeyPress (toModifierMask emod) eval))
+			unless (isModifier eval) $
+				liftIO (handler (KeyPress (toModifierMask emod) eval))
 
-		pure ()
+			pure True
 
 	onResize (Interface _ term) handler =
-		() <$ G.on term G.sizeAllocate (const (terminalSize term >>= handler))
+		void (G.on term G.sizeAllocate (const (terminalSize term >>= handler)))
 
 -- | Create a new GTK "Interface".
 newInterface :: IO Interface
