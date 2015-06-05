@@ -140,7 +140,7 @@ instance EventSource Interface where
 			if isModifier eval then
 				pure False
 			else
-				liftIO (handler (KeyPress (toModifierMask emod) eval))
+				liftIO (True <$ handler (KeyPress (toModifierMask emod) eval))
 
 		pure ()
 

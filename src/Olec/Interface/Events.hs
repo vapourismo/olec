@@ -35,6 +35,6 @@ data KeyEvent = KeyPress Word32 Word32
 
 -- | Event source
 class EventSource a where
-	onKeyEvent :: a -> (KeyEvent -> IO Bool) -> IO ()
+	onKeyEvent :: a -> (KeyEvent -> IO ()) -> IO ()
 
 	onResize :: a -> (Size -> IO ()) -> IO ()
