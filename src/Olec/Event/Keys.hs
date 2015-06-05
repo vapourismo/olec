@@ -11,6 +11,7 @@ module Olec.Event.Keys (
 	KeyMap,
 	KeySource,
 	handleKeyEvent,
+	handleKeyEvent_,
 
 	KeyBinder,
 	bindKeys,
@@ -98,6 +99,12 @@ handleKeyEvent (KeyMap km) x src = do
 		handleKeyEvent2 (KeyMap km2) = do
 			mbEvent <- timeout configKeyTimeout (readChan src)
 			maybe (pure False) handleKeyEvent2 (mbEvent >>= flip M.lookup km2)
+
+-- | Same "handleKeyEvent" but allows to supply an alternative key handler.
+handleKeyEvent_ :: KeyMap a -> IO () -> a -> KeySource -> IO ()
+handleKeyEvent_ km alt x src = do
+	r <- handleKeyEvent km x src
+	unless r alt
 
 -- | Key binder utility.
 type KeyBinder a = State (M.Map KeyEvent (KeyMap a)) ()
