@@ -5,7 +5,11 @@ module Olec.Interface.GTK (
 	Interface,
 	newInterface,
 	runInterface,
-	exitInterface
+	exitInterface,
+
+	-- * Events
+	registerKeyHandler,
+	registerResizeHandler
 ) where
 
 import Foreign.C.Types
@@ -18,8 +22,6 @@ import Control.Concurrent
 
 import Control.Monad
 import Control.Monad.Trans
-
-import Data.Word
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -34,10 +36,8 @@ import qualified Graphics.UI.Gtk.General.CssProvider as G
 import System.Glib.GObject
 import System.Posix.Types
 
-import Olec.Interface.Events
-
-import Olec.Interface.Types
-import Olec.Interface.Image
+import Olec.Event.Keys
+import Olec.Visual
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: IO (Ptr Terminal)
@@ -125,27 +125,29 @@ instance Canvas Interface where
 		                             BC.pack (show (y + 1)), ";",
 		                             BC.pack (show (x + 1)), "H"])
 
--- | Check if the given key value is single modifier key stroke.
-isModifier :: Word32 -> Bool
-isModifier key =
-	(0xffe1 <= key && key <= 0xffee) ||
-	(0xfe01 <= key && key <= 0xfe0f) ||
-	(0xfe11 <= key && key <= 0xfe13) ||
-	key == 0xff7e
 
-instance EventSource Interface where
-	onKeyEvent (Interface _ term) handler =
-		void $ G.on term G.keyPressEvent $ do
-			eval <- G.eventKeyVal
-			emod <- G.eventModifier
+-- | Register a callback which will be called upon receiving a key event.
+registerKeyHandler :: Interface -> (KeyEvent -> IO ()) -> IO ()
+registerKeyHandler (Interface _ term) handler =
+	void $ G.on term G.keyPressEvent $ do
+		eval <- G.eventKeyVal
+		emod <- G.eventModifier
 
-			unless (isModifier eval) $
-				liftIO (handler (KeyPress (toModifierMask emod) eval))
+		unless (isModifier eval) $
+			liftIO (handler (KeyPress (toModifierMask emod) eval))
 
-			pure True
+		pure True
+	where
+		isModifier key =
+			(0xffe1 <= key && key <= 0xffee) ||
+			(0xfe01 <= key && key <= 0xfe0f) ||
+			(0xfe11 <= key && key <= 0xfe13) ||
+			key == 0xff7e
 
-	onResize (Interface _ term) handler =
-		void (G.on term G.sizeAllocate (const (terminalSize term >>= handler)))
+-- | Register a callback which will be called upon receiving a resize event.
+registerResizeHandler :: Interface -> (Size -> IO ()) -> IO ()
+registerResizeHandler (Interface _ term) handler =
+	void (G.on term G.sizeAllocate (const (terminalSize term >>= handler)))
 
 -- | Create a new GTK "Interface".
 newInterface :: IO Interface

@@ -1,6 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Olec.Interface.Slot (
+module Olec.Visual.Slot (
 	-- * Slot
 	Slot,
 	toSlot,
@@ -12,8 +12,7 @@ import Control.Monad
 
 import Data.IORef
 
-import Olec.Interface.Types
-import Olec.Interface.Image
+import Olec.Visual
 
 -- | Layout Slot
 data Slot = forall o. (Canvas o) => Slot o (IORef (Position, Size))

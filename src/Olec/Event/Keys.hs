@@ -1,4 +1,4 @@
-module Olec.Interface.Events (
+module Olec.Event.Keys (
 	-- * General
 	KeyEvent (..),
 
@@ -6,9 +6,6 @@ module Olec.Interface.Events (
 	Modifier (..),
 	toModifierMask,
 	toKeyValue,
-
-	-- * Type Class
-	EventSource (..),
 ) where
 
 import Data.Word
@@ -20,8 +17,6 @@ import Data.String
 import qualified Data.Text as T
 
 import Graphics.UI.Gtk hiding (Size, Display, Layout, Widget)
-
-import Olec.Interface.Types
 
 -- | Make a modifier mask from a list of modifiers.
 toModifierMask :: [Modifier] -> Word32
@@ -61,9 +56,3 @@ instance IsString KeyEvent where
 			toModifier "super"   = Super
 			toModifier "hyper"   = Hyper
 			toModifier x         = error ("Unknown modifier '" ++ x ++ "'")
-
--- | Event source
-class EventSource a where
-	onKeyEvent :: a -> (KeyEvent -> IO ()) -> IO ()
-
-	onResize :: a -> (Size -> IO ()) -> IO ()

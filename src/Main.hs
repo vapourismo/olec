@@ -9,7 +9,7 @@ import qualified Data.Map.Strict as M
 
 import System.Timeout
 
-import Olec.Interface.Events
+import Olec.Event.Keys
 import Olec.Interface.GTK
 
 -- |
@@ -60,7 +60,7 @@ main = do
 	iface <- newInterface
 
 	src <- newChan
-	onKeyEvent iface (writeChan src)
+	registerKeyHandler iface (writeChan src)
 
 	let km = bindKeys $ do
 		bind "control-q" (\ () -> exitInterface)

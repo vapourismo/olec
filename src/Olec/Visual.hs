@@ -1,4 +1,4 @@
-module Olec.Interface.Image (
+module Olec.Visual (
 	-- * Image
 	Image,
 	imageWidth,
@@ -17,7 +17,10 @@ module Olec.Interface.Image (
 
 	-- * Canvas
 	Canvas (..),
-	renderImage
+	renderImage,
+
+	-- * Exports
+	module Olec.Visual.Types
 ) where
 
 import Control.Exception
@@ -34,7 +37,7 @@ import qualified Data.Text as T
 
 import Graphics.Text.Width
 
-import Olec.Interface.Types
+import Olec.Visual.Types
 
 -- | How many columns does the "Text" occupy?
 textWidth :: T.Text -> Int
