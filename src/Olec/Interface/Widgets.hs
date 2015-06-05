@@ -15,6 +15,8 @@ module Olec.Interface.Widgets (
 	newSimpleWidget
 ) where
 
+import Control.Monad
+
 import Data.IORef
 
 import Olec.Interface.Types
