@@ -14,8 +14,10 @@ module Olec.Visual (
 	layered,
 	text,
 	string,
+	vcat,
 	vbox,
 	vbox',
+	hcat,
 	hbox,
 	hbox',
 
@@ -70,8 +72,8 @@ fitString _ txt = txt
 -- | An image
 data Image
 	= Text Style T.Text
-	| VAlign [Image]
-	| HAlign [Image]
+	| VCat [Image]
+	| HCat [Image]
 	| Maximized Int Int Image
 	| Layered [Image]
 	| Empty
@@ -82,8 +84,8 @@ imageWidth (Empty) = 0
 imageWidth (Maximized w _ _) = w
 imageWidth (Layered imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (Text _ txt) = textWidth txt
-imageWidth (VAlign imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
-imageWidth (HAlign imgs) = sum (map imageWidth imgs)
+imageWidth (VCat imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
+imageWidth (HCat imgs) = sum (map imageWidth imgs)
 
 -- | How many rows does the "Image" need?
 imageHeight :: Image -> Int
@@ -91,8 +93,8 @@ imageHeight (Empty) = 0
 imageHeight (Maximized _ h _) = h
 imageHeight (Layered imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 imageHeight (Text _ _) = 1
-imageHeight (VAlign imgs) = sum (map imageHeight imgs)
-imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
+imageHeight (VCat imgs) = sum (map imageHeight imgs)
+imageHeight (HCat imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 
 -- | An "Image" producer
 type Painter = ReaderT Size IO Image
@@ -133,11 +135,15 @@ string style txt =
 		else
 			Empty
 
+-- | Concat "Painter"s vertically.
+vcat :: [Painter] -> Painter
+vcat ps = VCat <$> sequence ps
+
 -- | Align many "Painter"s vertically.
 vbox :: [DivisionHint Int Float Painter] -> Painter
 vbox hints = do
 	(_, height) <- ask
-	VAlign <$> sequence (make 0 (divideMetric hints height))
+	VCat <$> sequence (make 0 (divideMetric hints height))
 	where
 		make :: Int -> [(Int, Painter)] -> [Painter]
 		make _ [] = []
@@ -148,7 +154,7 @@ vbox hints = do
 vbox' :: [DivisionHint Int Float Painter] -> Painter
 vbox' hints = do
 	(_, height) <- ask
-	VAlign . snd <$> divideMetricFitted hints height constrain
+	VCat . snd <$> divideMetricFitted hints height constrain
 	where
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rheight, visualizer) =
@@ -158,11 +164,15 @@ vbox' hints = do
 			else
 				pure (0, Empty)
 
+-- | Concat "Painter"s horizontally.
+hcat :: [Painter] -> Painter
+hcat ps = HCat <$> sequence ps
+
 -- | Align many "Painter"s horizontally.
 hbox :: [DivisionHint Int Float Painter] -> Painter
 hbox hints = do
 	(width, _) <- ask
-	VAlign <$> sequence (make 0 (divideMetric hints width))
+	VCat <$> sequence (make 0 (divideMetric hints width))
 	where
 		make :: Int -> [(Int, Painter)] -> [Painter]
 		make _ [] = []
@@ -173,7 +183,7 @@ hbox hints = do
 hbox' :: [DivisionHint Int Float Painter] -> Painter
 hbox' hints = do
 	(width, _) <- ask
-	HAlign . snd <$> divideMetricFitted hints width constrain
+	HCat . snd <$> divideMetricFitted hints width constrain
 	where
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rwidth, visualizer) =
@@ -251,10 +261,10 @@ renderOne out origin img =
 				moveCursor out origin
 				drawText out txt
 
-		VAlign imgs ->
+		VCat imgs ->
 			renderVertically out origin imgs
 
-		HAlign imgs ->
+		HCat imgs ->
 			renderHorizontally out origin imgs
 
 -- | Render some "Image"s vertically aligned.
