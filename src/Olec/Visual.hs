@@ -10,6 +10,8 @@ module Olec.Visual (
 	paintImage,
 
 	-- * Utilities
+	maximize,
+	layered,
 	text,
 	string,
 	vbox,
@@ -70,11 +72,15 @@ data Image
 	= Text Style T.Text
 	| VAlign [Image]
 	| HAlign [Image]
+	| Maximized Int Int Image
+	| Layered [Image]
 	| Empty
 
 -- | How many columns does the "Image" need?
 imageWidth :: Image -> Int
 imageWidth (Empty) = 0
+imageWidth (Maximized w _ _) = w
+imageWidth (Layered imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (Text _ txt) = textWidth txt
 imageWidth (VAlign imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (HAlign imgs) = sum (map imageWidth imgs)
@@ -82,6 +88,8 @@ imageWidth (HAlign imgs) = sum (map imageWidth imgs)
 -- | How many rows does the "Image" need?
 imageHeight :: Image -> Int
 imageHeight (Empty) = 0
+imageHeight (Maximized _ h _) = h
+imageHeight (Layered imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 imageHeight (Text _ _) = 1
 imageHeight (VAlign imgs) = sum (map imageHeight imgs)
 imageHeight (HAlign imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
@@ -95,6 +103,17 @@ class Paintable a where
 -- | Generate the "Image"
 paintImage :: Painter -> Size -> IO Image
 paintImage = runReaderT
+
+-- | Extend the produced "Image" width and height to match the requested width and height.
+maximize :: Painter -> Painter
+maximize painter = do
+	(w, h) <- ask
+	img <- painter
+	pure (Maximized (max w (imageWidth img)) (max h (imageHeight img)) img)
+
+-- | Layered image
+layered :: [Painter] -> Painter
+layered ps = Layered <$> sequence ps
 
 -- | Draw "Text" in a given "Style".
 text :: Style -> T.Text -> Painter
@@ -217,7 +236,14 @@ changeStyle out style@(Style fg bg) = do
 renderOne :: (Canvas o) => o -> Position -> Image -> ImageOutput ()
 renderOne out origin img =
 	case img of
-		Empty -> pure ()
+		Empty ->
+			pure ()
+
+		Maximized _ _ sub ->
+			renderOne out origin sub
+
+		Layered sub ->
+			mapM_ (renderOne out origin) sub
 
 		Text style txt -> do
 			changeStyle out style
