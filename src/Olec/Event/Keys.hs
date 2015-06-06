@@ -17,7 +17,12 @@ module Olec.Event.Keys (
 	bindKeys,
 	bind,
 	bind',
-	nest
+	nest,
+
+	-- * Reference
+	KeyMapRef,
+	updateKeyMapRef,
+	handleKeyEventWithRef
 ) where
 
 import Control.Concurrent.Chan
@@ -28,6 +33,8 @@ import Data.Bits
 import Data.List
 import Data.Char hiding (Control)
 import Data.String
+
+import Data.IORef
 
 import qualified Data.Text as T
 import qualified Data.Map.Strict as M
@@ -82,6 +89,11 @@ data KeyMap a
 	= KeyHandler (a -> KeySource -> IO Bool)
 	| KeyMap (M.Map KeyEvent (KeyMap a))
 
+-- | Merge two "KeyMap"s.
+mergeKeyMaps :: KeyMap a -> KeyMap a -> KeyMap a
+mergeKeyMaps (KeyMap a) (KeyMap b) = KeyMap (M.unionWith mergeKeyMaps a b)
+mergeKeyMaps _ x = x
+
 -- | Key event source
 type KeySource = Chan KeyEvent
 
@@ -127,7 +139,18 @@ bind' ev handle =
 nest :: KeyEvent -> KeyBinder a -> KeyBinder a
 nest ev (StateT f) =
 	StateT $ \ m ->
-		fmap (\ nm -> M.insertWith merge ev (KeyMap nm) m) <$> f M.empty
-	where
-		merge (KeyMap a) (KeyMap b) = KeyMap (M.unionWith merge a b)
-		merge _ x = x
+		fmap (\ nm -> M.insertWith mergeKeyMaps ev (KeyMap nm) m) <$> f M.empty
+
+-- | "KeyMap" reference
+type KeyMapRef a = IORef (KeyMap a)
+
+-- | Update the underlying "KeyMap".
+updateKeyMapRef :: KeyMapRef a -> KeyBinder a -> IO ()
+updateKeyMapRef ref b =
+	atomicModifyIORef' ref (\ km -> (mergeKeyMaps km (bindKeys b), ()))
+
+-- | Handle a key event using a "KeyMapRef".
+handleKeyEventWithRef :: KeyMapRef a -> a -> KeySource -> IO Bool
+handleKeyEventWithRef ref x src = do
+	km <- readIORef ref
+	handleKeyEvent km x src
