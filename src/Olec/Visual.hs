@@ -13,7 +13,9 @@ module Olec.Visual (
 	text,
 	string,
 	vbox,
+	vbox',
 	hbox,
+	hbox',
 
 	-- * Canvas
 	Canvas (..),
@@ -116,6 +118,17 @@ string style txt =
 vbox :: [DivisionHint Int Float Painter] -> Painter
 vbox hints = do
 	(_, height) <- ask
+	VAlign <$> sequence (make 0 (divideMetric hints height))
+	where
+		make :: Int -> [(Int, Painter)] -> [Painter]
+		make _ [] = []
+		make offset ((rheight, p) : cs) =
+			local (\ (width, _) -> (width, rheight)) p : make (offset + rheight) cs
+
+-- | Similiar to "vbox", but allows "Painter"s to use less space then delegated.
+vbox' :: [DivisionHint Int Float Painter] -> Painter
+vbox' hints = do
+	(_, height) <- ask
 	VAlign . snd <$> divideMetricFitted hints height constrain
 	where
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
@@ -129,6 +142,17 @@ vbox hints = do
 -- | Align many "Painter"s horizontally.
 hbox :: [DivisionHint Int Float Painter] -> Painter
 hbox hints = do
+	(width, _) <- ask
+	VAlign <$> sequence (make 0 (divideMetric hints width))
+	where
+		make :: Int -> [(Int, Painter)] -> [Painter]
+		make _ [] = []
+		make offset ((rwidth, p) : cs) =
+			local (\ (_, height) -> (rwidth, height)) p : make (offset + rwidth) cs
+
+-- | Similiar to "hbox", but allows "Painter"s to use less space then delegated.
+hbox' :: [DivisionHint Int Float Painter] -> Painter
+hbox' hints = do
 	(width, _) <- ask
 	HAlign . snd <$> divideMetricFitted hints width constrain
 	where
