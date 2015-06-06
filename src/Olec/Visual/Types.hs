@@ -62,8 +62,7 @@ instance IsString Color where
 
 				[r1, r2, g1, g2, b1, b2] = map (hex . toLower) color
 
-			in Color (r1 * 16 + r2) (g1 * 16 * g2) (b1 * 16 * b2)
-
+			in Color (r1 * 16 + r2) (g1 * 16 + g2) (b1 * 16 + b2)
 
 	fromString color =
 		error ("Invalid color string '" ++ color ++ "'")
