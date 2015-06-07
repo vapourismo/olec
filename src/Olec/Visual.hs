@@ -82,7 +82,7 @@ data Image
 -- | How many columns does the "Image" need?
 imageWidth :: Image -> Int
 imageWidth (Empty) = 0
-imageWidth (Maximized w _ _) = w
+imageWidth (Maximized w _ img) = max w (imageWidth img)
 imageWidth (Translated x _ img) = x + imageWidth img
 imageWidth (Layered imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (Text _ txt) = textWidth txt
@@ -92,7 +92,7 @@ imageWidth (HCat imgs) = sum (map imageWidth imgs)
 -- | How many rows does the "Image" need?
 imageHeight :: Image -> Int
 imageHeight (Empty) = 0
-imageHeight (Maximized _ h _) = h
+imageHeight (Maximized _ h img) = max h (imageHeight img)
 imageHeight (Translated _ y img) = y + imageHeight img
 imageHeight (Layered imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 imageHeight (Text _ _) = 1
