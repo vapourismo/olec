@@ -32,7 +32,7 @@ main = do
 		(w, h) <- ask
 		vcat (replicate h (string style (replicate w 'x')))
 
-	let secondLayer = text (Style "#000000" "#ffffff") "Hello World"
+	let secondLayer = center (text (Style "#000000" "#ffffff") "Hello World")
 
 	registerResizeHandler iface $
 		paintImage (layered [firstLayer, secondLayer]) >=> renderImage iface (0, 0)

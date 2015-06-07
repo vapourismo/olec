@@ -13,6 +13,7 @@ module Olec.Visual (
 	maximize,
 	translate,
 	layered,
+	center,
 	text,
 	string,
 	vcat,
@@ -138,9 +139,16 @@ translate x y painter = do
 	else
 		pure (Translated x' y' img)
 
--- | Layered image
+-- | Layered "Image"
 layered :: [Painter] -> Painter
 layered ps = Layered <$> sequence ps
+
+-- | Center the produced "Image" on the canvas.
+center :: Painter -> Painter
+center painter = do
+	(w, h) <- ask
+	img <- painter
+	translate ((w - imageWidth img) `div` 2) ((h - imageHeight img) `div` 2) (pure img)
 
 -- | Draw "Text" in a given "Style".
 text :: Style -> T.Text -> Painter
