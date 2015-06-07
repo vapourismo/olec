@@ -75,6 +75,7 @@ data Image
 	| VCat [Image]
 	| HCat [Image]
 	| Maximized Int Int Image
+	| Translated Int Int Image
 	| Layered [Image]
 	| Empty
 
@@ -82,6 +83,7 @@ data Image
 imageWidth :: Image -> Int
 imageWidth (Empty) = 0
 imageWidth (Maximized w _ _) = w
+imageWidth (Translated x _ img) = x + imageWidth img
 imageWidth (Layered imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
 imageWidth (Text _ txt) = textWidth txt
 imageWidth (VCat imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
@@ -91,6 +93,7 @@ imageWidth (HCat imgs) = sum (map imageWidth imgs)
 imageHeight :: Image -> Int
 imageHeight (Empty) = 0
 imageHeight (Maximized _ h _) = h
+imageHeight (Translated _ y img) = y + imageHeight img
 imageHeight (Layered imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
 imageHeight (Text _ _) = 1
 imageHeight (VCat imgs) = sum (map imageHeight imgs)
@@ -251,6 +254,9 @@ renderOne out origin img =
 
 		Maximized _ _ sub ->
 			renderOne out origin sub
+
+		Translated x y sub ->
+			renderOne out (let (x0, y0) = origin in (x0 + x, y0 + y)) sub
 
 		Layered sub ->
 			mapM_ (renderOne out origin) sub
