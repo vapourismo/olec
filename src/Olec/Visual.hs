@@ -111,10 +111,8 @@ paintImage = runReaderT
 
 -- | Extend the produced "Image" width and height to match the requested width and height.
 maximize :: Painter -> Painter
-maximize painter = do
-	(w, h) <- ask
-	img <- painter
-	pure (Maximized (max w (imageWidth img)) (max h (imageHeight img)) img)
+maximize painter =
+	uncurry Maximized <$> ask <*> painter
 
 -- | Layered image
 layered :: [Painter] -> Painter
