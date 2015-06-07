@@ -11,6 +11,7 @@ module Olec.Visual (
 
 	-- * Utilities
 	maximize,
+	translate,
 	layered,
 	text,
 	string,
@@ -113,6 +114,29 @@ paintImage = runReaderT
 maximize :: Painter -> Painter
 maximize painter =
 	uncurry Maximized <$> ask <*> painter
+
+-- | Move the produced "Image" within the borders of this "Painter".
+translate :: Int -> Int -> Painter -> Painter
+translate x y painter = do
+	(w, h) <- ask
+	img <- painter
+
+	let x' =
+		if imageWidth img > w then
+			0
+		else
+			min (w - imageWidth img) x
+
+	let y' =
+		if imageHeight img > h then
+			0
+		else
+			min (h - imageHeight img) y
+
+	if x' <= 0 && y' <= 0 then
+		pure img
+	else
+		pure (Translated x' y' img)
 
 -- | Layered image
 layered :: [Painter] -> Painter
