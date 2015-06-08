@@ -31,5 +31,5 @@ toSlot out = do
 -- | Paint something in the designated area associated with the "Slot".
 paintSlot :: Slot -> Painter -> IO ()
 paintSlot (Slot out ref) vis = do
-	(origin, size) <- readIORef ref
-	when (size /= (0, 0)) (renderImage out origin =<< paintImage vis size)
+	(origin, size@(w, h)) <- readIORef ref
+	when (w > 0 && h > 0) (renderImage out origin =<< paintImage vis size)
