@@ -13,6 +13,8 @@ import Control.Monad.State
 
 import Data.IORef
 import Data.Tuple
+import Data.Metrics
+import Data.Handle
 
 import qualified Data.Text as T
 
@@ -23,34 +25,45 @@ import Olec.Visual
 import Olec.Visual.Slot
 import Olec.Visual.Layout
 
+class (LayoutElement a) => Widget a where
+	paint :: a -> IO ()
+
 data Flat s = Flat Slot s
 
 instance LayoutElement (Flat s) where
 	layout (Flat slot _) = layout slot
 
-newFlatIORef :: (Canvas o) => o -> s -> IO (Flat (IORef s))
-newFlatIORef out s =
+instance (Paintable s) => Widget (Flat s) where
+	paint (Flat slot st) =
+		paintSlot slot (toPainter st)
+
+type FlatIORef s = Flat (IORef s)
+
+newFlat :: (Canvas o) => o -> s -> IO (Flat (IORef s))
+newFlat out s =
 	Flat <$> toSlot out <*> newIORef s
 
-paintWidget :: (Paintable s) => Flat s -> IO ()
-paintWidget (Flat slot st) =
-	paintSlot slot (toPainter st)
+newtype FlatT s a = FlatT (ReaderT (Flat s) IO a)
+	deriving (Functor, Applicative, Monad, MonadIO)
 
-newtype FlatT r s a = FlatT (ReaderT (Flat (r s)) IO a)
-	deriving (Functor, Applicative, Monad, MonadReader (Flat (r s)), MonadIO)
+instance MonadReader s (FlatT s) where
+	ask = FlatT (ReaderT (\ (Flat _ s) -> pure s))
 
-instance MonadState s (FlatT IORef s) where
-	get = ask >>= \ (Flat _ ref) -> liftIO (readIORef ref)
+	local f (FlatT (ReaderT g)) =
+		FlatT (ReaderT (\ (Flat slot r) -> g (Flat slot (f r))))
 
-	put x = ask >>= \ (Flat _ ref) -> liftIO (writeIORef ref x)
+instance (Handle h) => MonadState s (FlatT (h s)) where
+	get = ask >>= liftIO . readHandle
 
-	state f = ask >>= \ (Flat _ ref) -> liftIO (atomicModifyIORef' ref (swap . f))
+	put x = ask >>= liftIO . flip writeHandle x
 
-runFlatT :: Flat (r s) -> FlatT r s a -> IO a
-runFlatT w (FlatT r) = runReaderT r w
+	state f = ask >>= liftIO . flip modifyHandle (swap . f)
 
-paint :: (Paintable (r s)) => FlatT r s ()
-paint = ask >>= \ (Flat slot s) -> liftIO (paintSlot slot (toPainter s))
+runFlatT :: FlatT s a -> Flat s -> IO a
+runFlatT (FlatT r) = runReaderT r
+
+render :: (Paintable s) => FlatT s ()
+render = FlatT (ReaderT (\ (Flat slot s) -> paintSlot slot (toPainter s)))
 
 -- |
 data Test = Test T.Text
@@ -59,12 +72,40 @@ instance Paintable Test where
 	toPainter (Test txt) =
 		center (text (Style "#000000" "#ffffff") txt)
 
+-- |
+data Global = Global (FlatIORef Test)
+
+instance LayoutElement Global where
+	layout (Global test) =
+		vlayout [LeftOver (pure ()), Absolute 1 (layout test)]
+
+instance Widget Global where
+	paint (Global test) =
+		paint test
+
+-- |
+newGlobal :: (Canvas o) => o -> IO Global
+newGlobal out =
+	Global <$> newFlat out (Test "Hello World")
+
+-- |
+registerRootWidget :: (Widget w) => Interface -> w -> IO ()
+registerRootWidget iface w =  do
+	registerResizeHandler iface $ \ size -> do
+		clearCanvas iface
+		runLayout (0, 0) size (layout w)
+		paint w
+
+	size <- sizeOfCanvas iface
+	runLayout (0, 0) size (layout w)
+	paint w
+
 -- | Entry Point
 main :: IO ()
 main = do
 	iface <- newInterface
 
-	w <- newFlatIORef iface (Test "Hello World")
+	w <- newGlobal iface
 
 	-- Keys
 	src <- newChan
@@ -76,9 +117,6 @@ main = do
 	forkIO (forever (handleKeyEvent km () src))
 
 	-- Visual
-	registerResizeHandler iface $ \ size -> do
-		clearCanvas iface
-		runLayout (0, 0) size (layout w)
-		paintWidget w
+	registerRootWidget iface w
 
 	runInterface
