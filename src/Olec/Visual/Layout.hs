@@ -1,8 +1,9 @@
 module Olec.Visual.Layout (
 	Layout,
-	runLayout,
 	LayoutElement (..),
-	vlayout
+	runLayout,
+	vlayout,
+	hlayout
 ) where
 
 import Control.Monad.Reader
@@ -33,3 +34,15 @@ vlayout hints = do
 		make y ((h, l) : ls) = do
 			local (\ ((x, _), (w, _)) -> ((x, y), (w, h))) l
 			make (y + h) ls
+
+-- | Align elements horizontally.
+hlayout :: [DivisionHint Int Float Layout] -> Layout
+hlayout hints = do
+	((x, _), (w, _)) <- ask
+	make x (divideMetric hints w)
+	where
+		make :: Int -> [(Int, Layout)] -> ReaderT (Position, Size) IO ()
+		make _ [] = pure ()
+		make x ((w, l) : ls) = do
+			local (\ ((_, y), (_, h)) -> ((x, y), (w, h))) l
+			make (x + w) ls
