@@ -16,6 +16,7 @@ module Olec.Visual (
 	translate,
 	layered,
 	center,
+	justifyRight,
 	text,
 	string,
 	vcat,
@@ -154,6 +155,13 @@ center painter = do
 	(w, h) <- ask
 	img <- painter
 	translate ((w - imageWidth img) `div` 2) ((h - imageHeight img) `div` 2) (pure img)
+
+-- | Justify the painted "Image" to the right.
+justifyRight :: Painter -> Painter
+justifyRight painter = do
+	(w, _) <- ask
+	img <- painter
+	translate (w - imageWidth img) 0 (pure img)
 
 -- | Draw "Text" in a given "Style".
 text :: Style -> T.Text -> Painter
