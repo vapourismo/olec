@@ -158,7 +158,7 @@ newInterface = do
 	mbScreen <- G.screenGetDefault
 	flip (maybe (pure ())) mbScreen $ \ screen -> do
 		cssProvider <- G.cssProviderNew
-		G.cssProviderLoadFromString cssProvider ("VteTerminal { padding: 6px; }" :: T.Text)
+		G.cssProviderLoadFromString cssProvider ("VteTerminal { padding: 0px; }" :: T.Text)
 		G.styleContextAddProviderForScreen screen cssProvider 800
 
 	-- Main window
