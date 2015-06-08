@@ -9,12 +9,10 @@ import Control.Concurrent
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.State
 
+import Data.Time
 import Data.IORef
-import Data.Tuple
 import Data.Metrics
-import Data.Handle
 
 import qualified Data.Text as T
 
@@ -22,58 +20,27 @@ import Olec.Event.Keys
 import Olec.Interface.GTK
 
 import Olec.Visual
-import Olec.Visual.Slot
 import Olec.Visual.Layout
-
-class (LayoutElement a) => Widget a where
-	paint :: a -> IO ()
-
-data Flat s = Flat Slot s
-
-instance LayoutElement (Flat s) where
-	layout (Flat slot _) = layout slot
-
-instance (Paintable s) => Widget (Flat s) where
-	paint (Flat slot st) =
-		paintSlot slot (toPainter st)
-
-type FlatIORef s = Flat (IORef s)
-
-newFlat :: (Canvas o) => o -> s -> IO (Flat (IORef s))
-newFlat out s =
-	Flat <$> toSlot out <*> newIORef s
-
-newtype FlatT s a = FlatT (ReaderT (Flat s) IO a)
-	deriving (Functor, Applicative, Monad, MonadIO)
-
-instance MonadReader s (FlatT s) where
-	ask = FlatT (ReaderT (\ (Flat _ s) -> pure s))
-
-	local f (FlatT (ReaderT g)) =
-		FlatT (ReaderT (\ (Flat slot r) -> g (Flat slot (f r))))
-
-instance (Handle h) => MonadState s (FlatT (h s)) where
-	get = ask >>= liftIO . readHandle
-
-	put x = ask >>= liftIO . flip writeHandle x
-
-	state f = ask >>= liftIO . flip modifyHandle (swap . f)
-
-runFlatT :: FlatT s a -> Flat s -> IO a
-runFlatT (FlatT r) = runReaderT r
-
-render :: (Paintable s) => FlatT s ()
-render = FlatT (ReaderT (\ (Flat slot s) -> paintSlot slot (toPainter s)))
+import Olec.Visual.Widget
 
 -- |
-data Test = Test T.Text
+data StatusBar = StatusBar T.Text
 
-instance Paintable Test where
-	toPainter (Test txt) =
-		center (text (Style "#000000" "#ffffff") txt)
+instance Paintable StatusBar where
+	toPainter (StatusBar txt) = do
+		tm <- liftIO getCurrentTime
+		let clockString = formatTime defaultTimeLocale "%T" tm
+		layered [text (Style "#000000" "#ffffff") txt,
+		         justifyRight (string (Style "#000000" "#ffffff") clockString)]
+
+refreshDelayed :: (Widget w) => Int -> w -> IO ()
+refreshDelayed n w =
+	forever $ do
+		threadDelay n
+		paint w
 
 -- |
-data Global = Global (FlatIORef Test)
+data Global = Global (Flat (IORef StatusBar))
 
 instance LayoutElement Global where
 	layout (Global test) =
@@ -85,8 +52,10 @@ instance Widget Global where
 
 -- |
 newGlobal :: (Canvas o) => o -> IO Global
-newGlobal out =
-	Global <$> newFlat out (Test "Hello World")
+newGlobal out = do
+	sb <- newFlat out (StatusBar "Hello World")
+	forkIO (refreshDelayed 1000000 sb)
+	pure (Global sb)
 
 -- |
 registerRootWidget :: (Widget w) => Interface -> w -> IO ()
