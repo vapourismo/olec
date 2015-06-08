@@ -13,9 +13,13 @@ import Control.Monad
 import Data.IORef
 
 import Olec.Visual
+import Olec.Visual.Layout
 
 -- | Layout Slot
 data Slot = forall o. (Canvas o) => Slot o (IORef (Position, Size))
+
+instance Layout Slot where
+	updateLayout = updateSlot
 
 -- | Create a new "Slot". The slot initially occupies the entire canvas.
 toSlot :: (Canvas o) => o -> IO Slot
