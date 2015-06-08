@@ -31,6 +31,7 @@ module Olec.Visual (
 	module Olec.Visual.Types
 ) where
 
+import Control.Arrow
 import Control.Exception
 import Control.Concurrent.MVar
 import Control.Monad.Reader
@@ -187,7 +188,7 @@ vbox hints = do
 		make :: Int -> [(Int, Painter)] -> [Painter]
 		make _ [] = []
 		make offset ((rheight, p) : cs) =
-			local (\ (width, _) -> (width, rheight)) p : make (offset + rheight) cs
+			local (second (const rheight)) p : make (offset + rheight) cs
 
 -- | Similiar to "vbox", but allows "Painter"s to use less space then delegated.
 vbox' :: [DivisionHint Int Float Painter] -> Painter
@@ -198,8 +199,8 @@ vbox' hints = do
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rheight, visualizer) =
 			if rheight > 0 then
-				fmap (\ img -> (imageHeight img, img))
-				     (local (\ (width, _) -> (width, rheight)) visualizer)
+				fmap (imageHeight &&& id)
+				     (local (second (const rheight)) visualizer)
 			else
 				pure (0, Empty)
 
@@ -216,7 +217,7 @@ hbox hints = do
 		make :: Int -> [(Int, Painter)] -> [Painter]
 		make _ [] = []
 		make offset ((rwidth, p) : cs) =
-			local (\ (_, height) -> (rwidth, height)) p : make (offset + rwidth) cs
+			local (first (const rwidth)) p : make (offset + rwidth) cs
 
 -- | Similiar to "hbox", but allows "Painter"s to use less space then delegated.
 hbox' :: [DivisionHint Int Float Painter] -> Painter
@@ -227,8 +228,8 @@ hbox' hints = do
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rwidth, visualizer) =
 			if rwidth > 0 then
-				fmap (\ img -> (imageWidth img, img))
-				     (local (\ (_, height) -> (rwidth, height)) visualizer)
+				fmap (imageWidth &&& id)
+				     (local (first (const rwidth)) visualizer)
 			else
 				pure (0, Empty)
 
