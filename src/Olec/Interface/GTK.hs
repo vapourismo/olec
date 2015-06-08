@@ -97,7 +97,7 @@ instance Canvas Interface where
 		terminalSize term
 
 	clearCanvas (Interface _ term) =
-		terminalFeed term "\ESC[2J\ESC[m"
+		terminalFeed term "\ESC[m\ESC[2J"
 
 	hideCursor (Interface _ term) =
 		terminalFeed term "\ESC[?25l"
