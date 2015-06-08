@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Olec.Visual (
 	-- * Image
 	Image,
@@ -33,14 +35,13 @@ module Olec.Visual (
 
 import Control.Arrow
 import Control.Exception
-import Control.Concurrent.MVar
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 
+import Data.Char
+import Data.Handle
 import Data.Metrics
 import Data.Foldable
-import Data.IORef
-import Data.Char
 
 import qualified Data.Text as T
 
@@ -108,11 +109,8 @@ type Painter = ReaderT Size IO Image
 class Paintable a where
 	toPainter :: a -> Painter
 
-instance (Paintable a) => Paintable (IORef a) where
-	toPainter ref = liftIO (readIORef ref) >>= toPainter
-
-instance (Paintable a) => Paintable (MVar a) where
-	toPainter var = liftIO (readMVar var) >>= toPainter
+instance (Paintable a, Handle h) => Paintable (h a) where
+	toPainter ref = liftIO (readHandle ref) >>= toPainter
 
 -- | Generate the "Image"
 paintImage :: Painter -> Size -> IO Image
