@@ -1,7 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Main where
 
@@ -12,6 +9,7 @@ import Control.Monad.Reader
 
 import Data.Time
 import Data.IORef
+import Data.Handle
 import Data.Metrics
 
 import qualified Data.Text as T
@@ -20,42 +18,56 @@ import Olec.Event.Keys
 import Olec.Interface.GTK
 
 import Olec.Visual
+import Olec.Visual.Slot
 import Olec.Visual.Layout
 import Olec.Visual.Widget
 
 -- |
-data StatusBar = StatusBar T.Text
+data StatusBar = StatusBar
 
 instance Paintable StatusBar where
-	toPainter (StatusBar txt) = do
-		tm <- liftIO getCurrentTime
-		let clockString = formatTime defaultTimeLocale "%T" tm
-		layered [text (Style "#000000" "#ffffff") txt,
-		         justifyRight (string (Style "#000000" "#ffffff") clockString)]
-
-refreshDelayed :: (Widget w) => Int -> w -> IO ()
-refreshDelayed n w =
-	forever $ do
-		threadDelay n
-		paint w
+	toPainter StatusBar =
+		center (text (Style "#ff0000" "#00ffff") "StatusBar")
 
 -- |
-data Global = Global (Flat (IORef StatusBar))
+data WorkspaceNavigator = WorkspaceNavigator
 
-instance LayoutElement Global where
-	layout (Global test) =
-		vlayout [LeftOver (pure ()), Absolute 1 (layout test)]
-
-instance Widget Global where
-	paint (Global test) =
-		paint test
+instance Paintable WorkspaceNavigator where
+	toPainter WorkspaceNavigator =
+		text (Style "#ff0000" "#00ffff") "WorkspaceNavigator"
 
 -- |
-newGlobal :: (Canvas o) => o -> IO Global
-newGlobal out = do
-	sb <- newFlat out (StatusBar "Hello World")
-	forkIO (refreshDelayed 1000000 sb)
-	pure (Global sb)
+data EditorPane = EditorPane
+
+instance Paintable EditorPane where
+	toPainter EditorPane =
+		text (Style "#ff0000" "#00ffff") "EditorPane"
+
+-- |
+data RootWidget =
+	RootWidget
+		(Flat (IORef StatusBar))
+		(Flat (IORef WorkspaceNavigator))
+		(Flat (IORef EditorPane))
+
+instance LayoutElement RootWidget where
+	layout (RootWidget sb wn ep) =
+		vlayout [LeftOver (hlayout [Absolute 40 (layout wn),
+		                            LeftOver (layout ep)]),
+		         Absolute 1 (layout sb)]
+
+instance Widget RootWidget where
+	paint (RootWidget sb wn ep) = do
+		paint sb
+		paint wn
+		paint ep
+
+-- |
+newRootWidget :: (Canvas o) => o -> IO (RootWidget)
+newRootWidget out =
+	RootWidget <$> newFlatHandle out StatusBar
+	           <*> newFlatHandle out WorkspaceNavigator
+	           <*> newFlatHandle out EditorPane
 
 -- |
 registerRootWidget :: (Widget w) => Interface -> w -> IO ()
@@ -74,8 +86,6 @@ main :: IO ()
 main = do
 	iface <- newInterface
 
-	w <- newGlobal iface
-
 	-- Keys
 	src <- newChan
 	registerKeyHandler iface (writeChan src)
@@ -86,6 +96,7 @@ main = do
 	forkIO (forever (handleKeyEvent km () src))
 
 	-- Visual
-	registerRootWidget iface w
+	rw <- newRootWidget iface
+	registerRootWidget iface rw
 
 	runInterface
