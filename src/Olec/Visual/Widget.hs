@@ -5,6 +5,7 @@ module Olec.Visual.Widget (
 	-- * Flat
 	Flat,
 	newFlat,
+	newFlatHandle,
 	withFlat,
 	modifyFlat,
 	modifyFlatIO,
@@ -31,8 +32,13 @@ instance (Paintable s) => Widget (Flat s) where
 		paintSlot slot (toPainter st)
 
 -- | Make a new "Flat" handle.
-newFlat :: (Handle h, Canvas o) => o -> s -> IO (Flat (h s))
+newFlat :: (Canvas o) => o -> s -> IO (Flat s)
 newFlat out s =
+	Flat <$> toSlot out <*> pure s
+
+-- | Make a new "Flat" handle.
+newFlatHandle :: (Handle h, Canvas o) => o -> s -> IO (Flat (h s))
+newFlatHandle out s =
 	Flat <$> toSlot out <*> newHandle s
 
 -- | Do something with the inner state.
