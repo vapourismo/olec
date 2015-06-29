@@ -24,10 +24,8 @@ import Control.Monad
 import Control.Monad.Trans
 
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as BC
 
 import qualified Graphics.UI.Gtk as G
 import qualified Graphics.UI.Gtk.General.StyleContext as G
@@ -39,7 +37,6 @@ import System.Posix.Types
 import Olec.Event.Keys
 
 import Olec.Visual.Types
-import Olec.Visual.Image
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: IO (Ptr Terminal)
@@ -87,46 +84,6 @@ terminalFeed term bs =
 
 -- | GTK Interface
 data Interface = Interface QSem Terminal
-
-instance Canvas Interface where
-	lockCanvas (Interface lock _) =
-		waitQSem lock
-
-	unlockCanvas (Interface lock _) =
-		signalQSem lock
-
-	sizeOfCanvas (Interface _ term) =
-		terminalSize term
-
-	clearCanvas (Interface _ term) =
-		terminalFeed term "\ESC[m\ESC[2J"
-
-	hideCursor (Interface _ term) =
-		terminalFeed term "\ESC[?25l"
-
-	showCursor (Interface _ term) =
-		terminalFeed term "\ESC[?25h"
-
-	setForeground (Interface _ term) (Color r g b) =
-		terminalFeed term (B.concat ["\ESC[38;2;",
-		                             BC.pack (show r), ";",
-		                             BC.pack (show g), ";",
-		                             BC.pack (show b), "m"])
-
-	setBackground (Interface _ term) (Color r g b) =
-		terminalFeed term (B.concat ["\ESC[48;2;",
-		                             BC.pack (show r), ";",
-		                             BC.pack (show g), ";",
-		                             BC.pack (show b), "m"])
-
-	drawText (Interface _ term) txt =
-		terminalFeed term (T.encodeUtf8 txt)
-
-	moveCursor (Interface _ term) (x, y) =
-		terminalFeed term (B.concat ["\ESC[",
-		                             BC.pack (show (y + 1)), ";",
-		                             BC.pack (show (x + 1)), "H"])
-
 
 -- | Register a callback which will be called upon receiving a key event.
 registerKeyHandler :: Interface -> (KeyEvent -> IO ()) -> IO ()

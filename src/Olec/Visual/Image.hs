@@ -2,9 +2,7 @@
 
 module Olec.Visual.Image (
 	-- * Image
-	Image,
-	imageWidth,
-	imageHeight,
+	Image (..),
 
 	-- * Painter
 	Painter,
@@ -26,15 +24,15 @@ module Olec.Visual.Image (
 	hbox,
 	hbox',
 
-	-- * Canvas
-	Canvas (..),
-	renderImage,
+	-- * Intermediate representation
+	ImageIR (..),
+	toImageIR,
 ) where
 
 import Control.Arrow
-import Control.Exception
 import Control.Monad.Reader
 import Control.Monad.State.Strict
+import Control.Monad.Writer.Strict
 
 import Data.Char
 import Data.Handle
@@ -71,35 +69,21 @@ fitString n txt | safeWcswidth txt > n =
 			| otherwise = (-1, acc)
 fitString _ txt = txt
 
--- | An image
-data Image
+-- | Image contents
+data Contents
 	= Text Style T.Text
 	| VCat [Image]
 	| HCat [Image]
-	| Maximized Int Int Image
-	| Translated Int Int Image
-	| Layered [Image]
+	| Translate Int Int Contents
+	| Layered [Contents]
 	| Empty
 
--- | How many columns does the "Image" need?
-imageWidth :: Image -> Int
-imageWidth (Empty) = 0
-imageWidth (Maximized w _ img) = max w (imageWidth img)
-imageWidth (Translated x _ img) = x + imageWidth img
-imageWidth (Layered imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
-imageWidth (Text _ txt) = textWidth txt
-imageWidth (VCat imgs) = foldl' (\ w i -> max w (imageWidth i)) 0 imgs
-imageWidth (HCat imgs) = sum (map imageWidth imgs)
-
--- | How many rows does the "Image" need?
-imageHeight :: Image -> Int
-imageHeight (Empty) = 0
-imageHeight (Maximized _ h img) = max h (imageHeight img)
-imageHeight (Translated _ y img) = y + imageHeight img
-imageHeight (Layered imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
-imageHeight (Text _ _) = 1
-imageHeight (VCat imgs) = sum (map imageHeight imgs)
-imageHeight (HCat imgs) = foldl' (\ w i -> max w (imageHeight i)) 0 imgs
+-- | Image
+data Image = Image {
+	imageWidth :: Int,
+	imageHeight :: Int,
+	imageContents :: Contents
+}
 
 -- | An "Image" producer
 type Painter = ReaderT Size IO Image
@@ -117,34 +101,42 @@ paintImage = runReaderT
 -- | Extend the produced "Image" width and height to match the requested width and height.
 maximize :: Painter -> Painter
 maximize painter =
-	uncurry Maximized <$> ask <*> painter
+	uncurry Image <$> ask <*> fmap imageContents painter
 
 -- | Move the produced "Image" within the borders of this "Painter".
 translate :: Int -> Int -> Painter -> Painter
 translate x y painter = do
 	(w, h) <- ask
-	img <- painter
+	img@(Image width height cnts) <- painter
 
 	let x' =
-		if imageWidth img > w then
+		if width > w then
 			0
 		else
-			min (w - imageWidth img) x
+			min (w - width) x
 
 	let y' =
-		if imageHeight img > h then
+		if height > h then
 			0
 		else
-			min (h - imageHeight img) y
+			min (h - height) y
 
 	if x' <= 0 && y' <= 0 then
 		pure img
 	else
-		pure (Translated x' y' img)
+		pure (Image (width + x') (height + y') (Translate x' y' cnts))
 
 -- | Layered "Image"
 layered :: [Painter] -> Painter
-layered ps = Layered <$> sequence ps
+layered ps =
+	fmap make (sequence ps)
+	where
+		make imgs =
+			let (w, h) = foldl' (\ (width', height') (Image width height _) ->
+			                         (max width' width, max height' height))
+			                    (0, 0)
+			                    imgs
+			in Image w h (Layered (map imageContents imgs))
 
 -- | Center the produced "Image" on the canvas.
 center :: Painter -> Painter
@@ -165,28 +157,44 @@ text :: Style -> T.Text -> Painter
 text style txt =
 	flip fmap ask $ \ (w, h) ->
 		if h >= 1 then
-			Text style (fitText w (T.filter isPrint txt))
+			let
+				txt' = fitText w (T.filter isPrint txt)
+				height = if T.null txt' then 0 else 1
+			in Image (textWidth txt') height (Text style txt')
 		else
-			Empty
+			Image 0 0 Empty
 
 -- | Draw "String" in a given "Style".
 string :: Style -> String -> Painter
-string style txt =
-	flip fmap ask $ \ (w, h) ->
-		if h >= 1 then
-			Text style (T.pack (fitString w (filter isPrint txt)))
-		else
-			Empty
+string style str = text style (T.pack str)
+
+-- | Concat images vertically.
+vcatImages :: [Image] -> Image
+vcatImages imgs =
+	let (w, h) = foldl' (\ (width', height') (Image width height _) ->
+	                         (max width' width, height' + height))
+	                    (0, 0)
+	                    imgs
+	in Image w h (VCat imgs)
+
+-- | Concat images horizontally.
+hcatImages :: [Image] -> Image
+hcatImages imgs =
+	let (w, h) = foldl' (\ (width', height') (Image width height _) ->
+	                         (width' + width, max height' height))
+	                    (0, 0)
+	                    imgs
+	in Image w h (HCat imgs)
 
 -- | Concat "Painter"s vertically.
 vcat :: [Painter] -> Painter
-vcat ps = VCat <$> sequence ps
+vcat = fmap vcatImages . sequence
 
 -- | Align many "Painter"s vertically.
 vbox :: [DivisionHint Int Float Painter] -> Painter
 vbox hints = do
 	(_, height) <- ask
-	VCat <$> sequence (make 0 (divideMetric hints height))
+	vcat (make 0 (divideMetric hints height))
 	where
 		make :: Int -> [(Int, Painter)] -> [Painter]
 		make _ [] = []
@@ -197,7 +205,7 @@ vbox hints = do
 vbox' :: [DivisionHint Int Float Painter] -> Painter
 vbox' hints = do
 	(_, height) <- ask
-	VCat . snd <$> divideMetricFitted hints height constrain
+	vcatImages . snd <$> divideMetricFitted hints height constrain
 	where
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rheight, visualizer) =
@@ -205,17 +213,17 @@ vbox' hints = do
 				fmap (imageHeight &&& id)
 				     (local (second (const rheight)) visualizer)
 			else
-				pure (0, Empty)
+				pure (0, Image 0 0 Empty)
 
 -- | Concat "Painter"s horizontally.
 hcat :: [Painter] -> Painter
-hcat ps = HCat <$> sequence ps
+hcat = fmap hcatImages . sequence
 
 -- | Align many "Painter"s horizontally.
 hbox :: [DivisionHint Int Float Painter] -> Painter
 hbox hints = do
 	(width, _) <- ask
-	VCat <$> sequence (make 0 (divideMetric hints width))
+	hcat (make 0 (divideMetric hints width))
 	where
 		make :: Int -> [(Int, Painter)] -> [Painter]
 		make _ [] = []
@@ -226,7 +234,7 @@ hbox hints = do
 hbox' :: [DivisionHint Int Float Painter] -> Painter
 hbox' hints = do
 	(width, _) <- ask
-	HCat . snd <$> divideMetricFitted hints width constrain
+	hcatImages . snd <$> divideMetricFitted hints width constrain
 	where
 		constrain :: (Int, Painter) -> ReaderT Size IO (Int, Image)
 		constrain (rwidth, visualizer) =
@@ -234,95 +242,74 @@ hbox' hints = do
 				fmap (imageWidth &&& id)
 				     (local (first (const rwidth)) visualizer)
 			else
-				pure (0, Empty)
+				pure (0, Image 0 0 Empty)
 
--- | VT100-style output
-class Canvas a where
-	lockCanvas :: a -> IO ()
+-- | Image intermediate representation
+class (Monoid a) => ImageIR a where
+	mkSetForeground :: Color -> a
 
-	unlockCanvas :: a -> IO ()
+	mkSetBackground :: Color -> a
 
-	sizeOfCanvas :: a -> IO Size
+	mkMoveCursor :: Position -> a
 
-	clearCanvas :: a -> IO ()
-
-	hideCursor :: a -> IO ()
-
-	showCursor :: a -> IO ()
-
-	setForeground :: a -> Color -> IO ()
-
-	setBackground :: a -> Color -> IO ()
-
-	drawText :: a -> T.Text -> IO ()
-
-	moveCursor :: a -> Position -> IO ()
+	mkText :: T.Text -> a
 
 -- | Render the "Image" at a given "Position".
-renderImage :: (Canvas o) => o -> Position -> Image -> IO ()
-renderImage out origin img =
-	bracket_ (lockCanvas out)
-	         (unlockCanvas out)
-	         (evalStateT (renderOne out origin img) Nothing)
+toImageIR :: (ImageIR a) => Position -> Image -> a
+toImageIR origin (Image _ _ cnts) =
+	execWriter (runStateT (renderOne origin cnts) Nothing)
 
 -- | Image output
-type ImageOutput = StateT (Maybe Style) IO
+type ImageOutput a = StateT (Maybe Style) (Writer a) ()
 
--- | Change the "Style".
-changeStyle :: (Canvas o) => o -> Style -> ImageOutput ()
-changeStyle out style@(Style fg bg) = do
+-- | Change style.
+changeStyle :: (ImageIR a) => Style -> ImageOutput a
+changeStyle style@(Style fg bg) = do
 	mbStyle <- get
 	case mbStyle of
 		Nothing ->
-			liftIO $ do
-				setForeground out fg
-				setBackground out bg
+			tell (mkSetBackground fg <> mkSetBackground bg)
 
-		Just (Style fg' bg') ->
-			liftIO $ do
-				when (fg' /= fg) (setForeground out fg)
-				when (bg' /= bg) (setBackground out bg)
+		Just (Style fg' bg') -> do
+			when (fg' /= fg) (tell (mkSetForeground fg))
+			when (bg' /= bg) (tell (mkSetBackground bg))
 
 	put (Just style)
 
--- | Render one "Image".
-renderOne :: (Canvas o) => o -> Position -> Image -> ImageOutput ()
-renderOne out origin img =
-	case img of
+-- | Render a single image.
+renderOne :: (ImageIR a) => Position -> Contents -> ImageOutput a
+renderOne origin cnts =
+	case cnts of
 		Empty ->
 			pure ()
 
-		Maximized _ _ sub ->
-			renderOne out origin sub
-
-		Translated x y sub ->
-			renderOne out (let (x0, y0) = origin in (x0 + x, y0 + y)) sub
+		Translate x y sub ->
+			renderOne (let (x0, y0) = origin in (x0 + x, y0 + y)) sub
 
 		Layered sub ->
-			mapM_ (renderOne out origin) sub
+			mapM_ (renderOne origin) sub
 
 		Text style txt -> do
-			changeStyle out style
-			liftIO $ do
-				moveCursor out origin
-				drawText out txt
+			changeStyle style
+			tell (mkMoveCursor origin)
+			tell (mkText txt)
 
 		VCat imgs ->
-			renderVertically out origin imgs
+			renderVertically origin imgs
 
 		HCat imgs ->
-			renderHorizontally out origin imgs
+			renderHorizontally origin imgs
 
--- | Render some "Image"s vertically aligned.
-renderVertically :: (Canvas o) => o -> Position -> [Image] -> ImageOutput ()
-renderVertically _ _ [] = pure ()
-renderVertically out origin@(x, y) (img : imgs) = do
-	renderOne out origin img
-	renderVertically out (x, y + imageHeight img) imgs
+-- | Render multiple images vertically aligned.
+renderVertically :: (ImageIR a) => Position -> [Image] -> ImageOutput a
+renderVertically _ [] = pure ()
+renderVertically origin@(x, y) (img : imgs) = do
+	renderOne origin (imageContents img)
+	renderVertically (x, y + imageHeight img) imgs
 
--- | Render some "Images"s horizontally aligned.
-renderHorizontally :: (Canvas o) => o -> Position -> [Image] -> ImageOutput ()
-renderHorizontally _ _ [] = pure ()
-renderHorizontally out origin@(x, y) (img : imgs) = do
-	renderOne out origin img
-	renderHorizontally out (x + imageWidth img, y) imgs
+-- | Render multiple images horizontally aligned.
+renderHorizontally :: (ImageIR a) => Position -> [Image] -> ImageOutput a
+renderHorizontally _ [] = pure ()
+renderHorizontally origin@(x, y) (img : imgs) = do
+	renderOne origin (imageContents img)
+	renderHorizontally (x + imageWidth img, y) imgs
