@@ -37,7 +37,9 @@ import System.Glib.GObject
 import System.Posix.Types
 
 import Olec.Event.Keys
-import Olec.Visual
+
+import Olec.Visual.Types
+import Olec.Visual.Image
 
 foreign import ccall "olec_make_vte"
 	makeVTE :: IO (Ptr Terminal)

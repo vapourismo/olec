@@ -12,7 +12,8 @@ import Control.Monad.Reader
 
 import Data.IORef
 
-import Olec.Visual
+import Olec.Visual.Types
+import Olec.Visual.Image
 import Olec.Visual.Layout
 
 -- | Layout Slot

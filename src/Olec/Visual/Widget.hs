@@ -14,7 +14,7 @@ module Olec.Visual.Widget (
 
 import Data.Handle
 
-import Olec.Visual
+import Olec.Visual.Image
 import Olec.Visual.Slot
 import Olec.Visual.Layout
 

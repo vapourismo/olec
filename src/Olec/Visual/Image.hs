@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Olec.Visual (
+module Olec.Visual.Image (
 	-- * Image
 	Image,
 	imageWidth,
@@ -29,9 +29,6 @@ module Olec.Visual (
 	-- * Canvas
 	Canvas (..),
 	renderImage,
-
-	-- * Exports
-	module Olec.Visual.Types
 ) where
 
 import Control.Arrow
