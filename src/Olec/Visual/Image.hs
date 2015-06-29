@@ -95,8 +95,8 @@ instance (Paintable a, Handle h) => Paintable (h a) where
 	toPainter ref = liftIO (readHandle ref) >>= toPainter
 
 -- | Generate the "Image"
-paintImage :: Painter -> Size -> IO Image
-paintImage = runReaderT
+paintImage :: Size -> Painter -> IO Image
+paintImage = flip runReaderT
 
 -- | Extend the produced "Image" width and height to match the requested width and height.
 maximize :: Painter -> Painter
@@ -268,7 +268,7 @@ changeStyle style@(Style fg bg) = do
 	mbStyle <- get
 	case mbStyle of
 		Nothing ->
-			tell (mkSetBackground fg <> mkSetBackground bg)
+			tell (mkSetForeground fg <> mkSetBackground bg)
 
 		Just (Style fg' bg') -> do
 			when (fg' /= fg) (tell (mkSetForeground fg))
