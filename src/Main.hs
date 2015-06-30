@@ -79,7 +79,10 @@ instance ImageIR (CairoPainter ()) where
 		RenderInfo {..} <- ask
 		RenderState (Color fgR fgG fgB) (Color bgR bgG bgB) <- get
 
-		layout <- liftIO (G.layoutText riPangoContext txt)
+		(layout, w, h) <- liftIO $ do
+			layout <- G.layoutText riPangoContext txt
+			(_, G.PangoRectangle _ _ w h) <- G.layoutGetExtents layout
+			pure (layout, w, h)
 
 		CairoPainter $ lift $ lift $ do
 			-- Draw background
@@ -88,7 +91,9 @@ instance ImageIR (CairoPainter ()) where
 			               (fromIntegral bgB / 255)
 
 			(x, y) <- C.getCurrentPoint
-			C.rectangle x y (fromIntegral (textWidth txt) * riCharWidth) riCharHeight
+
+			C.rectangle x y w h
+			C.strokePreserve
 			C.fill
 
 			C.moveTo x y
@@ -121,6 +126,10 @@ main = do
 	G.contextSetFontDescription context font
 
 	G.on drawingArea G.draw $ do
+		-- Setup
+		C.setAntialias C.AntialiasSubpixel
+		C.setLineWidth 1
+
 		-- Background
 		(clipX, clipY, clipWidth, clipHeight) <- C.clipExtents
 		C.rectangle clipX clipY clipWidth clipHeight
@@ -130,8 +139,8 @@ main = do
 		runCairoPainter context $ do
 			let painter =
 				center $
-					vcat [text (Style "#ff0000" "#00ff00") "Hello World",
-	                      text (Style "#ff0000" "#00ff00") "Hello World"]
+					vcat [text (Style "#ff0000" "#efefef") "Hello World",
+	                      text (Style "#ff0000" "#efefef") "Hello World"]
 
 			size <- getCanvasSize
 			img <- liftIO (paintImage size painter)
