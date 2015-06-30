@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Olec.Visual.Image (
+	-- * Auxiliary
+	textWidth,
+
 	-- * Image
 	Image (..),
 
