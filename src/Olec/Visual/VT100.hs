@@ -12,7 +12,7 @@ import Olec.Visual.Types
 import Olec.Visual.Image
 
 -- | VT100 Sequence
-newtype VT100 = VT100 { toVT100ByteString :: B.ByteString }
+newtype VT100 = VT100 { toVT100Sequence :: B.ByteString }
 	deriving (Monoid)
 
 instance ImageIR VT100 where
