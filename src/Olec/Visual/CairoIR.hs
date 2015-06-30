@@ -11,14 +11,14 @@ module Olec.Visual.CairoIR (
 import Control.Monad.Reader
 import Control.Monad.State.Strict
 
-import qualified Graphics.UI.Gtk as G
-import qualified Graphics.Rendering.Cairo as C
+import Graphics.UI.Gtk hiding (Color, get, rectangle)
+import Graphics.Rendering.Cairo
 
 import Olec.Visual.Types
 import Olec.Visual.Image
 
 data RenderInfo = RenderInfo {
-	riPangoContext :: G.PangoContext,
+	riPangoContext :: PangoContext,
 	riCharWidth    :: Double,
 	riCharHeight   :: Double,
 	riColumns      :: Int,
@@ -27,18 +27,18 @@ data RenderInfo = RenderInfo {
 	riYOffset      :: Double
 }
 
-mkRenderInfo :: G.PangoContext -> C.Render RenderInfo
+mkRenderInfo :: PangoContext -> Render RenderInfo
 mkRenderInfo context = do
-	G.FontMetrics a d charWidth _ _ _ _ _ <- liftIO $ do
-		G.contextSetTextGravityHint context G.PangoGravityHintLine
+	FontMetrics a d charWidth _ _ _ _ _ <- liftIO $ do
+		contextSetTextGravityHint context PangoGravityHintLine
 
-		font <- G.contextGetFontDescription context
-		lang <- G.contextGetLanguage context
-		G.contextGetMetrics context font lang
+		font <- contextGetFontDescription context
+		lang <- contextGetLanguage context
+		contextGetMetrics context font lang
 
 	let charHeight = a + d
 
-	(_, _, clipWidth, clipHeight) <- C.clipExtents
+	(_, _, clipWidth, clipHeight) <- clipExtents
 
 	let maxCols = floor (clipWidth / charWidth) :: Int
 	let maxRows = floor (clipHeight / charHeight) :: Int
@@ -54,7 +54,7 @@ mkRenderInfo context = do
 data RenderState = RenderState Color Color
 
 -- | Intermediate representation
-newtype CairoIR a = CairoIR (ReaderT RenderInfo (StateT RenderState C.Render) a)
+newtype CairoIR a = CairoIR (ReaderT RenderInfo (StateT RenderState Render) a)
 	deriving (Functor, Applicative, Monad, MonadIO,
 	          MonadReader RenderInfo, MonadState RenderState)
 
@@ -73,7 +73,7 @@ instance ImageIR (CairoIR ()) where
 	mkMoveCursor (x, y) = do
 		RenderInfo {..} <- ask
 		CairoIR $ lift $ lift $
-			C.moveTo (riXOffset + fromIntegral x * riCharWidth)
+			moveTo (riXOffset + fromIntegral x * riCharWidth)
 			         (riYOffset + fromIntegral y * riCharHeight)
 
 	mkText txt = do
@@ -81,34 +81,34 @@ instance ImageIR (CairoIR ()) where
 		RenderState (Color fgR fgG fgB) (Color bgR bgG bgB) <- get
 
 		(layout, w, h) <- liftIO $ do
-			layout <- G.layoutText riPangoContext txt
-			(_, G.PangoRectangle _ _ w h) <- G.layoutGetExtents layout
+			layout <- layoutText riPangoContext txt
+			(_, PangoRectangle _ _ w h) <- layoutGetExtents layout
 			pure (layout, w, h)
 
 		CairoIR $ lift $ lift $ do
 			-- Draw background
-			C.setSourceRGB (fromIntegral bgR / 255)
+			setSourceRGB (fromIntegral bgR / 255)
 			               (fromIntegral bgG / 255)
 			               (fromIntegral bgB / 255)
 
-			(x, y) <- C.getCurrentPoint
+			(x, y) <- getCurrentPoint
 
-			C.rectangle x y w h
-			C.strokePreserve
-			C.fill
+			rectangle x y w h
+			strokePreserve
+			fill
 
-			C.moveTo x y
+			moveTo x y
 
 			-- Draw foreground
-			C.setSourceRGB (fromIntegral fgR / 255)
+			setSourceRGB (fromIntegral fgR / 255)
 			               (fromIntegral fgG / 255)
 			               (fromIntegral fgB / 255)
 
-			G.updateLayout layout
-			G.showLayout layout
+			updateLayout layout
+			showLayout layout
 
 -- | Convert to cairo render.
-toCairoRender :: G.PangoContext -> CairoIR a -> C.Render a
+toCairoRender :: PangoContext -> CairoIR a -> Render a
 toCairoRender context (CairoIR cp) = do
 	ri <- mkRenderInfo context
 	evalStateT (runReaderT cp ri) (RenderState (Color 0 0 0) (Color 0 0 0))
