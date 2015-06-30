@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Olec.Interface.GTK (
+module Olec.Interface.VTE (
 	-- * Interface
 	Interface,
 	newInterface,
