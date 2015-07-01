@@ -249,13 +249,7 @@ hbox' hints = do
 
 -- | Image intermediate representation
 class (Monoid a) => ImageIR a where
-	mkSetForeground :: Color -> a
-
-	mkSetBackground :: Color -> a
-
-	mkMoveCursor :: Position -> a
-
-	mkText :: T.Text -> a
+	mkEntity :: Position -> Color -> Color -> T.Text -> a
 
 -- | Render the "Image" at a given "Position".
 toImageIR :: (ImageIR a) => Position -> Image -> a
@@ -264,20 +258,6 @@ toImageIR origin (Image _ _ cnts) =
 
 -- | Image output
 type ImageOutput a = StateT (Maybe Style) (Writer a) ()
-
--- | Change style.
-changeStyle :: (ImageIR a) => Style -> ImageOutput a
-changeStyle style@(Style fg bg) = do
-	mbStyle <- get
-	case mbStyle of
-		Nothing ->
-			tell (mkSetForeground fg <> mkSetBackground bg)
-
-		Just (Style fg' bg') -> do
-			when (fg' /= fg) (tell (mkSetForeground fg))
-			when (bg' /= bg) (tell (mkSetBackground bg))
-
-	put (Just style)
 
 -- | Render a single image.
 renderOne :: (ImageIR a) => Position -> Contents -> ImageOutput a
@@ -292,10 +272,8 @@ renderOne origin cnts =
 		Layered sub ->
 			mapM_ (renderOne origin) sub
 
-		Text style txt -> do
-			changeStyle style
-			tell (mkMoveCursor origin)
-			tell (mkText txt)
+		Text (Style fg bg) txt ->
+			tell (mkEntity origin fg bg txt)
 
 		VCat imgs ->
 			renderVertically origin imgs

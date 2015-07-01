@@ -16,21 +16,16 @@ newtype VT100 = VT100 { toVT100Sequence :: B.ByteString }
 	deriving (Monoid)
 
 instance ImageIR VT100 where
-	mkSetForeground (Color r g b) =
-		VT100 (B.concat ["\ESC[38;2;",
-		                 BC.pack (show r), ";",
-		                 BC.pack (show g), ";",
-		                 BC.pack (show b), "m"])
-
-	mkSetBackground (Color r g b) =
-		VT100 (B.concat ["\ESC[48;2;",
-		                 BC.pack (show r), ";",
-		                 BC.pack (show g), ";",
-		                 BC.pack (show b), "m"])
-
-	mkMoveCursor (x, y) =
+	mkEntity (x, y) (Color fr fg fb) (Color br bg bb) txt = do
 		VT100 (B.concat ["\ESC[",
 		                 BC.pack (show (y + 1)), ";",
-		                 BC.pack (show (x + 1)), "H"])
-
-	mkText = VT100 . T.encodeUtf8
+		                 BC.pack (show (x + 1)), "H",
+		                 "\ESC[38;2;",
+		                 BC.pack (show fr), ";",
+		                 BC.pack (show fg), ";",
+		                 BC.pack (show fb), "m",
+		                 "\ESC[48;2;",
+		                 BC.pack (show br), ";",
+		                 BC.pack (show bg), ";",
+		                 BC.pack (show bb), "m",
+		                 T.encodeUtf8 txt])
