@@ -2,8 +2,11 @@
 
 module Main where
 
+import Control.Monad
 import Control.Monad.Trans
 import Control.Monad.Reader
+
+import Control.Concurrent
 
 import Olec.Visual.Types
 import Olec.Visual.Image
@@ -28,5 +31,9 @@ main = do
 	setPainter ui "#1a1a1a" $ do
 		(w, h) <- ask
 		vcat (replicate h (hcat (replicate w randomChar)))
+
+	forkIO $ forever $ do
+		threadDelay 1000000
+		requestDraw ui
 
 	runInterface
