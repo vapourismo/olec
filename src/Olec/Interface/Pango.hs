@@ -5,7 +5,8 @@ module Olec.Interface.Pango (
 	runInterface,
 	exitInterface,
 
-	-- * Configuration
+	-- * Interaction
+	requestDraw,
 	setFont,
 	setPainter
 ) where
@@ -44,6 +45,10 @@ runInterface = mainGUI
 exitInterface :: IO ()
 exitInterface = mainQuit
 
+requestDraw :: Interface -> IO ()
+requestDraw (Interface _ drawingArea _) =
+	widgetQueueDraw drawingArea
+
 setFont :: Interface -> T.Text -> IO ()
 setFont (Interface _ _ context) font =
 	fontDescriptionFromString font >>= contextSetFontDescription context
@@ -60,8 +65,8 @@ setPainter (Interface _ drawingArea context) background painter =
 	void $ on drawingArea draw $ do
 		setAntialias AntialiasSubpixel
 		setLineWidth 1
-		fillBackground background
 
+		fillBackground background
 		toCairoRender context $ do
 			size <- cairoClipSize
 			liftIO (paintImage size painter) >>= toImageIR (0, 0)
