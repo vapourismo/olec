@@ -16,8 +16,9 @@ DEPS = $(SOURCE_FILES:%.cc=$(OUTPUT_PATH)/%.d)
 DIRS = $(dir $(OBJS))
 
 # Flags
-USECXXFLAGS = $(CXXFLAGS) -std=c++14 -fmessage-length=0 -Wall -Wextra -pedantic -D_GLIBCXX_USE_C99 \
-              -O0 -g -DDEBUG
+USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 \
+              -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic \
+              -Ideps/luwra/lib
 USELDFLAGS  = $(LDFLAGS)
 USELDLIBS   = $(LDLIBS)
 

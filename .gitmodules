@@ -1,0 +1,3 @@
+[submodule "deps/luwra"]
+	path = deps/luwra
+	url = git@github.com:vapourismo/luwra.git
