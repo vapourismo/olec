@@ -17,10 +17,9 @@ DIRS = $(dir $(OBJS))
 
 # Flags
 USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 \
-              -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic \
-              -Ideps/luwra/lib
+              -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic
 USELDFLAGS  = $(LDFLAGS)
-USELDLIBS   = $(LDLIBS) -ltermbox
+USELDLIBS   = $(LDLIBS) -ltermbox -llua
 
 # Default Targets
 all: $(BIN)
