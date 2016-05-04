@@ -5,14 +5,14 @@ MKDIR = mkdir -p
 
 # Files
 SOURCE_PATH  = src
-SOURCE_FILES = main.cc
+SOURCE_FILES = main.cpp
 
 OUTPUT_PATH = dist
 OUTPUT_FILE = olec
 
 BIN  = $(OUTPUT_PATH)/$(OUTPUT_FILE)
-OBJS = $(SOURCE_FILES:%.cc=$(OUTPUT_PATH)/%.o)
-DEPS = $(SOURCE_FILES:%.cc=$(OUTPUT_PATH)/%.d)
+OBJS = $(SOURCE_FILES:%.cpp=$(OUTPUT_PATH)/%.o)
+DEPS = $(SOURCE_FILES:%.cpp=$(OUTPUT_PATH)/%.d)
 DIRS = $(dir $(OBJS))
 
 # Flags
@@ -20,7 +20,7 @@ USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 \
               -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic \
               -Ideps/luwra/lib
 USELDFLAGS  = $(LDFLAGS)
-USELDLIBS   = $(LDLIBS)
+USELDLIBS   = $(LDLIBS) -ltermbox
 
 # Default Targets
 all: $(BIN)
@@ -39,5 +39,5 @@ $(DIRS):
 $(BIN): $(OBJS) $(DIRS)
 	$(CXX) $(USELDFLAGS) -o$@ $(OBJS) $(USELDLIBS)
 
-$(OUTPUT_PATH)/%.o: $(SOURCE_PATH)/%.cc $(DIRS)
+$(OUTPUT_PATH)/%.o: $(SOURCE_PATH)/%.cpp $(DIRS)
 	$(CXX) -c $(USECXXFLAGS) -o$@ -MMD -MF$(@:%.o=%.d) $<
