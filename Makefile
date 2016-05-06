@@ -16,13 +16,16 @@ DEPS = $(SOURCE_FILES:%.cpp=$(OUTPUT_PATH)/%.d)
 DIRS = $(dir $(OBJS))
 
 # Flags
-USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 \
+USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 -D_XOPEN_SOURCE \
               -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic
 USELDFLAGS  = $(LDFLAGS)
 USELDLIBS   = $(LDLIBS) -ltermbox -llua
 
 # Default Targets
 all: $(BIN)
+
+gdb:
+	gdb -ex run $(BIN)
 
 clean:
 	$(RM) $(OUTPUT_PATH)
