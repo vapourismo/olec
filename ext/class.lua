@@ -1,4 +1,4 @@
-return function (name)
+function class(name)
 	local tpl = {
 		__init = function () end,
 		__name = name,
