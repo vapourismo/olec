@@ -1,42 +1,21 @@
-#include <locale>
-#include <codecvt>
+#include <cstring>
 #include <termbox.h>
 
 #include "termbox.hpp"
+#include "util.hpp"
 
 OLEC_NS_BEGIN
 
 void tbChangeCells(int x, int y, const char* string, uint16_t fg, uint16_t bg) {
-	std::wstring result =
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(string);
+	size_t string_len = strlen(string);
 
-	for (wchar_t ch: result) {
-		int ch_width = wcwidth(ch);
+	int step;
+	wchar_t ch;
+
+	while (*string != 0 && (step = mbtowc(&ch, string, string_len)) > 0) {
 		tb_change_cell(x, y, ch, fg, bg);
-
-		if (ch_width < 1)
-			x++;
-		else
-			x += ch_width;
+		x += wcharWidth(ch);
 	}
-}
-
-size_t tbWidthOf(const char* string) {
-	std::wstring result =
-		std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().from_bytes(string);
-
-	size_t width = 0;
-
-	for (wchar_t ch: result) {
-		int ch_width = wcwidth(ch);
-
-		if (ch_width < 1)
-			return width++;
-		else
-			width += ch_width;
-	}
-
-	return width;
 }
 
 void registerTermBox(luwra::State* state) {
@@ -67,8 +46,7 @@ void registerTermBox(luwra::State* state) {
 		{"Reverse",         TB_REVERSE},
 
 		// Additions
-		{"changeCells",     LUWRA_WRAP(tbChangeCells)},
-		{"widthOf",         LUWRA_WRAP(tbWidthOf)}
+		{"changeCells",     LUWRA_WRAP(tbChangeCells)}
 	});
 }
 

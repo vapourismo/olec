@@ -5,7 +5,7 @@ MKDIR = mkdir -p
 
 # Files
 SOURCE_PATH  = src
-SOURCE_FILES = main.cpp termbox.cpp
+SOURCE_FILES = main.cpp termbox.cpp util.cpp
 
 OUTPUT_PATH = dist
 OUTPUT_FILE = olec

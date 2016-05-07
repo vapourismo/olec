@@ -3,6 +3,7 @@
 #include <termbox.h>
 
 #include "../deps/luwra/lib/luwra.hpp"
+#include "util.hpp"
 #include "termbox.hpp"
 
 void setupLocale() {
@@ -20,9 +21,8 @@ int main() {
 	luwra::StateWrapper wrapper;
 	wrapper.loadStandardLibrary();
 
+	olec::registerUtil(wrapper);
 	olec::registerTermBox(wrapper);
-
-	wrapper["sleep"] = LUWRA_WRAP(sleep);
 
 	if (wrapper.runFile("ext/entry.lua") != LUA_OK)
 		std::cerr << luwra::read<std::string>(wrapper, -1) << std::endl;
