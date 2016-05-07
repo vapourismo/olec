@@ -6,6 +6,11 @@
 
 OLEC_NS_BEGIN
 
+// We need this as a 'wrapper' in order to properly retrieve the 'ch' parameter
+void tbChangeCell(int x, int y, wchar_t ch, uint16_t fg, uint16_t bg) {
+	tb_change_cell(x, y, ch, fg, bg);
+}
+
 void tbChangeCells(int x, int y, const char* string, uint16_t fg, uint16_t bg) {
 	size_t string_len = strlen(string);
 
@@ -28,7 +33,6 @@ void registerTermBox(luwra::State* state) {
 		{"setCursor",       LUWRA_WRAP(tb_set_cursor)},
 		{"width",           LUWRA_WRAP(tb_width)},
 		{"height",          LUWRA_WRAP(tb_height)},
-		{"changeCell",      LUWRA_WRAP(tb_change_cell)},
 
 		// Constants
 		{"Default",         TB_DEFAULT},
@@ -46,6 +50,7 @@ void registerTermBox(luwra::State* state) {
 		{"Reverse",         TB_REVERSE},
 
 		// Additions
+		{"changeCell",      LUWRA_WRAP(tbChangeCell)},
 		{"changeCells",     LUWRA_WRAP(tbChangeCells)}
 	});
 }
