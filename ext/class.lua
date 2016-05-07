@@ -1,27 +1,23 @@
-function class(name)
+function class(base)
+	base = base or {}
+
 	local tpl = {
-		__init = function () end,
-		__name = name,
-		__tostring = function (self)
-			local ret = (self.__name or name or "UnnamedClass") .. " {"
-			local sep = ""
-
-			for k, v in pairs(self) do
-				ret = ret .. sep .. tostring(k) .. " = " .. tostring(v)
-				sep = ", "
-			end
-
-			return ret .. "}"
-		end
+		__init = function () end
 	}
 
 	tpl.__index = tpl
 
 	return setmetatable(tpl, {
 		__call = function (self, ...)
-			local instance = setmetatable({}, tpl)
+			local instance = setmetatable({}, self)
 			instance:__init(...)
 			return instance
+		end,
+
+		__newindex = rawset,
+
+		__index = function (self, key)
+			return rawget(self, key) or base[key]
 		end
 	})
 end
