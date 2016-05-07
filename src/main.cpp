@@ -24,8 +24,17 @@ int main() {
 	olec::registerUtil(wrapper);
 	olec::registerTermBox(wrapper);
 
-	if (wrapper.runFile("ext/entry.lua") != LUA_OK)
-		std::cerr << luwra::read<std::string>(wrapper, -1) << std::endl;
+	olec::logString(olec::LOG_INFO, "Starting Lua entry point");
+	if (wrapper.runFile("ext/entry.lua") != LUA_OK) {
+		if (tb_width() > -1)
+			tb_shutdown();
+
+		olec::logString(olec::LOG_ERROR, luwra::read<const char*>(wrapper, -1));
+		return 1;
+	}
+
+	if (tb_width() > -1)
+		tb_shutdown();
 
 	return 0;
 }

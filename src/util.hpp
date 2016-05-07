@@ -47,6 +47,12 @@ size_t wcharWidth(wchar_t ch);
 
 size_t stringWidth(const char* string);
 
+enum LogLevel {
+	LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR
+};
+
+void logString(LogLevel level, const char* message);
+
 void registerUtil(luwra::State* state);
 
 OLEC_NS_END

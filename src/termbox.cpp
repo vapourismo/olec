@@ -23,6 +23,25 @@ void tbChangeCells(int x, int y, const char* string, uint16_t fg, uint16_t bg) {
 	}
 }
 
+luwra::Pushable tbPollEvent() {
+	tb_event event;
+	int event_type = tb_poll_event(&event);
+
+	switch (event_type) {
+		case TB_EVENT_KEY:
+			return std::make_tuple(TB_EVENT_KEY, event.mod, event.key, event.ch);
+
+		case TB_EVENT_RESIZE:
+			return std::make_tuple(TB_EVENT_RESIZE, event.w, event.h);
+
+		case TB_EVENT_MOUSE:
+			return std::make_tuple(TB_EVENT_MOUSE, event.key, event.x, event.y);
+
+		default:
+			return nullptr;
+	}
+}
+
 void registerTermBox(luwra::State* state) {
 	luwra::setGlobal(state, "TermBox", luwra::FieldVector {
 		// Functions
@@ -49,9 +68,14 @@ void registerTermBox(luwra::State* state) {
 		{"Underline",       TB_UNDERLINE},
 		{"Reverse",         TB_REVERSE},
 
+		{"KeyEvent",        TB_EVENT_KEY},
+		{"ResizeEvent",     TB_EVENT_RESIZE},
+		{"MouseEvent",      TB_EVENT_MOUSE},
+
 		// Additions
 		{"changeCell",      LUWRA_WRAP(tbChangeCell)},
-		{"changeCells",     LUWRA_WRAP(tbChangeCells)}
+		{"changeCells",     LUWRA_WRAP(tbChangeCells)},
+		{"pollEvent",       LUWRA_WRAP(tbPollEvent)},
 	});
 }
 

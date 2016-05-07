@@ -21,3 +21,19 @@ function class(base)
 		end
 	})
 end
+
+function Util.informf(fmt, ...)
+	Util.inform(fmt:format(...))
+end
+
+function Util.warnf(fmt, ...)
+	Util.warn(fmt:format(...))
+end
+
+function Util.debugf(fmt, ...)
+	Util.debug(fmt:format(...))
+end
+
+function Util.errorf(fmt, ...)
+	Util.error(fmt:format(...))
+end

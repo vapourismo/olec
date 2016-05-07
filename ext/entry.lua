@@ -1,12 +1,22 @@
-require("ext/class")
+require("ext/util")
 
-local Clip = class()
+local Rectangle = class()
 
-function Clip:__init(x, y, width, height)
+function Rectangle:__init(x, y, width, height)
 	self.x = x
 	self.y = y
 	self.width = width
 	self.height = height
+end
+
+function Rectangle:bounds()
+	return self.x, self.y, self.width, self.height
+end
+
+local Clip = class(Rectangle)
+
+function Clip:__init(rect)
+	Rectangle.__init(self, rect:bounds())
 end
 
 function Clip:changeCells(x, y, contents, fg, bg)
@@ -57,6 +67,25 @@ function Clip:fill(fg, bg, ch)
 	end
 end
 
-print("Hello")
-Util.sleep(2)
-print("World")
+function Clip:clear(fg, bg)
+	self:fill(TermBox.Default, TermBox.Default, 32)
+end
+
+local function splitVertical(rect, ratio)
+	local left = Rectangle(rect.x, rect.y, rect.width * ratio, rect.height)
+	local right = Rectangle(rect.x + left.width, rect.y, rect.width - left.width, rect.height)
+
+	return left, right
+end
+
+TermBox.init()
+
+local termBoxRect = Rectangle(0, 0, TermBox.width(), TermBox.height())
+
+local left, right = splitVertical(termBoxRect, 0.5)
+
+Clip(left):fill(TermBox.Default, TermBox.Red)
+Clip(right):fill(TermBox.Default, TermBox.Blue)
+
+TermBox.present()
+TermBox.shutdown()
