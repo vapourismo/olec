@@ -24,13 +24,14 @@ size_t stringWidth(const char* string) {
 	wchar_t ch;
 	size_t width = 0;
 
+	// Iterate over the entire string
 	while (*string != 0 && (step = mbtowc(&ch, string, string_len)) > 0)
-		width += wcharWidth(width);
+		width += wcharWidth(ch);
 
 	return width;
 }
 
-void logString(LogLevel level, const char* message) {
+void logString(LogLevel level, std::string message) {
 	static std::ofstream log_stream(".olec.log", std::ios_base::app);
 
 	time_t tm = std::time(nullptr);

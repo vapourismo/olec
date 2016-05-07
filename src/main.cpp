@@ -18,12 +18,15 @@ void setupLocale() {
 int main() {
 	setupLocale();
 
+	// Setup Lua VM
 	luwra::StateWrapper wrapper;
 	wrapper.loadStandardLibrary();
 
+	// Register helper tables
 	olec::registerUtil(wrapper);
 	olec::registerTermBox(wrapper);
 
+	// Give control to entry point
 	olec::logString(olec::LOG_INFO, "Starting Lua entry point");
 	if (wrapper.runFile("ext/entry.lua") != LUA_OK) {
 		if (tb_width() > -1)

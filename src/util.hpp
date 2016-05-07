@@ -43,16 +43,28 @@ LUWRA_NS_END
 
 OLEC_NS_BEGIN
 
+/**
+ * Retrieve the number of columns needed to display the given character.
+ */
 size_t wcharWidth(wchar_t ch);
 
+/**
+ * Retrieve the number of columns need to display the given UTF-8 encoded string.
+ */
 size_t stringWidth(const char* string);
 
 enum LogLevel {
 	LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR
 };
 
-void logString(LogLevel level, const char* message);
+/**
+ * Write a message to the log file.
+ */
+void logString(LogLevel level, std::string message);
 
+/**
+ * Register the 'Util' table.
+ */
 void registerUtil(luwra::State* state);
 
 OLEC_NS_END

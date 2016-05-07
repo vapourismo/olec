@@ -6,6 +6,9 @@
 
 OLEC_NS_BEGIN
 
+/**
+ * Register the 'TermBox' table.
+ */
 void registerTermBox(luwra::State* state);
 
 OLEC_NS_END
