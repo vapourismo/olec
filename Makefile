@@ -16,8 +16,9 @@ DEPS = $(SOURCE_FILES:%.cpp=$(OUTPUT_PATH)/%.d)
 
 # Flags
 USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 -D_XOPEN_SOURCE \
-              -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic
-USELDFLAGS  = $(LDFLAGS)
+              -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic \
+              -pthread
+USELDFLAGS  = $(LDFLAGS) -pthread
 USELDLIBS   = $(LDLIBS) -ltermbox -llua
 
 # Default Targets

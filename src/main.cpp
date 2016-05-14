@@ -1,8 +1,12 @@
-#include <unistd.h>
-#include <locale>
-
 #include "common.hpp"
+#include "threading.hpp"
 
+#include <locale>
+#include <iostream>
+#include <thread>
+#include <unistd.h>
+
+static inline
 void setupLocale() {
 	const char* lang = std::getenv("LANG");
 
@@ -15,8 +19,22 @@ void setupLocale() {
 int main() {
 	setupLocale();
 
-	olec_log_debug("Hello");
-	olec_log_info("World");
+	olec::Channel<int> chan;
+
+	olec::WorkerPool producers(4, [&chan]() {
+		for (size_t i = 0; i < 1000000; i++)
+			chan.write(i);
+	});
+
+	olec::Worker consumer([&chan]() {
+		std::list<int> sink;
+		while (sink.size() < 4000000) {
+			int item = chan.read();
+
+			std::cout << item << std::endl;
+			sink.push_back(item);
+		}
+	});
 
 	return 0;
 }
