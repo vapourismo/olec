@@ -5,7 +5,7 @@ MKDIR = mkdir -p
 
 # Files
 SOURCE_PATH  = src
-SOURCE_FILES = main.cpp common.cpp
+SOURCE_FILES = main.cpp common.cpp utils/validity.cpp
 
 OUTPUT_PATH = dist
 OUTPUT_FILE = olec
@@ -17,7 +17,7 @@ DEPS = $(SOURCE_FILES:%.cpp=$(OUTPUT_PATH)/%.d)
 # Flags
 USECXXFLAGS = $(CXXFLAGS) -std=c++14 -D_GLIBCXX_USE_C99 -D_XOPEN_SOURCE \
               -O0 -g -DDEBUG -fmessage-length=0 -Wall -Wextra -pedantic \
-              -pthread
+              -pthread -Ideps/luwra/lib
 USELDFLAGS  = $(LDFLAGS) -pthread
 USELDLIBS   = $(LDLIBS) -ltermbox -llua
 
