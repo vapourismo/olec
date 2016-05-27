@@ -12,12 +12,14 @@ OLEC_NS_BEGIN
 struct Validity;
 
 /**
- * Handle for a `Validity` instance
+ * Reference to a `Validity` instance
  */
-struct SValidity: std::shared_ptr<Validity> {
-	template <typename... A> inline
-	SValidity(A&&... args);
-};
+using SValidity = std::shared_ptr<Validity>;
+
+/**
+ * Weak reference to a `Validity` instance
+ */
+using WValidity = std::weak_ptr<Validity>;
 
 OLEC_NS_END
 
@@ -25,11 +27,11 @@ namespace std {
 	// This implementation is needed for the `set` instance to work, which `Validity` uses to track
 	// its children.
 	template <>
-	struct less<std::weak_ptr<olec::Validity>> {
+	struct less<olec::WValidity> {
 		inline
 		bool operator ()(
-			const std::weak_ptr<olec::Validity>& wlhs,
-			const std::weak_ptr<olec::Validity>& wrhs
+			const olec::WValidity& wlhs,
+			const olec::WValidity& wrhs
 		) const {
 			auto slhs = wlhs.lock();
 			auto srhs = wrhs.lock();
@@ -56,12 +58,19 @@ private:
 	std::atomic<bool> valid;
 
 	// Tracks the children of this node
-	std::set<std::weak_ptr<Validity>> children;
-
-public:
+	std::set<WValidity> children;
 
 	inline
-	Validity(bool predefined = true): valid(predefined) {}
+	Validity(bool predefined): valid(predefined) {}
+
+public:
+	static inline
+	SValidity create() {
+		return SValidity(new Validity);
+	}
+
+	inline
+	Validity(): valid(true) {}
 
 	// Forbid copying and moving instances of this type
 	Validity(const Validity&) = delete;
@@ -95,11 +104,6 @@ public:
 	 */
 	SValidity makeChild();
 };
-
-template <typename... A> inline
-SValidity::SValidity(A&&... args):
-	std::shared_ptr<Validity>(new Validity(std::forward<A>(args)...))
-{}
 
 OLEC_NS_END
 

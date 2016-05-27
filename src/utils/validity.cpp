@@ -21,7 +21,7 @@ void Validity::invalidate() {
 
 SValidity Validity::makeChild() {
 	bool v = isValid();
-	SValidity child(v);
+	SValidity child(new Validity(v));
 
 	// No point in tracking children that start off as invalid
 	if (v) children.emplace(child);
