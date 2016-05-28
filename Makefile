@@ -5,7 +5,7 @@ MKDIR = mkdir -p
 
 # Files
 SOURCE_PATH  = src
-SOURCE_FILES = main.cpp common.cpp utils/validity.cpp
+SOURCE_FILES = main.cpp common.cpp clip.cpp utils/validity.cpp
 
 OUTPUT_PATH = dist
 OUTPUT_FILE = olec
