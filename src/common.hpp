@@ -21,7 +21,6 @@ namespace internal {
 		LogLevel    level,
 		const char* file,
 		size_t      line,
-		const char* func,
 		const char* fmt,
 		...
 	);
@@ -34,19 +33,19 @@ namespace internal {
 
 #ifndef NDEBUG // Debugging enabled
 	#define olec_log_debug(...) \
-		(::olec::internal::logMessage(::olec::internal::LogLevel::Debug, __FILE__, __LINE__, __func__, __VA_ARGS__))
+		(::olec::internal::logMessage(::olec::internal::LogLevel::Debug, __FILE__, __LINE__, __VA_ARGS__))
 #else
 	#define olec_log_debug(...) ((void) 0)
 #endif
 
 #define olec_log_info(...) \
-	(::olec::internal::logMessage(::olec::internal::LogLevel::Info, __FILE__, __LINE__, __func__, __VA_ARGS__))
+	(::olec::internal::logMessage(::olec::internal::LogLevel::Info, __FILE__, __LINE__, __VA_ARGS__))
 
 #define olec_log_warn(...) \
-	(::olec::internal::logMessage(::olec::internal::LogLevel::Warn, __FILE__, __LINE__, __func__, __VA_ARGS__))
+	(::olec::internal::logMessage(::olec::internal::LogLevel::Warn, __FILE__, __LINE__, __VA_ARGS__))
 
 #define olec_log_error(...) \
-	(::olec::internal::logMessage(::olec::internal::LogLevel::Error, __FILE__, __LINE__, __func__, __VA_ARGS__))
+	(::olec::internal::logMessage(::olec::internal::LogLevel::Error, __FILE__, __LINE__, __VA_ARGS__))
 
 OLEC_NS_END
 

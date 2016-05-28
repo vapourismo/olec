@@ -32,7 +32,6 @@ namespace internal {
 		LogLevel    level,
 		const char* file,
 		size_t      line,
-		const char* func,
 		const char* fmt,
 		...
 	) {
