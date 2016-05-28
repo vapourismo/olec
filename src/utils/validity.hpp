@@ -90,7 +90,7 @@ public:
 	 * Return whether this node is still valid.
 	 */
 	inline
-	bool isValid() {
+	bool isValid() const {
 		return valid.load(std::memory_order_acquire);
 	}
 
