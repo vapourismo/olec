@@ -2,28 +2,17 @@
 
 OLEC_NS_BEGIN
 
-Clip Clip::makeChild(
-	size_t x_offset,
-	size_t y_offset,
-	size_t new_width,
-	size_t new_height
-) const {
-	// Make sure the child's origin is within its parent
-	x_offset = std::min(x_offset, width > 0 ? width - 1 : 0);
-	y_offset = std::min(y_offset, height > 0 ? height - 1 : 0);
+Clip::Clip(const Clip& other, size_t x, size_t y, size_t width, size_t height):
+	valid(other.valid->makeChild()),
 
-	// Prevent the child clip to exceed its parent's bounds
-	new_width = std::min(new_width, width - x_offset);
-	new_height = std::min(new_height, height - y_offset);
+	// Make sure the clip's origin is within its parents bounds
+	x(std::min(x, other.width > 0 ? other.width - 1 : 0)),
+	y(std::min(y, other.height > 0 ? other.height - 1 : 0)),
 
-	return {
-		valid->makeChild(),
-		x + x_offset,
-		y + y_offset,
-		new_width,
-		new_height
-	};
-}
+	// Prevent the clip from exceeding its parent's bounds
+	width(std::min(width, other.width - x)),
+	height(std::min(height, other.height - x))
+{}
 
 void Clip::put(
 	size_t         x_offset,

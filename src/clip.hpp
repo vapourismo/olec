@@ -43,6 +43,11 @@ public:
 	{}
 
 	/**
+	 * Construct a clip as a child to another clip.
+	 */
+	 Clip(const Clip& other, size_t x, size_t y, size_t width, size_t height);
+
+	/**
 	 * Invalidate this clip.
 	 */
 	inline
@@ -57,16 +62,6 @@ public:
 	bool isValid() const {
 		return valid->isValid();
 	}
-
-	/**
-	 * Create a child clip within this clip. X- and Y-offset are relative to this clip's origin.
-	 */
-	Clip makeChild(
-		size_t x_offset,
-		size_t y_offset,
-		size_t new_width,
-		size_t new_height
-	) const;
 
 	/**
 	 * Draw a character at the given position using the provided attributes.

@@ -43,16 +43,26 @@ struct Manager {
 	}
 };
 
+struct Widget {
+	virtual
+	void update(std::unique_ptr<Clip>&&) {};
+
+	virtual
+	void render() {};
+};
+
+// struct VSplit
+
 int main() {
 	setupLocale();
 
 	Manager mgr;
 	Clip root;
 
-	Clip child1 = root.makeChild(10, 10, 10, 5);
+	Clip child1(root, 10, 10, 10, 5);
 	child1.fill(' ', TB_DEFAULT, TB_RED);
 
-	Clip child2 = root.makeChild(12, 12, 10, 5);
+	Clip child2(root, 12, 12, 10, 5);
 	child2.fill(' ', TB_DEFAULT, TB_RED);
 
 	Clip child3 = child1;
