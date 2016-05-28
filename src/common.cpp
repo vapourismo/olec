@@ -43,12 +43,11 @@ namespace internal {
 		// Preamble
 		fprintf(
 			logStream.file,
-			"%s %c %s:%zu [%s] ",
+			"%s %c [%s:%zu] ",
 			timestamp.c_str(),
 			char(level),
 			file,
-			line,
-			func
+			line
 		);
 
 		// Push user-provided message
