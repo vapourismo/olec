@@ -2,6 +2,8 @@
 #include "clip.hpp"
 
 #include <locale>
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -21,29 +23,12 @@ void setupLocale() {
 		std::setlocale(LC_ALL, "en_GB.UTF-8");
 }
 
-struct Manager {
-	Manager(const Manager&) = delete;
-	Manager(Manager&&) = delete;
-	Manager& operator =(const Manager&) = delete;
-	Manager& operator =(Manager&&) = delete;
-
-	inline
-	Manager() {
-		tb_init();
-	}
-
-	inline
-	~Manager() {
-		tb_shutdown();
-	}
-
-	inline
-	void present() {
-		tb_present();
-	}
-};
-
 struct Widget {
+	template <typename T, typename... A> static inline
+	std::unique_ptr<T> create(A&&... args) {
+		return std::make_unique<T>(std::forward<A>(args)...);
+	}
+
 	virtual
 	void update(std::unique_ptr<Clip>&&) {};
 
@@ -51,30 +36,137 @@ struct Widget {
 	void render() {};
 };
 
-// struct VSplit
+struct VSplit: virtual Widget {
+	const double ratio;
+	std::unique_ptr<Clip> clip;
+	std::unique_ptr<Widget> left, right;
+
+	VSplit(double ratio, std::unique_ptr<Widget>&& left, std::unique_ptr<Widget>&& right):
+		ratio(std::max(0.0, std::min(ratio, 1.0))),
+		left(std::move(left)),
+		right(std::move(right))
+	{}
+
+	virtual
+	void update(std::unique_ptr<Clip>&& parent) {
+		olec_log_debug("VSplit: w = %zu, h = %zu", parent->width, parent->height);
+
+		size_t left_width = llround(static_cast<double>(parent->width) * ratio);
+
+		if (left)
+			left->update(
+				std::make_unique<Clip>(
+					*parent,
+					0, 0,
+					left_width, parent->height
+				)
+			);
+
+		if (right)
+			right->update(
+				std::make_unique<Clip>(
+					*parent,
+					left_width, 0,
+					parent->width - left_width, parent->height
+				)
+			);
+
+		clip = std::move(parent);
+	}
+
+	virtual
+	void render() {
+		if (left) left->render();
+		if (right) right->render();
+	}
+};
+
+struct Filler: virtual Widget {
+	wchar_t ch;
+	int fg, bg;
+
+	std::unique_ptr<Clip> clip;
+
+	Filler(wchar_t ch = ' ', int fg = TB_DEFAULT, int bg = TB_DEFAULT):
+		ch(ch), fg(fg), bg(bg)
+	{}
+
+	virtual
+	void update(std::unique_ptr<Clip>&& parent) {
+		olec_log_debug("Filler: w = %zu, h = %zu", parent->width, parent->height);
+		clip = std::move(parent);
+	}
+
+	virtual
+	void render() {
+		if (clip) clip->fill(ch, fg, bg);
+	}
+};
+
+struct Manager {
+	Manager(const Manager&) = delete;
+	Manager(Manager&&) = delete;
+	Manager& operator =(const Manager&) = delete;
+	Manager& operator =(Manager&&) = delete;
+
+	std::unique_ptr<Widget> root;
+
+	inline
+	Manager(std::unique_ptr<Widget>&& widget) {
+		tb_init();
+		root = std::move(widget);
+		resize(tb_width(), tb_height());
+	}
+
+	inline
+	~Manager() {
+		root.reset();
+		tb_shutdown();
+	}
+
+	void resize(size_t width, size_t height) {
+		if (root)
+			root->update(std::make_unique<Clip>(0, 0, width, height));
+	}
+
+	virtual
+	void render() {
+		if (root) root->render();
+		tb_present();
+	}
+};
 
 int main() {
 	setupLocale();
 
-	Manager mgr;
-	Clip root;
+	Manager mgr(
+		Widget::create<VSplit>(
+			0.5,
+			Widget::create<Filler>(L'A', TB_RED, TB_BLACK),
+			Widget::create<Filler>(L'B', TB_BLACK, TB_RED)
+		)
+	);
 
-	Clip child1(root, 10, 10, 10, 5);
-	child1.fill(' ', TB_DEFAULT, TB_RED);
+	mgr.render();
 
-	Clip child2(root, 12, 12, 10, 5);
-	child2.fill(' ', TB_DEFAULT, TB_RED);
+	while (true) {
+		tb_event ev;
 
-	Clip child3 = child1;
+		bool b = false;
+		switch (tb_poll_event(&ev)) {
+			case TB_EVENT_RESIZE:
+				olec_log_debug("resize: w = %i, h = %i", ev.w, ev.h);
+				mgr.resize(ev.w, ev.h);
+				mgr.render();
+				break;
 
-	child1.put(0, 0, L"Hello", TB_WHITE, TB_RED);
-	child2.put(0, 0, L"Hello", TB_WHITE, TB_RED);
-	child3.put(5, 1, L"World", TB_WHITE, TB_RED);
+			default:
+				b = true;
+				break;
+		}
 
-	mgr.present();
-
-	tb_event ev;
-	tb_poll_event(&ev);
+		if (b) break;
+	}
 
 	return 0;
 }

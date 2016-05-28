@@ -20,12 +20,6 @@ private:
 	// Holds the validity of this clip which determines whether this clip may be used or not.
 	const SValidity valid;
 
-	// For constructing children
-	inline
-	Clip(SValidity&& valid, size_t x, size_t y, size_t width, size_t height):
-		valid(valid), x(x), y(y), width(width), height(height)
-	{}
-
 public:
 	// Absolute bounds
 	const size_t x, y, width, height;
@@ -35,17 +29,21 @@ public:
 	 */
 	inline
 	Clip():
-		valid(Validity::create()),
-		x(0),
-		y(0),
-		width(tb_width()),
-		height(tb_height())
+		valid(Validity::create()), x(0), y(0), width(tb_width()), height(tb_height())
 	{}
 
 	/**
 	 * Construct a clip as a child to another clip.
 	 */
-	 Clip(const Clip& other, size_t x, size_t y, size_t width, size_t height);
+	Clip(const Clip& other, size_t x, size_t y, size_t width, size_t height);
+
+	/**
+	 * Construct floating clip.
+	 */
+	inline
+	Clip(size_t x, size_t y, size_t width, size_t height):
+		valid(Validity::create()), x(x), y(y), width(width), height(height)
+	{}
 
 	/**
 	 * Invalidate this clip.
