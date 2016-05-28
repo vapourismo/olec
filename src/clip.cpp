@@ -2,7 +2,7 @@
 
 OLEC_NS_BEGIN
 
-SClip Clip::makeChild(
+Clip Clip::makeChild(
 	size_t x_offset,
 	size_t y_offset,
 	size_t new_width,
@@ -16,15 +16,13 @@ SClip Clip::makeChild(
 	new_width = std::min(new_width, width - x_offset);
 	new_height = std::min(new_height, height - y_offset);
 
-	return std::shared_ptr<Clip>(
-		new Clip(
-			valid->makeChild(),
-			x + x_offset,
-			y + y_offset,
-			new_width,
-			new_height
-		)
-	);
+	return {
+		valid->makeChild(),
+		x + x_offset,
+		y + y_offset,
+		new_width,
+		new_height
+	};
 }
 
 void Clip::put(

@@ -9,13 +9,6 @@
 
 OLEC_NS_BEGIN
 
-class Clip;
-
-/**
- * Shareable `Clip` handle
- */
-using SClip = std::shared_ptr<Clip>;
-
 /**
  * \brief Area on the screen
  *
@@ -25,7 +18,7 @@ using SClip = std::shared_ptr<Clip>;
 class Clip {
 private:
 	// Holds the validity of this clip which determines whether this clip may be used or not.
-	SValidity valid;
+	const SValidity valid;
 
 	// For constructing children
 	inline
@@ -36,11 +29,6 @@ private:
 public:
 	// Absolute bounds
 	const size_t x, y, width, height;
-
-	static inline
-	SClip create() {
-		return SClip(new Clip);
-	}
 
 	/**
 	 * Constructs a clip that spans the entire visible area.
@@ -53,12 +41,6 @@ public:
 		width(tb_width()),
 		height(tb_height())
 	{}
-
-	// No copying or moving
-	Clip(const Clip&) = delete;
-	Clip(Clip&&) = delete;
-	Clip& operator =(const Clip&) = delete;
-	Clip& operator =(Clip&&) = delete;
 
 	/**
 	 * Invalidate this clip.
@@ -79,7 +61,7 @@ public:
 	/**
 	 * Create a child clip within this clip. X- and Y-offset are relative to this clip's origin.
 	 */
-	SClip makeChild(
+	Clip makeChild(
 		size_t x_offset,
 		size_t y_offset,
 		size_t new_width,

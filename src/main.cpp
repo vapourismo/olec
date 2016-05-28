@@ -49,19 +49,17 @@ int main() {
 	Manager mgr;
 	Clip root;
 
-	SClip child1 = root.makeChild(10, 10, 10, 5);
-	child1->fill(' ', TB_DEFAULT, TB_RED);
+	Clip child1 = root.makeChild(10, 10, 10, 5);
+	child1.fill(' ', TB_DEFAULT, TB_RED);
 
-	SClip child2 = root.makeChild(12, 12, 10, 5);
-	child2->fill(' ', TB_DEFAULT, TB_RED);
+	Clip child2 = root.makeChild(12, 12, 10, 5);
+	child2.fill(' ', TB_DEFAULT, TB_RED);
 
-	child1->invalidate();
+	Clip child3 = child1;
 
-	olec_log_debug("child1->isValid() = %i", child1->isValid());
-	olec_log_debug("child2->isValid() = %i", child2->isValid());
-
-	child1->put(0, 0, L"Hello", TB_WHITE, TB_RED);
-	child2->put(0, 0, L"Hello", TB_WHITE, TB_RED);
+	child1.put(0, 0, L"Hello", TB_WHITE, TB_RED);
+	child2.put(0, 0, L"Hello", TB_WHITE, TB_RED);
+	child3.put(5, 1, L"World", TB_WHITE, TB_RED);
 
 	mgr.present();
 
