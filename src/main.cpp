@@ -5,11 +5,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <memory>
 #include <string>
-#include <set>
 #include <termbox.h>
 #include <wchar.h>
+#include <cstdlib>
 
 using namespace olec;
 
@@ -89,15 +88,41 @@ struct Filler: virtual Widget {
 	}
 };
 
+struct RandomizedFiller: virtual Widget {
+	std::unique_ptr<Clip> clip;
+
+	virtual
+	void update(std::unique_ptr<Clip>&& parent) {
+		clip = std::move(parent);
+	}
+
+	int randomColorSegment() {
+		double f = static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+		return lround(f * 5.0);
+	}
+
+	int randomColor() {
+		return generateColor(randomColorSegment(), randomColorSegment(), randomColorSegment());
+	}
+
+	virtual
+	void render() {
+		if (!clip || !clip->isValid())
+			return;
+
+		for (size_t x = 0; x < clip->width; x++) {
+			for (size_t y = 0; y < clip->height; y++) {
+				clip->put(x, y, '+', randomColor(), randomColor());
+			}
+		}
+	}
+};
+
 int main() {
 	setupLocale();
 
 	Manager mgr(
-		Widget::create<VSplit>(
-			0.5,
-			Widget::create<Filler>(L'A', TB_RED, TB_BLACK),
-			Widget::create<Filler>(L'B', TB_BLACK, TB_RED)
-		)
+		Widget::create<RandomizedFiller>()
 	);
 
 	mgr.render();

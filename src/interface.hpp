@@ -5,9 +5,22 @@
 #include "clip.hpp"
 
 #include <memory>
+#include <algorithm>
 #include <termbox.h>
 
 OLEC_NS_BEGIN
+
+/**
+ * Calculate the appropriate color value. Each base color ranges from 0 to 5.
+ */
+static inline
+int generateColor(int r, int g, int b) {
+	r = std::min(5, std::max(0, r));
+	g = std::min(5, std::max(0, g));
+	b = std::min(5, std::max(0, b));
+
+	return 16 + (r * 36 + g * 6 + b);
+}
 
 /**
  * Widget interface
