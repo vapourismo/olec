@@ -19,14 +19,6 @@ void Manager::resize(size_t width, size_t height) {
 		root->update(std::make_unique<Clip>(*clip, 0, 0, width, height));
 }
 
-// Process key event
-void Manager::key(uint8_t mod, uint16_t key, uint32_t ch) {
-	olec_log_debug("key: mod = %i, key = %i, ch = %i", mod, key, ch);
-
-	if (mod == 0 && key == TB_KEY_CTRL_Q)
-		keep_polling = false;
-}
-
 // Process mouse event
 void Manager::mouse(uint16_t key, size_t x, size_t y) {
 	olec_log_debug("mouse: key = %i, x = %zu, y = %zu", key, x, y);
@@ -52,7 +44,11 @@ void Manager::pollForever() {
 				break;
 
 			case TB_EVENT_KEY:
-				key(ev.mod, ev.key, ev.ch);
+				olec_log_debug("key: mod = %i, key = %i, ch = %i", ev.mod, ev.key, ev.ch);
+
+				next = next ? next->onKey({ev.mod, ev.key, ev.ch})
+				            : keys.onKey({ev.mod, ev.key, ev.ch});
+
 				break;
 
 			case TB_EVENT_MOUSE:

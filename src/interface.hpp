@@ -3,6 +3,7 @@
 
 #include "common.hpp"
 #include "clip.hpp"
+#include "keys.hpp"
 
 #include <memory>
 #include <algorithm>
@@ -51,6 +52,12 @@ struct Manager {
 	// Whether to process more events
 	bool keep_polling = true;
 
+	// Key map
+	KeyMap keys;
+
+	// Currently selected key prefix
+	std::shared_ptr<KeyBinding> next;
+
 	inline
 	Manager(std::unique_ptr<Widget>&& widget) {
 		tb_init();
@@ -92,9 +99,6 @@ struct Manager {
 	 * Resize the screen and rerender widgets.
 	 */
 	void resize(size_t width, size_t height);
-
-	// Process key event
-	void key(uint8_t mod, uint16_t key, uint32_t ch);
 
 	// Process mouse event
 	void mouse(uint16_t key, size_t x, size_t y);
